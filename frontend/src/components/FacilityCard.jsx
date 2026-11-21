@@ -99,6 +99,9 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
               </Link>
             )}
           </div>
+          {onRequest && !facility.accepts_appointment_requests && (
+            <p className="facility-request-note">Online requests are not offered by this facility.{hasContact ? ' Contact it directly to arrange a visit.' : ''}</p>
+          )}
         </div>
       </div>
     </article>
