@@ -11,7 +11,8 @@ import { LoadingState } from './components/Feedback';
 const PatientOverview = lazy(() => import('./pages/dashboard/PatientOverview'));
 const MyAppointments = lazy(() => import('./pages/dashboard/MyAppointments'));
 const Notifications = lazy(() => import('./pages/dashboard/Notifications'));
-
+const FacilityOverview = lazy(() => import('./pages/dashboard/FacilityOverview'));
+const FacilityAppointments = lazy(() => import('./pages/dashboard/FacilityAppointments'));
 
 export default function App() {
   return (
@@ -27,6 +28,10 @@ export default function App() {
             <Route element={<ProtectedRoute roles={['patient']} />}>
               <Route index element={<PatientOverview />} />
               <Route path="appointments" element={<MyAppointments />} />
+            </Route>
+            <Route path="facility" element={<ProtectedRoute roles={['facility_staff']} />}>
+              <Route index element={<FacilityOverview />} />
+              <Route path="appointments" element={<FacilityAppointments />} />
             </Route>
             <Route path="*" element={<NotFoundPage what="dashboard page" />} />
           </Route>
