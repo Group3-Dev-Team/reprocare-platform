@@ -1,14 +1,14 @@
 /* Shared theme surfaces. Keep solid actions separate from brighter link colors. */
 :root {
-  --action-solid: #2554b7;
-  --action-hover: #194294;
+  --action-solid: #2556e6;
+  --action-hover: #1a43c4;
   --inverse-surface: #14284d;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #101927;
-  --surface: #162237;
-  --surface-muted: #1c2c44;
+  --page: #0d1525;
+  --surface: #142036;
+  --surface-muted: #1a2943;
   --text: #edf3fc;
   --text-muted: #bfcee2;
   --text-subtle: #aabbd3;
@@ -18,7 +18,11 @@
   --navy-900: #f0f6ff;
   --navy-700: #cfddf1;
   --ink-blue: #b9d5fc;
-  --blue-600: #92bdff;
+  --blue-600: #93b6ff;
+  --blue-500: #7f9dff;
+  --indigo-600: #a5a1ff;
+  --gradient-primary: linear-gradient(135deg, #3867ef 0%, #5b52e8 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #3360ea 0%, #4f46e5 100%);
   --blue-700: #b1d1ff;
   --blue-100: #243f69;
   --blue-50: #202f4e;
