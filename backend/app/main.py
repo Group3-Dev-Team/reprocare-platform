@@ -9,9 +9,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import appointment_routes
+from app.routes import appointment_routes, review_routes
 
-ROUTERS: list = [appointment_routes]  # each module must define `router`
+ROUTERS: list = [appointment_routes, review_routes]  # each module must define `router`
 
 app = FastAPI(
     title="ReproCare API",

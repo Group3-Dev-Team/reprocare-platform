@@ -4,10 +4,13 @@ from app.models.appointment import AppointmentRequest
 from app.models.data_import import DataSource, ImportBatch
 from app.models.facility import Facility, Insurer, LabTest, Service, facility_insurers, facility_services
 from app.models.practitioner import Practitioner
+from app.models.review import Review, SavedFacility
 from app.models.user import Notification, User, UserSession
 
 __all__ = [
     "AppointmentRequest",
+    "Review",
+    "SavedFacility",
     "DataSource",
     "Facility",
     "ImportBatch",
