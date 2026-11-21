@@ -9,7 +9,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import external_feedback_routes, facebook_demo_routes, facebook_moderation_routes, import_routes, places_routes
+from app.routes import (
+    import_routes,
+    places_routes,
+    external_feedback_routes,
+    facebook_moderation_routes,
+    facebook_demo_routes,
+    appointment_routes,
+    review_routes,
+    media_routes,
+)
 
 ROUTERS: list = [
     import_routes,
@@ -17,7 +26,10 @@ ROUTERS: list = [
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
-]  # each module must define `router`
+    appointment_routes,
+    review_routes,
+    media_routes,
+]
 
 app = FastAPI(
     title="ReproCare API",
