@@ -1,0 +1,109 @@
+{
+  "_note": "Production reference data: the service taxonomy, real insurers/schemes and health-library articles. Contains no facilities, practitioners, programmes, reviews or accounts.",
+  "services": [
+    {
+      "slug": "antenatal",
+      "name": "Antenatal care",
+      "short_description": "Pregnancy check-ups",
+      "keywords": "antenatal,pregnancy,pregnant,anc,prenatal,mimba"
+    },
+    {
+      "slug": "maternity",
+      "name": "Maternity and delivery",
+      "short_description": "Labour and birth",
+      "keywords": "maternity,delivery,birth,labour,labor"
+    },
+    {
+      "slug": "postnatal",
+      "name": "Postnatal care",
+      "short_description": "After birth care",
+      "keywords": "postnatal,postpartum,after birth,newborn"
+    },
+    {
+      "slug": "fertility",
+      "name": "Fertility consultation",
+      "short_description": "Trying to conceive",
+      "keywords": "fertility,conceive,infertility,ivf,trying for a baby"
+    },
+    {
+      "slug": "contraception",
+      "name": "Contraception counselling",
+      "short_description": "Family planning",
+      "keywords": "contraception,family planning,implant,iud,coil,pill,injection,fp"
+    },
+    {
+      "slug": "sti",
+      "name": "STI testing",
+      "short_description": "Testing and treatment",
+      "keywords": "sti,std,sexually transmitted,syphilis,gonorrhoea,chlamydia,testing"
+    },
+    {
+      "slug": "hiv",
+      "name": "HIV testing and PrEP",
+      "short_description": "Testing, PrEP and PEP",
+      "keywords": "hiv,prep,pep,vct"
+    },
+    {
+      "slug": "cervical",
+      "name": "Cervical screening",
+      "short_description": "Pap smear or VIA",
+      "keywords": "cervical,pap,via,hpv,screening"
+    },
+    {
+      "slug": "ultrasound",
+      "name": "Obstetric ultrasound",
+      "short_description": "Pregnancy scans",
+      "keywords": "ultrasound,scan,sonography"
+    },
+    {
+      "slug": "gynae",
+      "name": "Gynaecology",
+      "short_description": "Periods, pain, specialist care",
+      "keywords": "gynaecology,gynecology,period,menstrual,fibroids,pcos"
+    },
+    {
+      "slug": "lab",
+      "name": "Laboratory tests",
+      "short_description": "Blood and urine tests",
+      "keywords": "lab,laboratory,blood test,urine test,hormone"
+    }
+  ],
+  "insurers": [
+    {
+      "slug": "sha",
+      "name": "Social Health Authority (SHA)",
+      "kind": "Public health financing",
+      "note": "Acceptance shown is what facilities report. Confirm your entitlements with SHA."
+    },
+    {
+      "slug": "aar",
+      "name": "AAR",
+      "kind": "Private insurer",
+      "note": "Facility-reported acceptance. Confirm cover with the insurer."
+    },
+    {
+      "slug": "jubilee",
+      "name": "Jubilee",
+      "kind": "Private insurer",
+      "note": "Facility-reported acceptance. Confirm cover with the insurer."
+    },
+    {
+      "slug": "britam",
+      "name": "Britam",
+      "kind": "Private insurer",
+      "note": "Facility-reported acceptance. Confirm cover with the insurer."
+    },
+    {
+      "slug": "cic",
+      "name": "CIC",
+      "kind": "Private insurer",
+      "note": "Facility-reported acceptance. Confirm cover with the insurer."
+    },
+    {
+      "slug": "madison",
+      "name": "Madison",
+      "kind": "Private insurer",
+      "note": "Facility-reported acceptance. Confirm cover with the insurer."
+    }
+  ]
+}
