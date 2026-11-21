@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Accessibility, Building2, CalendarCheck, Clock, Columns3, CreditCard, FlaskConical, Languages, Mail, MapPin, Navigation, Phone, Video } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { Accessibility, ClipboardList, CalendarCheck, Clock, Columns3, CreditCard, Languages, Mail, MapPin, Navigation, Phone, Video } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useFetch } from '../hooks/useFetch';
@@ -8,10 +8,12 @@ import { useCompare } from '../hooks/useCompare';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { images } from '../data/images';
 import { formatDate } from '../data/labels';
+import { facilityDisplayName } from '../data/facilityNames';
 import { serviceIcons } from '../data/serviceIcons';
 import { Breadcrumbs } from '../components/PageHeader';
-import { CommunityVoice } from '../components/CommunityVoice';
 import { DemoLabel, Rating, RegistrationLabel, SourceLabel, Stars } from '../components/Badges';
+import { FacilityTypePlaceholder } from '../components/FacilityTypePlaceholder';
+import { PlanFacilityButton } from '../components/PlanFacilityButton';
 import { SaveButton } from '../components/SaveButton';
 import { MapView } from '../components/MapView';
 import { ReviewCard } from '../components/ReviewCard';
@@ -19,47 +21,86 @@ import { ReviewForm } from '../components/ReviewForm';
 import { AppointmentModal } from '../components/AppointmentModal';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, LoadingState } from '../components/Feedback';
+import { GoogleRatingCard, PublicFeedbackSection } from '../components/PublicFeedback';
 import NotFoundPage from './NotFoundPage';
+import '../styles/resource-pages.css';
 
 export default function FacilityDetailPage() {
   const { slug } = useParams();
+  return <FacilityDetails key={slug} slug={slug} />;
+}
+
+function FacilityDetails({ slug }) {
   const { user } = useAuth();
   const compare = useCompare();
-  const facility = useFetch(() => api.facility(slug), [slug]);
+  const facility = useFetch((signal) => api.facility(slug, { signal }), [slug]);
   const [reviewPage, setReviewPage] = useState(1);
-  const reviews = useFetch(() => api.facilityReviews(slug, { page: reviewPage, page_size: 6 }), [slug, reviewPage]);
+  const reviews = useFetch((signal) => api.facilityReviews(slug, { page: reviewPage, page_size: 6 }, { signal }), [slug, reviewPage]);
+  const ownReviews = useFetch(() => user?.role === 'patient' ? api.myReviews() : Promise.resolve([]), [user?.id, user?.role]);
+  const ownReview = ownReviews.data?.find((review) => review.facility?.slug === slug);
+  const publicSummary = useFetch((signal) => api.facilityPublicFeedback(slug, { signal }), [slug]);
+  const [publicWritten, setPublicWritten] = useState({ facility: 0, organization: 0 });
   const [requesting, setRequesting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const f = facility.data;
-  useDocumentTitle(f?.name, f ? `${f.type_label} in ${f.town}: services, opening hours, sources and patient experiences.` : undefined);
+  const name = facilityDisplayName(f);
+  const { hash, key: locationKey } = useLocation();
+  useEffect(() => {
+    if (f && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [f, hash, locationKey, hash === '#google-feedback' ? publicSummary.data : null]);
+  const notFound = facility.error?.status === 404;
+  useDocumentTitle(
+    notFound ? 'Not found' : name,
+    notFound ? 'ReproCare could not find this page.' : f ? `${f.type_label} in ${f.town} with services, opening hours, sources and patient experiences.` : undefined,
+    { noIndex: !f },
+  );
 
-  if (facility.error?.status === 404) return <NotFoundPage what="facility" />;
+  if (notFound) return <NotFoundPage what="facility" />;
   if (facility.error) return <div className="container section"><ErrorState error={facility.error} onRetry={facility.reload} /></div>;
   if (!f) return <div className="container section"><LoadingState rows={3} height={180} /></div>;
 
   const image = images[f.image_key];
-  const directions = f.latitude ? `https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}` : null;
+  const hasCoordinates = f.latitude != null && f.longitude != null;
+  const directions = hasCoordinates ? `https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}` : null;
+  const website = /^https?:\/\//i.test(f.website || '') ? f.website : null;
   const checked = f.registration.checked_on;
+  const sections = [
+    { id: 'about', label: 'About' },
+    { id: 'services', label: 'Services' },
+    { id: 'experiences', label: 'Patient Reviews', count: f.rating.count },
+    { id: 'public-feedback', label: 'Public Reviews', count: publicWritten.facility, organizationCount: publicWritten.organization },
+    { id: 'location', label: 'Location & Contact' },
+  ];
+  const activeSection = hash === '#google-feedback' ? '#public-feedback' : hash || '#about';
 
   return (
-    <>
+    <div className="facility-profile">
       <header className="detail-hero">
         <div className="container">
-          <Breadcrumbs items={[{ label: 'Find care', to: '/find-care/facilities' }, { label: f.facility_type === 'laboratory' ? 'Laboratories' : 'Hospitals & clinics', to: f.facility_type === 'laboratory' ? '/find-care/laboratories' : '/find-care/facilities' }, { label: f.name }]} />
+          <Breadcrumbs items={[{ label: 'Find care', to: '/find-care/facilities' }, { label: f.facility_type === 'laboratory' ? 'Laboratories' : 'Healthcare facilities', to: f.facility_type === 'laboratory' ? '/find-care/laboratories' : '/find-care/facilities' }, { label: name }]} />
           <div className="detail-hero-grid">
             <div className={`detail-media thumb-${f.facility_type}`}>
-              {image ? <img src={image.src} alt={image.alt} /> : f.facility_type === 'laboratory' ? <FlaskConical size={44} aria-hidden="true" /> : <Building2 size={44} aria-hidden="true" />}
+              {image ? <img src={image.src} alt={image.alt} /> : <FacilityTypePlaceholder type={f.facility_type} size={44} />}
             </div>
             <div>
               <p className="facility-type">{f.type_label}</p>
-              <h1>{f.name}</h1>
+              <h1>{name}</h1>
               <p className="facility-place">
-                <MapPin size={16} aria-hidden="true" /> {f.address || `${f.area}, ${f.town}`}
+                <MapPin size={16} aria-hidden="true" /> {f.address || [f.area, f.town].filter(Boolean).join(', ')}
               </p>
-              <div className="row" style={{ gap: 8, marginTop: 12 }}>
+              <div className="detail-badges">
                 <RegistrationLabel status={f.registration_status} />
                 {f.is_demo && <DemoLabel />}
-                <Rating rating={f.rating} />
+                <a href="#experiences" className="detail-score detail-score-reprocare" title="Average of moderated reviews submitted on ReproCare">
+                  <span className="detail-score-label">ReproCare rating</span>
+                  <Rating rating={f.rating} />
+                </a>
+                {publicSummary.data?.google && (
+                  <Link to="#google-feedback" className="detail-score detail-score-google" title="Google's own rating. Not a ReproCare rating.">
+                    <span className="detail-score-label">On Google</span>
+                    <GoogleRatingCard google={publicSummary.data.google} compact />
+                  </Link>
+                )}
               </div>
               <div className="row detail-actions">
                 {f.accepts_appointment_requests && (!user || user.role === 'patient') && (
@@ -82,11 +123,31 @@ export default function FacilityDetailPage() {
                   <Columns3 size={17} aria-hidden="true" /> {compare.has(f.slug) ? 'In comparison' : 'Compare'}
                 </button>
               </div>
-              {!f.accepts_appointment_requests && <p className="small muted">This facility does not take requests through ReproCare. Contact it directly.</p>}
+              <p className="small muted">
+                {f.accepts_appointment_requests
+                  ? 'The facility will confirm whether it can accommodate your request.'
+                  : f.phone
+                    ? 'Call the facility directly for availability. Online requests are unavailable for this listing.'
+                    : website
+                      ? <>Online requests are unavailable. Visit the <a href={website} rel="noopener noreferrer" target="_blank">facility website</a> for booking information.</>
+                      : 'Online requests and booking contact details are unavailable for this listing.'}
+              </p>
             </div>
           </div>
         </div>
       </header>
+
+      <nav className="detail-nav" aria-label="On this page">
+        <div className="container">
+          {sections.map(({ id, label, count, organizationCount }) => (
+            <Link key={id} to={`#${id}`} aria-current={activeSection === `#${id}` ? 'location' : undefined}>
+              {label}
+              {!!count && <span className="detail-nav-count">{count}{id === 'public-feedback' && <span className="sr-only"> facility-specific written items</span>}</span>}
+              {!!organizationCount && <span className="detail-nav-count detail-nav-count-org" >{organizationCount}<span aria-hidden="true"> org</span><span className="sr-only"> organization-wide written items</span></span>}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       <div className="container detail-layout">
         <div className="detail-main">
@@ -95,7 +156,7 @@ export default function FacilityDetailPage() {
               <h2 id="about">About this facility</h2>
               <SourceLabel layer="provider">Stated by the facility</SourceLabel>
             </div>
-            <p>{f.description || 'The facility has not added a description yet.'}</p>
+            {f.description ? <p>{f.description}</p> : <p className="muted">This facility has not added a description yet. The details below come from its public listing and from the facility itself.</p>}
           </section>
 
           <section className="panel" aria-labelledby="services">
@@ -172,12 +233,15 @@ export default function FacilityDetailPage() {
             </section>
           )}
 
-          <CommunityVoice slug={slug} />
-
           <section className="panel" aria-labelledby="experiences">
             <div className="panel-title">
-              <h2 id="experiences">Patient experiences</h2>
-              {user?.role === 'patient' && (
+              <div>
+                <h2 id="experiences">Patient reviews</h2>
+                <p className="panel-sub">
+                  <SourceLabel layer="patient">ReproCare patient ratings</SourceLabel> Only these moderated reviews make up the ReproCare rating.
+                </p>
+              </div>
+              {user?.role === 'patient' && (!ownReview || ownReview.status === 'rejected') && (
                 <button className="btn btn-secondary btn-sm" onClick={() => setReviewing(true)}>
                   Share your experience
                 </button>
@@ -212,7 +276,11 @@ export default function FacilityDetailPage() {
               Reviews describe individual experiences such as waiting time and communication. They are not a measure of clinical quality, and a small number of reviews
               cannot represent every patient.
             </p>
+            {ownReview?.status === 'pending' && (
+              <p role="status" className="callout callout-neutral">Your review is awaiting moderation. <Link to="/dashboard/reviews">Check My reviews</Link></p>
+            )}
             {reviews.loading && <LoadingState rows={2} height={110} />}
+            {reviews.error && <ErrorState error={reviews.error} onRetry={reviews.reload} />}
             {reviews.data && reviews.data.total === 0 && <EmptyState title="No ReproCare reviews yet">Patients who have visited can share their experience after signing in.</EmptyState>}
             <div className="stack">
               {reviews.data?.items.map((r) => (
@@ -223,9 +291,20 @@ export default function FacilityDetailPage() {
               <Pagination page={reviews.data.page} pages={reviews.data.pages} total={reviews.data.total} pageSize={reviews.data.page_size} noun="reviews" onChange={setReviewPage} />
             )}
           </section>
+
+          <PublicFeedbackSection slug={f.slug} summary={publicSummary} onWrittenCount={setPublicWritten} />
         </div>
 
         <aside className="detail-side">
+          <section className="panel detail-visit-prep stack">
+            <h2>Prepare for your visit</h2>
+            <p className="small muted">Make a checklist of questions and practical reminders before you go.</p>
+            <Link to={`/prepare-for-your-visit?facility=${encodeURIComponent(f.slug)}`} className="btn btn-secondary btn-sm">
+              <ClipboardList size={16} aria-hidden="true" /> Open visit checklist
+            </Link>
+            <p className="small muted">Add this facility to a plan that stays in this browser tab.</p>
+            <PlanFacilityButton slug={f.slug} />
+          </section>
           <section className="panel">
             <h2>Opening hours</h2>
             <dl className="definition-list">
@@ -250,10 +329,10 @@ export default function FacilityDetailPage() {
             </ul>
           </section>
 
-          <section className="panel">
+          <section className="panel" id="location">
             <h2>Location</h2>
-            {f.latitude != null ? (
-              <MapView points={[{ id: f.slug, name: f.name, latitude: f.latitude, longitude: f.longitude, subtitle: f.town, demo: f.is_demo }]} selectedId={f.slug} height={220} zoom={14} label={`Map showing ${f.name}`} />
+            {hasCoordinates ? (
+              <MapView points={[{ id: f.slug, name, latitude: f.latitude, longitude: f.longitude, subtitle: f.town, demo: f.is_demo }]} selectedId={f.slug} height={220} zoom={14} defer label={`Map showing ${name}`} />
             ) : (
               <p className="muted">No map location stored for this facility.</p>
             )}
@@ -320,6 +399,10 @@ export default function FacilityDetailPage() {
                 {f.registration.status === 'matched' ? `${f.registration.body}${f.registration.code ? `, ref. ${f.registration.code}` : ''}` : f.registration.status === 'unresolved' ? 'Possible match, not confirmed' : 'Not yet checked'}
                 {checked && <span className="muted"> (checked {formatDate(checked)})</span>}
               </dd>
+              <dt>Patient ratings</dt>
+              <dd>ReproCare reviews only ({f.rating.count || 'none yet'})</dd>
+              <dt>Public feedback</dt>
+              <dd><Link to="#public-feedback">See available external sources</Link></dd>
               <dt>Listing source</dt>
               <dd>{f.source ? f.source.attribution || f.source.name : 'ReproCare'}</dd>
               <dt>Last updated</dt>
@@ -333,7 +416,7 @@ export default function FacilityDetailPage() {
       </div>
 
       {requesting && <AppointmentModal facility={f} onClose={() => setRequesting(false)} />}
-      {reviewing && <ReviewForm facility={f} onClose={() => setReviewing(false)} />}
-    </>
+      {reviewing && <ReviewForm facility={f} onClose={() => setReviewing(false)} onDone={ownReviews.reload} />}
+    </div>
   );
 }
