@@ -2,6 +2,7 @@
 
 from app.models.appointment import AppointmentRequest
 from app.models.data_import import DataSource, ImportBatch
+from app.models.external import ExternalCollectionRun, ExternalComment, ExternalPost, FacilityExternalProfile
 from app.models.facility import Facility, Insurer, LabTest, Service, facility_insurers, facility_services
 from app.models.practitioner import Practitioner
 from app.models.review import Review, SavedFacility
@@ -12,6 +13,10 @@ __all__ = [
     "Review",
     "SavedFacility",
     "DataSource",
+    "ExternalCollectionRun",
+    "ExternalComment",
+    "ExternalPost",
+    "FacilityExternalProfile",
     "Facility",
     "ImportBatch",
     "Insurer",

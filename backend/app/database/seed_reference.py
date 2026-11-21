@@ -13,7 +13,6 @@ Safe to run repeatedly: existing rows are left as they are.
 import argparse
 import getpass
 import json
-from datetime import date
 from pathlib import Path
 
 from sqlalchemy import select
