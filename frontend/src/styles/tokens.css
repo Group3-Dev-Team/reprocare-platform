@@ -1,0 +1,106 @@
+/*
+ * ReproCare design tokens. Brand colours come from the ReproCare logo and the v0.8 theme:
+ * blue (people, primary action), green (care, confirmation), rose (the second figure in the logo), navy (text).
+ * Use these variables everywhere instead of raw values.
+ */
+:root {
+  color-scheme: light;
+
+  /* Brand */
+  --blue-700: #1d4ed8;
+  --blue-600: #2563eb;
+  --blue-100: #e3ecff;
+  --blue-50: #f1f6ff;
+  --green-700: #17634f;
+  --green-600: #008b56;
+  --green-100: #ddf3e9;
+  --green-50: #effaf5;
+  --rose-600: #c93a82;
+  --rose-500: #ec4f9c;
+  --rose-100: #fbe3ef;
+  --purple-600: #7b57e0;
+  --purple-100: #f2eefd;
+  --navy-900: #14213d;
+  --navy-700: #304561;
+
+  /* Surfaces and text */
+  --page: #f6f8fb;
+  --surface: #ffffff;
+  --surface-muted: #f0f4f9;
+  --text: #16253d;
+  --text-muted: #465972;
+  --text-subtle: #526781;
+  --border: #dbe3ed;
+  --border-soft: #e3e9f3;
+  --mint-50: #eaf6f0;
+  --border-strong: #b9c6dd;
+
+  /* Status */
+  --success: #00704a;
+  --success-bg: #e3f5ec;
+  --warning: #8a5300;
+  --warning-bg: #fff3dd;
+  --danger: #b42318;
+  --danger-bg: #fdebe9;
+  --info: #0546c2;
+  --info-bg: #e8efff;
+
+  /* The three information layers (see "Our approach to trust") */
+  --layer-registry: #071a4c;
+  --layer-registry-bg: #e6eaf3;
+  --layer-provider: #0546c2;
+  --layer-provider-bg: #e8efff;
+  --layer-patient: #00704a;
+  --layer-patient-bg: #e3f5ec;
+  --layer-demo: #8a5300;
+  --layer-demo-bg: #fff3dd;
+
+  /* Typography: one family, a modular scale of ~1.2 */
+  --font: 'Plus Jakarta Sans Variable', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  --text-xs: 0.78rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.3rem;
+  --text-xl: 1.6rem;
+  --text-2xl: clamp(1.75rem, 1.4rem + 1.2vw, 2.2rem);
+  --text-3xl: clamp(2.05rem, 1.5rem + 2.2vw, 3.05rem);
+  --leading-tight: 1.18;
+  --leading-body: 1.62;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Radii by hierarchy: controls < cards < media and panels */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(7, 26, 76, 0.06);
+  --shadow-2: 0 2px 4px rgba(7, 26, 76, 0.04), 0 8px 24px rgba(7, 26, 76, 0.07);
+  --shadow-3: 0 18px 48px rgba(7, 26, 76, 0.18);
+  --focus-ring: 0 0 0 3px #ffffff, 0 0 0 5px var(--blue-600);
+
+  /* Layout */
+  --container: 1240px;
+  --reading: 70ch;
+  --header-h: 78px;
+  --sidebar-w: 264px;
+
+  /* Public presentation */
+  --ink-blue: #223a65;
+  --canvas-blue: #eef5ff;
+  --canvas-sage: #edf8f3;
+}
