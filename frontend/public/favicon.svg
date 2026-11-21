@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 59" width="64" height="59" role="img" aria-labelledby="t">
+  <title id="t">ReproCare</title>
+  <!-- Edit colours here: blue #0755E9 (person), pink #EC4F9C (person), green #008B56 (heart and check). -->
+  <circle cx="15" cy="10" r="7" fill="#0755E9"/>
+  <circle cx="49" cy="10" r="7" fill="#EC4F9C"/>
+  <path d="M26 7.5l5 5 8-9" fill="none" stroke="#008B56" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6 21c-7 9-3 22 26 37v-8C13 39 10 30 16 23c-3-3-7-4-10-2z" fill="#0755E9"/>
+  <path d="M58 21c7 9 3 22-26 37v-8c19-11 22-20 16-27 3-3 7-4 10-2z" fill="#EC4F9C"/>
+  <path d="M32 47c-11-7-13-14-9-18 3-3 7-2 9 2 2-4 6-5 9-2 4 4 2 11-9 18z" fill="none" stroke="#008B56" stroke-width="3.6" stroke-linejoin="round"/>
+</svg>

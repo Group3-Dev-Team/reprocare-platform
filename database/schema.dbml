@@ -1,0 +1,380 @@
+// ReproCare schema in DBML (dbdiagram.io / DrawSQL import). Generated from the SQLAlchemy models.
+
+Table articles {
+  id integer [pk]
+  slug varchar(120) [not null, unique]
+  title varchar(200) [not null]
+  category varchar(60) [not null]
+  summary text [not null]
+  read_minutes integer [not null]
+  sections json [not null]
+  questions_to_ask json [not null]
+  "references" json [not null]
+  related_services varchar(255) [not null]
+  review_status varchar(160) [not null]
+  updated_on date
+}
+
+Table data_sources {
+  id integer [pk]
+  code varchar(40) [not null, unique]
+  name varchar(120) [not null]
+  description text [not null]
+  attribution varchar(255) [not null]
+}
+
+Table insurers {
+  id integer [pk]
+  slug varchar(60) [not null, unique]
+  name varchar(120) [not null]
+  kind varchar(80) [not null]
+  "note" text [not null]
+}
+
+Table services {
+  id integer [pk]
+  slug varchar(60) [not null, unique]
+  name varchar(120) [not null]
+  short_description varchar(160) [not null]
+  keywords text [not null]
+}
+
+Table facilities {
+  id integer [pk]
+  slug varchar(120) [not null, unique]
+  name varchar(160) [not null]
+  facility_type varchar(30) [not null]
+  description text [not null]
+  address varchar(255) [not null]
+  area varchar(120) [not null]
+  town varchar(80) [not null]
+  county varchar(80) [not null]
+  latitude float
+  longitude float
+  phone varchar(40) [not null]
+  email varchar(255) [not null]
+  website varchar(255) [not null]
+  weekday_hours varchar(60) [not null]
+  saturday_hours varchar(60) [not null]
+  sunday_hours varchar(60) [not null]
+  open_24_hours boolean [not null]
+  open_weekends boolean [not null]
+  languages varchar(255) [not null]
+  payment_methods varchar(255) [not null]
+  accessibility text [not null]
+  offers_telehealth boolean [not null]
+  accepts_appointment_requests boolean [not null]
+  registration_status varchar(20) [not null]
+  registration_body varchar(160) [not null]
+  registration_code varchar(60) [not null]
+  registration_checked_on date
+  image_key varchar(40) [not null]
+  is_demo boolean [not null]
+  source_id integer
+  external_id varchar(160)
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  indexes {
+    (source_id, external_id) [unique]
+  }
+  Note: 'Checks: registration_status IN (\'matched\', \'not_checked\', \'unresolved\'); facility_type IN (\'hospital\', \'clinic\', \'maternity_home\', \'health_centre\', \'laboratory\')'
+}
+
+Table community_programs {
+  id integer [pk]
+  slug varchar(120) [not null, unique]
+  title varchar(160) [not null]
+  program_type varchar(20) [not null]
+  summary varchar(255) [not null]
+  description text [not null]
+  organizer_name varchar(160) [not null]
+  service_id integer
+  host_facility_id integer
+  venue varchar(255) [not null]
+  town varchar(80) [not null]
+  county varchar(80) [not null]
+  latitude float
+  longitude float
+  start_date date [not null]
+  start_time varchar(20) [not null]
+  end_time varchar(20) [not null]
+  eligibility text [not null]
+  requirements text [not null]
+  cost_type varchar(20) [not null]
+  cost_note varchar(255) [not null]
+  capacity integer [not null]
+  status varchar(20) [not null]
+  is_demo boolean [not null]
+  created_at timestamptz [not null]
+  Note: 'Checks: capacity > 0; cost_type IN (\'free\', \'subsidised\', \'paid\'); program_type IN (\'screening\', \'testing\', \'education\', \'outreach\'); status IN (\'published\', \'draft\', \'cancelled\')'
+}
+
+Table external_collection_runs {
+  id integer [pk]
+  facility_id integer
+  platform varchar(20) [not null]
+  status varchar(20) [not null]
+  message text [not null]
+  posts_found integer [not null]
+  comments_created integer [not null]
+  comments_skipped integer [not null]
+  started_at timestamptz [not null]
+}
+
+Table facility_external_profiles {
+  id integer [pk]
+  facility_id integer [not null]
+  platform varchar(20) [not null]
+  external_id varchar(255) [not null]
+  url text [not null]
+  display_name varchar(255) [not null]
+  match_method varchar(40) [not null]
+  rating float
+  rating_count integer
+  photos json [not null]
+  details json [not null]
+  fetched_at timestamptz
+  created_at timestamptz [not null]
+  indexes {
+    (facility_id, platform, external_id) [unique]
+  }
+  Note: 'Checks: platform IN (\'facebook\', \'tiktok\', \'google\')'
+}
+
+Table facility_insurers {
+  facility_id integer [pk]
+  insurer_id integer [pk]
+}
+
+Table facility_services {
+  facility_id integer [pk]
+  service_id integer [pk]
+}
+
+Table lab_tests {
+  id integer [pk]
+  facility_id integer [not null]
+  name varchar(160) [not null]
+  sample_type varchar(120) [not null]
+  turnaround varchar(60) [not null]
+  price_note varchar(80) [not null]
+  home_collection boolean [not null]
+}
+
+Table practitioners {
+  id integer [pk]
+  slug varchar(120) [not null, unique]
+  full_name varchar(160) [not null]
+  title varchar(120) [not null]
+  specialty varchar(120) [not null]
+  town varchar(80) [not null]
+  gender varchar(20) [not null]
+  languages varchar(255) [not null]
+  offers_telehealth boolean [not null]
+  bio text [not null]
+  fee_note varchar(160) [not null]
+  facility_id integer
+  registration_status varchar(20) [not null]
+  registration_body varchar(120) [not null]
+  registration_code varchar(60) [not null]
+  registration_checked_on date
+  is_demo boolean [not null]
+  Note: 'Checks: registration_status IN (\'matched\', \'not_checked\', \'unresolved\')'
+}
+
+Table users {
+  id integer [pk]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  full_name varchar(120) [not null]
+  phone varchar(40)
+  role varchar(20) [not null]
+  facility_id integer
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  Note: 'Checks: (role = \'facility_staff\') = (facility_id IS NOT NULL); role IN (\'patient\', \'facility_staff\', \'admin\')'
+}
+
+Table appointment_requests {
+  id integer [pk]
+  reference varchar(20) [not null, unique]
+  user_id integer [not null]
+  facility_id integer [not null]
+  practitioner_id integer
+  service_id integer
+  preferred_date date [not null]
+  preferred_time varchar(20) [not null]
+  contact_phone varchar(40) [not null]
+  notes text [not null]
+  status varchar(20) [not null]
+  facility_note text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: 'Checks: preferred_time IN (\'morning\', \'afternoon\', \'evening\'); status IN (\'requested\', \'confirmed\', \'declined\', \'cancelled\')'
+}
+
+Table contact_messages {
+  id integer [pk]
+  reference varchar(20) [not null, unique]
+  user_id integer
+  name varchar(120) [not null]
+  email varchar(255) [not null]
+  topic varchar(30) [not null]
+  message text [not null]
+  status varchar(20) [not null]
+  created_at timestamptz [not null]
+  Note: 'Checks: status IN (\'new\', \'in_progress\', \'resolved\'); topic IN (\'general\', \'listing_correction\', \'privacy\', \'technical\', \'feedback\')'
+}
+
+Table external_posts {
+  id integer [pk]
+  facility_id integer
+  platform varchar(20) [not null]
+  external_id varchar(255) [not null]
+  url text [not null]
+  author_name varchar(255) [not null]
+  caption text [not null]
+  thumbnail_url text [not null]
+  published_at timestamptz
+  collected_at timestamptz
+  match_method varchar(40) [not null]
+  is_visible boolean [not null]
+  facebook_scope varchar(20)
+  facebook_reviewed_at timestamptz
+  facebook_reviewed_by integer
+  facebook_review_note text
+  legacy_facility_name varchar(160) [not null]
+  created_at timestamptz [not null]
+  indexes {
+    (platform, external_id) [unique]
+  }
+  Note: 'Checks: platform IN (\'facebook\', \'tiktok\', \'google\'); facebook_scope IS NULL OR (platform = \'facebook\' AND facebook_scope IN (\'facility\', \'organization\'))'
+}
+
+Table import_batches {
+  id integer [pk]
+  source_id integer [not null]
+  submitted_by_user_id integer
+  received_count integer [not null]
+  created_count integer [not null]
+  updated_count integer [not null]
+  error_count integer [not null]
+  errors json [not null]
+  created_at timestamptz [not null]
+}
+
+Table notifications {
+  id integer [pk]
+  user_id integer [not null]
+  title varchar(160) [not null]
+  body text [not null]
+  link varchar(255)
+  is_read boolean [not null]
+  created_at timestamptz [not null]
+}
+
+Table program_registrations {
+  id integer [pk]
+  reference varchar(20) [not null, unique]
+  program_id integer [not null]
+  user_id integer [not null]
+  full_name varchar(120) [not null]
+  phone varchar(40) [not null]
+  status varchar(20) [not null]
+  created_at timestamptz [not null]
+  indexes {
+    (program_id, user_id) [unique]
+  }
+  Note: 'Checks: status IN (\'registered\', \'cancelled\', \'attended\')'
+}
+
+Table reviews {
+  id integer [pk]
+  facility_id integer [not null]
+  user_id integer
+  service_id integer
+  author_name varchar(80) [not null]
+  rating integer [not null]
+  title varchar(160) [not null]
+  body text [not null]
+  visit_month date
+  status varchar(20) [not null]
+  moderation_note text [not null]
+  facility_reply text [not null]
+  is_demo boolean [not null]
+  created_at timestamptz [not null]
+  Note: 'Checks: rating BETWEEN 1 AND 5; status IN (\'pending\', \'published\', \'rejected\')'
+}
+
+Table saved_facilities {
+  user_id integer [pk]
+  facility_id integer [pk]
+  created_at timestamptz [not null]
+}
+
+Table user_sessions {
+  id integer [pk]
+  user_id integer [not null]
+  token_hash varchar(64) [not null, unique]
+  created_at timestamptz [not null]
+  expires_at timestamptz [not null]
+}
+
+Table external_comments {
+  id integer [pk]
+  post_id integer [not null]
+  facility_id integer
+  parent_id integer
+  platform varchar(20) [not null]
+  external_id varchar(255) [not null]
+  author_name varchar(255) [not null]
+  author_is_facility boolean [not null]
+  text text [not null]
+  published_at timestamptz
+  published_at_approximate boolean [not null]
+  collected_at timestamptz
+  like_count integer
+  source_rating integer
+  status varchar(20) [not null]
+  screening varchar(40) [not null]
+  screening_reasons json [not null]
+  created_at timestamptz [not null]
+  indexes {
+    (platform, external_id) [unique]
+  }
+  Note: 'Checks: platform IN (\'facebook\', \'tiktok\', \'google\'); source_rating IS NULL OR source_rating BETWEEN 1 AND 5; status IN (\'visible\', \'held\', \'hidden\')'
+}
+
+Ref: facilities.source_id > data_sources.id
+Ref: community_programs.service_id > services.id
+Ref: community_programs.host_facility_id > facilities.id
+Ref: external_collection_runs.facility_id > facilities.id
+Ref: facility_external_profiles.facility_id > facilities.id
+Ref: facility_insurers.facility_id > facilities.id
+Ref: facility_insurers.insurer_id > insurers.id
+Ref: facility_services.facility_id > facilities.id
+Ref: facility_services.service_id > services.id
+Ref: lab_tests.facility_id > facilities.id
+Ref: practitioners.facility_id > facilities.id
+Ref: users.facility_id > facilities.id
+Ref: appointment_requests.user_id > users.id
+Ref: appointment_requests.facility_id > facilities.id
+Ref: appointment_requests.practitioner_id > practitioners.id
+Ref: appointment_requests.service_id > services.id
+Ref: contact_messages.user_id > users.id
+Ref: external_posts.facility_id > facilities.id
+Ref: external_posts.facebook_reviewed_by > users.id
+Ref: import_batches.source_id > data_sources.id
+Ref: import_batches.submitted_by_user_id > users.id
+Ref: notifications.user_id > users.id
+Ref: program_registrations.program_id > community_programs.id
+Ref: program_registrations.user_id > users.id
+Ref: reviews.facility_id > facilities.id
+Ref: reviews.user_id > users.id
+Ref: reviews.service_id > services.id
+Ref: saved_facilities.user_id > users.id
+Ref: saved_facilities.facility_id > facilities.id
+Ref: user_sessions.user_id > users.id
+Ref: external_comments.post_id > external_posts.id
+Ref: external_comments.facility_id > facilities.id
+Ref: external_comments.parent_id > external_comments.id
