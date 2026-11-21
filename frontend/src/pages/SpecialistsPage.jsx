@@ -1,5 +1,6 @@
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
+import { townNames } from '../data/townNames';
 import { useFetch } from '../hooks/useFetch';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
@@ -13,8 +14,9 @@ export default function SpecialistsPage() {
   const specialties = useFetch(() => api.specialties(), []);
   const towns = useFetch(() => api.towns(), []);
   const key = params.toString();
-  const page = Number(params.get('page') || 1);
-  const results = useFetch(() => api.practitioners({ ...Object.fromEntries(params.entries()), page, page_size: 15 }), [key]);
+  const requestedPage = Number(params.get('page') || 1);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const results = useFetch((signal) => api.practitioners({ ...Object.fromEntries(params.entries()), page, page_size: 15 }, { signal }), [key]);
 
   const update = (changes) => {
     const next = new URLSearchParams(params);
@@ -22,7 +24,14 @@ export default function SpecialistsPage() {
     if (!('page' in changes)) next.delete('page');
     setParams(next);
   };
-  const data = results.data;
+  const data = results.loading ? null : results.data;
+  const filtered = ['q', 'specialty', 'town', 'gender', 'telehealth', 'verified_only'].some((field) => params.has(field));
+  // Without filters, the results total tells us whether the directory has entries. With filters, the specialty
+  // list (one entry per listed specialty) does — but only once it has loaded successfully.
+  const directoryKnown = !filtered || (!specialties.loading && !specialties.error && Array.isArray(specialties.data));
+  const directoryEmpty = filtered ? directoryKnown && specialties.data.length === 0 : data?.total === 0;
+  const mismatched = filtered && directoryKnown && !directoryEmpty;
+  const referenceFailed = specialties.error || towns.error;
 
   return (
     <>
@@ -36,18 +45,18 @@ export default function SpecialistsPage() {
           role="search"
           onSubmit={(e) => {
             e.preventDefault();
-            update({ q: new FormData(e.currentTarget).get('q') });
+            update({ q: new FormData(e.currentTarget).get('q').trim() });
           }}
         >
           <label className="sr-only" htmlFor="practitioner-q">
             Search practitioners
           </label>
-          <input id="practitioner-q" name="q" className="input" defaultValue={params.get('q') || ''} placeholder="Name, specialty or town" />
+          <input id="practitioner-q" name="q" className="input" defaultValue={params.get('q') || ''} key={params.get('q')} maxLength={100} placeholder="Name, specialty or town" />
           <button className="btn btn-primary">Search</button>
         </form>
       </PageHeader>
-      <div className="container section-sm">
-        <div className="filter-row">
+      <div className="container section-sm directory-reference">
+        <div className="filter-row directory-reference-filters">
           <select className="select" aria-label="Specialty" value={params.get('specialty') || ''} onChange={(e) => update({ specialty: e.target.value })}>
             <option value="">All specialties</option>
             {(specialties.data || []).map((s) => (
@@ -58,9 +67,7 @@ export default function SpecialistsPage() {
           </select>
           <select className="select" aria-label="Town" value={params.get('town') || ''} onChange={(e) => update({ town: e.target.value })}>
             <option value="">All towns</option>
-            {(towns.data || []).slice().sort((a, b) => a.town.localeCompare(b.town)).map((t) => (
-              <option key={t.town}>{t.town}</option>
-            ))}
+            {townNames(towns.data || []).map((name) => <option key={name}>{name}</option>)}
           </select>
           <select className="select" aria-label="Gender" value={params.get('gender') || ''} onChange={(e) => update({ gender: e.target.value })}>
             <option value="">Any gender</option>
@@ -76,12 +83,35 @@ export default function SpecialistsPage() {
             <span>Register checked</span>
           </label>
         </div>
-        <h2 className="results-count">{results.loading ? 'Searching…' : `${data?.total ?? 0} practitioners`}</h2>
+        {referenceFailed && (
+          <p className="small muted" role="status">
+            Some filter options could not be loaded.{' '}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { if (specialties.error) specialties.reload(); if (towns.error) towns.reload(); }}>Try again</button>
+          </p>
+        )}
+        <h2 className="results-count" aria-live="polite">
+          {results.loading ? 'Searching…' : data ? `${data.total.toLocaleString()} ${data.total === 1 ? 'practitioner' : 'practitioners'}` : 'Practitioners'}
+        </h2>
         {results.loading && <LoadingState rows={3} height={140} />}
         {results.error && <ErrorState error={results.error} onRetry={results.reload} />}
-        {data?.total === 0 && (
-          <EmptyState title="No practitioners match these filters" action={<button className="btn btn-primary" onClick={() => setParams(new URLSearchParams())}>Clear filters</button>}>
-            Try another specialty or town, or search hospitals and clinics that offer the service.
+        {data?.total === 0 && filtered && !directoryKnown && specialties.loading && <LoadingState rows={1} height={90} />}
+        {data?.total === 0 && filtered && !directoryKnown && !specialties.loading && (
+          <EmptyState
+            title="No practitioner listings found for these filters"
+            action={<button className="btn btn-primary" onClick={() => setParams(new URLSearchParams())}>Clear filters</button>}
+          >
+            Clear the filters to see every listed practitioner.
+          </EmptyState>
+        )}
+        {data?.total === 0 && directoryKnown && (
+          <EmptyState
+            title={mismatched ? 'No practitioner listings match these filters' : 'Practitioner profiles are not listed yet'}
+            action={mismatched ? <button className="btn btn-primary" onClick={() => setParams(new URLSearchParams())}>Clear filters</button>
+              : <Link className="btn btn-primary" to="/find-care/facilities">Browse facilities</Link>}
+          >
+            {mismatched ? 'Try another specialty or town.' : (
+              <>Contact a facility to ask which specialists are available. You can look up doctors and dentists in the <a href="https://registers.kmpdc.go.ke/" target="_blank" rel="noreferrer">KMPDC register</a>.</>
+            )}
           </EmptyState>
         )}
         {data?.total > 0 && (
