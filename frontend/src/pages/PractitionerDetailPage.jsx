@@ -1,3 +1,4 @@
+import { facilityDisplayName } from '../data/facilityNames';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CalendarCheck, Languages, MapPin, Receipt, Video } from 'lucide-react';
@@ -19,9 +20,14 @@ export default function PractitionerDetailPage() {
   const facility = useFetch(() => (result.data?.facility ? api.facility(result.data.facility.slug) : Promise.resolve(null)), [result.data?.facility?.slug]);
   const [requesting, setRequesting] = useState(false);
   const p = result.data;
-  useDocumentTitle(p?.full_name, p ? `${p.title} in ${p.town}.` : undefined);
+  const notFound = result.error?.status === 404;
+  useDocumentTitle(
+    notFound ? 'Not found' : p?.full_name,
+    notFound ? 'ReproCare could not find this page.' : p ? `${p.title} in ${p.town}.` : undefined,
+    { noIndex: notFound },
+  );
 
-  if (result.error?.status === 404) return <NotFoundPage what="practitioner" />;
+  if (notFound) return <NotFoundPage what="practitioner" />;
   if (result.error) return <div className="container section"><ErrorState error={result.error} onRetry={result.reload} /></div>;
   if (!p) return <div className="container section"><LoadingState rows={2} /></div>;
 
@@ -43,7 +49,7 @@ export default function PractitionerDetailPage() {
             <p>{p.bio || 'No biography provided yet.'}</p>
             <ul className="contact-list">
               <li>
-                <MapPin size={16} aria-hidden="true" /> {p.facility ? <Link to={`/facilities/${p.facility.slug}`}>{p.facility.name}</Link> : 'Independent practice'}, {p.town}
+                <MapPin size={16} aria-hidden="true" /> {p.facility ? <Link to={`/facilities/${p.facility.slug}`}>{facilityDisplayName(p.facility)}</Link> : 'Independent practice'}, {p.town}
               </li>
               <li>
                 <Languages size={16} aria-hidden="true" /> {p.languages.join(', ')}
@@ -90,7 +96,7 @@ export default function PractitionerDetailPage() {
             <h2>Next step</h2>
             {p.facility?.accepts_appointment_requests ? (
               <>
-                <p className="small">Send a request to {p.facility.name}, mentioning that you would like to see {p.full_name}.</p>
+                <p className="small">Send a request to {facilityDisplayName(p.facility)}, mentioning that you would like to see {p.full_name}.</p>
                 {(!user || user.role === 'patient') && (
                   <button className="btn btn-primary btn-block" onClick={() => setRequesting(true)} disabled={!facility.data}>
                     <CalendarCheck size={17} aria-hidden="true" /> Request appointment
@@ -98,7 +104,7 @@ export default function PractitionerDetailPage() {
                 )}
               </>
             ) : (
-              <Alert tone="info">Contact {p.facility ? p.facility.name : 'the practitioner'} directly to arrange a visit.</Alert>
+              <Alert tone="info">Contact {p.facility ? facilityDisplayName(p.facility) : 'the practitioner'} directly to arrange a visit.</Alert>
             )}
           </section>
         </aside>
