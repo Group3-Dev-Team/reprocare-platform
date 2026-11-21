@@ -1,0 +1,195 @@
+.visit-tools-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.visit-return { margin-block-end: var(--space-4); }
+.visit-tools-grid .panel { padding: clamp(18px, 3vw, 30px); }
+.visit-tools-grid h2, .visit-tools-grid h3, .visit-tools-grid p { margin: 0; }
+.visit-tools-grid h2 { display: flex; align-items: center; gap: var(--space-2); }
+.visit-tools-grid h2 svg { color: var(--green-700); }
+.visit-suggestions { display: grid; gap: var(--space-2); }
+.visit-suggestions button {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: start;
+}
+
+.visit-suggestions button[aria-pressed='true'] {
+  background: var(--blue-50);
+  border-color: var(--blue-600);
+  color: var(--blue-700);
+}
+
+.visit-suggestions svg { flex: none; }
+.visit-add-question, .visit-question-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.visit-add-question button, .visit-question-list button { min-height: 44px; }
+.visit-question-list { border-top: 1px solid var(--border); padding-top: var(--space-4); }
+.visit-question-list h3 { margin-bottom: var(--space-2); }
+.visit-question-list ol { display: grid; gap: var(--space-3); list-style: none; margin: 0; padding: 0; }
+.visit-tools-aside .panel:first-child { border-top: 3px solid var(--green-600); }
+.visit-save-panel { background: var(--blue-50); }
+.visit-clear { justify-self: start; align-self: start; }
+.visit-print { display: none; }
+
+@media (max-width: 740px) {
+  .visit-tools-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+}
+
+@media (max-width: 390px) {
+  .visit-add-question { grid-template-columns: minmax(0, 1fr); }
+  .visit-add-question button { justify-self: start; }
+}
+
+@media print {
+  body:has(.visit-preparation) { margin: 0; background: white; color: black; }
+  body:has(.visit-preparation) #root > :not(main),
+  body:has(.visit-preparation) main > :not(.visit-preparation),
+  .visit-preparation > :not(.visit-print) { display: none !important; }
+  .visit-print { display: block; padding: 12mm; }
+  .visit-print li { break-inside: avoid; }
+  .visit-print-title { margin: 0 0 8px; font-size: 22pt; font-weight: 700; color: #14284d; }
+}
+
+.patient-agenda-nav { margin-block-end: var(--space-5); }
+.patient-agenda-nav [aria-current='page'] {
+  background: var(--blue-50);
+  border-color: var(--blue-600);
+  color: var(--blue-700);
+}
+
+.patient-agenda-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  background: var(--blue-50);
+}
+
+.patient-agenda-overview h2, .patient-agenda-overview p { margin: 0; }
+.patient-agenda-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.patient-agenda-item {
+  display: grid;
+  grid-template-columns: minmax(95px, .32fr) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.patient-agenda-item h3 { margin: 0 0 var(--space-2); }
+.patient-agenda-item p { margin: 0 0 var(--space-1); }
+.patient-agenda-item .row + p { margin-top: var(--space-2); }
+.patient-agenda-item .agenda-actions { align-items: start; }
+.agenda-date {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--green-50);
+  color: var(--green-700);
+  font-size: var(--text-xs);
+}
+
+.agenda-date strong { font-size: var(--text-md); }
+
+@media (max-width: 760px) {
+  .patient-agenda-overview { grid-template-columns: minmax(0, 1fr); }
+  .patient-agenda-item { grid-template-columns: minmax(85px, auto) minmax(0, 1fr); }
+  .patient-agenda-item .agenda-actions { grid-column: 2; }
+}
+
+@media (max-width: 390px) {
+  .patient-agenda-item { grid-template-columns: minmax(0, 1fr); }
+  .patient-agenda-item .agenda-actions { grid-column: 1; }
+  .agenda-date { justify-self: start; }
+}
+
+.local-image-preview { margin-block-start: var(--space-5); }
+.local-image-preview h2, .local-image-preview p { margin: 0; }
+.local-image-preview h2 { font-size: var(--text-lg); }
+.local-image-placeholder, .local-image-frame {
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--surface-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+.local-image-placeholder { display: flex; align-items: center; gap: var(--space-2); }
+.local-image-frame img { display: block; max-width: 100%; max-height: 280px; margin-inline: auto; object-fit: contain; border-radius: var(--radius-sm); }
+.local-image-frame figcaption { margin-top: var(--space-2); }
+.local-image-clear { justify-self: start; align-self: start; }
+
+.calendar-view-actions [aria-pressed='true'] {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border-color: var(--blue-600);
+}
+
+.calendar-month-heading h2 { margin: 0; }
+.calendar-month-return { align-self: start; }
+.calendar-month-actions { gap: var(--space-2); }
+.calendar-month-actions button { min-block-size: 40px; }
+.calendar-month-actions button[aria-label] { padding-inline: var(--space-2); }
+
+.calendar-month-table {
+  inline-size: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+}
+.calendar-month-table th {
+  padding-block: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+.calendar-month-table td {
+  padding: 2px;
+  border-block-start: 1px solid var(--border);
+}
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  line-height: 1.2;
+}
+button.calendar-day {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border-color: var(--border);
+  font-weight: 700;
+}
+.calendar-day[aria-current='date'] { border-color: var(--blue-600); }
+button.calendar-day:hover,
+button.calendar-day[aria-pressed='true'] {
+  background: var(--blue-100);
+  border-color: var(--blue-600);
+  color: var(--text);
+}
+.calendar-day-count {
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+@media (max-width: 420px) {
+  .calendar-month-heading { align-items: start; flex-direction: column; }
+  .calendar-month-table th, .calendar-day-count { font-size: 11px; }
+}
