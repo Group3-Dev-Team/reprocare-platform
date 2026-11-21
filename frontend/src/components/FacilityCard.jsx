@@ -1,16 +1,19 @@
+import { facilityDisplayName } from '../data/facilityNames';
 import { Link } from 'react-router-dom';
-import { Building2, CalendarCheck, Clock, FlaskConical, MapPin, Stethoscope, Video } from 'lucide-react';
+import { ArrowUpRight, CalendarCheck, Clock, Columns3, MapPin, Video } from 'lucide-react';
 import { images } from '../data/images';
 import { useCompare, MAX_COMPARE } from '../hooks/useCompare';
 import { DemoLabel, Rating, RegistrationLabel } from './Badges';
+import { GoogleRatingCard } from './PublicFeedback';
+import { FacilityTypePlaceholder } from './FacilityTypePlaceholder';
 import { SaveButton } from './SaveButton';
-
-const typeIcon = { laboratory: FlaskConical, hospital: Building2 };
 
 /** One search result. Leads with the requested service, then practical access details and sources. */
 export function FacilityCard({ facility, highlightService, selected, onSelect, onRequest }) {
+  // Contact Facility leads to the listing's phone, email or website. Request appointment is shown only to
+  // facilities that take ReproCare requests; there is no instant booking because no facility publishes slots.
+  const hasContact = Boolean(facility.phone || facility.email || facility.website);
   const compare = useCompare();
-  const Icon = typeIcon[facility.facility_type] || Stethoscope;
   const image = images[facility.image_key];
   const facilityServices = Array.isArray(facility.services) ? facility.services : [];
   const facilityInsurers = Array.isArray(facility.insurers) ? facility.insurers : [];
@@ -18,28 +21,22 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
     ? [...facilityServices].sort((a, b) => (b.slug === highlightService) - (a.slug === highlightService))
     : facilityServices;
   const inCompare = compare.has(facility.slug);
-  const compareFull = !inCompare && compare.items.length >= MAX_COMPARE;
-  const distance = facility.distance_km != null && Number.isFinite(Number(facility.distance_km)) ? Number(facility.distance_km).toFixed(1) : null;
+  const canCompare = inCompare || compare.items.length < MAX_COMPARE;
 
   return (
-    <article
-      id={`facility-${facility.slug}`}
-      className={`facility-card ${selected ? 'is-selected' : ''}`}
-      onMouseEnter={() => onSelect?.(facility.slug)}
-      onFocus={() => onSelect?.(facility.slug)}
-    >
+    <article className={`facility-card directory-card ${selected ? 'is-selected' : ''}`} onMouseEnter={() => onSelect?.(facility.slug)}>
       <div className={`facility-thumb thumb-${facility.facility_type}`}>
-        {image ? <img src={image.src} alt="" loading="lazy" /> : <Icon size={28} aria-hidden="true" />}
+        {image ? <img src={image.src} alt="" loading="lazy" /> : <FacilityTypePlaceholder type={facility.facility_type} size={28} />}
       </div>
       <div className="facility-body">
         <div className="facility-head">
           <div>
             <p className="facility-type">
               {facility.type_label}
-              {distance != null && <> · {distance} km away</>}
+              {facility.distance_km != null && <> · {facility.distance_km} km away</>}
             </p>
             <h3>
-              <Link to={`/facilities/${facility.slug}`}>{facility.name}</Link>
+              <Link to={`/facilities/${facility.slug}`}>{facilityDisplayName(facility)}</Link>
             </h3>
             <p className="facility-place">
               <MapPin size={14} aria-hidden="true" />
@@ -49,14 +46,14 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
           <SaveButton facility={facility} />
         </div>
 
-        <ul className="tag-list" aria-label="Services">
+        {services.length > 0 && <ul className="tag-list" aria-label="Services">
           {services.slice(0, 5).map((s) => (
             <li key={s.slug} className={`tag ${s.slug === highlightService ? 'tag-match' : ''}`}>
               {s.name}
             </li>
           ))}
           {services.length > 5 && <li className="tag tag-more">+{services.length - 5} more</li>}
-        </ul>
+        </ul>}
 
         <ul className="facility-facts">
           <li>
@@ -74,22 +71,31 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
 
         <div className="facility-foot">
           <div className="facility-sources">
-            <RegistrationLabel status={facility.registration_status} />
+            {facility.registration_status === 'matched' && <RegistrationLabel status={facility.registration_status} />}
             {facility.is_demo && <DemoLabel />}
             <Rating rating={facility.rating} isDemo={facility.is_demo} demoSeed={facility.slug} />
           </div>
-          <div className="row">
-            <label className="compare-toggle" title={compareFull ? `You can compare up to ${MAX_COMPARE} facilities. Remove one first.` : undefined}>
-              <input type="checkbox" checked={inCompare} disabled={compareFull} onChange={() => compare.toggle(facility)} />
-              Compare
-            </label>
+          {facility.google_rating && (
+            <Link to={`/facilities/${facility.slug}#google-feedback`} aria-label="Open Google Maps ratings for this facility">
+              <GoogleRatingCard google={facility.google_rating} compact />
+            </Link>
+          )}
+          <div className="row directory-card-actions">
+            <Link to={`/facilities/${facility.slug}#experiences`} className="btn btn-secondary btn-sm">
+              Patient reviews
+            </Link>
+            <button type="button" className="btn btn-secondary btn-sm directory-compare-toggle" aria-pressed={inCompare} disabled={!canCompare}
+              aria-label={`Compare ${facilityDisplayName(facility)}`} title={canCompare ? undefined : 'Remove a facility from the comparison to add another'}
+              onClick={() => compare.toggle(facility)}>
+              <Columns3 size={15} aria-hidden="true" /> {inCompare ? 'Added to compare' : 'Compare'}
+            </button>
             {facility.accepts_appointment_requests && onRequest ? (
               <button className="btn btn-primary btn-sm" onClick={() => onRequest(facility)}>
                 <CalendarCheck size={15} aria-hidden="true" /> Request appointment
               </button>
             ) : (
-              <Link to={`/facilities/${facility.slug}`} className="btn btn-secondary btn-sm">
-                View details
+              <Link to={`/facilities/${facility.slug}${onRequest && hasContact ? '#location' : ''}`} className="btn btn-secondary btn-sm">
+                {onRequest && hasContact ? 'Contact facility' : 'View details'} <ArrowUpRight size={15} aria-hidden="true" />
               </Link>
             )}
           </div>
