@@ -21,6 +21,9 @@ const AdminReviews = lazy(() => import('./pages/dashboard/AdminReviews'));
 // Sign in and accounts (SCRUM-13)
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const GoogleCallbackPage = lazy(() => import('./pages/GoogleCallbackPage'));
 
 function AdminHome() {
   return <DashboardHeader title="Administration" description="Review moderation is available. Other administration pages are added by their workstreams." />;
@@ -34,6 +37,9 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="sign-in" element={<SignInPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="dashboard" element={<ProtectedRoute />}>
