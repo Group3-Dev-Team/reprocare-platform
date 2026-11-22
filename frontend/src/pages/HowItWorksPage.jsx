@@ -14,13 +14,13 @@ const steps = [
   {
     icon: Search,
     title: "Search for the service first",
-    body: "Choose the care you need, such as antenatal care, cervical screening or HIV testing, and a town. Everyday words work, including Kiswahili terms like “mimba”. Results lead with facilities that list the service you asked for.",
+    body: "Choose the care you need, such as antenatal care, cervical screening or HIV testing, and a county. Service filters use the services recorded on each listing. If coverage is limited, browse nearby facilities and confirm services directly.",
     link: ["/find-care/facilities", "Start a search"],
   },
   {
     icon: SlidersHorizontal,
     title: "Narrow the results to what fits your life",
-    body: "Filter by insurer, weekend or 24-hour opening, telehealth, and whether the facility takes appointment requests. Use the map, or your location, to see the nearest options first. Up to 40 results show on each page.",
+    body: "Filter by insurer, weekend or 24-hour opening, telehealth, and whether the facility takes appointment requests. Use the map, or your location, to see the nearest options first. You can also browse the directory without sharing your location.",
     link: ["/find-care/map", "Open the map"],
   },
   {
@@ -49,7 +49,7 @@ export default function HowItWorksPage() {
     "From searching for a service to requesting an appointment: how ReproCare helps you find reproductive healthcare in Kenya.",
   );
   return (
-    <>
+    <div className="about-editorial">
       <PageHeader
         title="How ReproCare works"
         intro="From a healthcare question to a practical next step, in five stages. You can browse everything without an account."
@@ -175,6 +175,6 @@ export default function HowItWorksPage() {
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }

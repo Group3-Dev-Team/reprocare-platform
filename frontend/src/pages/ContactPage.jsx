@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Clock, Mail, MessageCircle, Phone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { CheckCircle2, Mail, MessageCircle, Phone } from "lucide-react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
@@ -17,18 +17,28 @@ export default function ContactPage() {
   const { user } = useAuth();
   const [params] = useSearchParams();
   const facility = params.get("facility");
+  const { state } = useLocation();
   const [form, setForm] = useState({
     name: user?.full_name || "",
     email: user?.email || "",
     topic:
       params.get("topic") in contactTopics ? params.get("topic") : "general",
-    message: facility ? `About the listing "${facility}": ` : "",
+    message:
+      typeof state?.draft === "string"
+        ? state.draft
+        : facility
+          ? `About the listing "${facility}": `
+          : "",
     website: "",
   });
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(null);
+  const confirmation = useRef(null);
+  useEffect(() => {
+    if (sent) confirmation.current?.focus();
+  }, [sent]);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   // The signed-in user may load after the page first renders; fill empty fields once it does.
@@ -43,6 +53,7 @@ export default function ContactPage() {
 
   const submit = async (e) => {
     e.preventDefault();
+    setError(null);
     const next = {};
     if (form.name.trim().length < 2) next.name = "Enter your name.";
     if (!/^\S+@\S+\.\S+$/.test(form.email.trim()))
@@ -51,9 +62,13 @@ export default function ContactPage() {
     if (form.message.trim().length < 10)
       next.message = "Tell us a little more (at least 10 characters).";
     setErrors(next);
-    if (Object.keys(next).length) return;
+    const firstError = Object.keys(next)[0];
+    if (firstError) {
+      const field = e.currentTarget.elements.namedItem(firstError);
+      window.requestAnimationFrame(() => field?.focus());
+      return;
+    }
     setSending(true);
-    setError(null);
     try {
       setSent(
         await api.contact({
@@ -84,7 +99,12 @@ export default function ContactPage() {
       <div className="container contact-layout section-sm">
         <section className="panel">
           {sent ? (
-            <div className="confirmation" role="status">
+            <div
+              className="confirmation"
+              ref={confirmation}
+              tabIndex={-1}
+              role="status"
+            >
               <CheckCircle2
                 size={36}
                 color="var(--green-600)"
@@ -93,9 +113,8 @@ export default function ContactPage() {
               <div>
                 <h2>Message received</h2>
                 <p>
-                  Your reference is <strong>{sent.reference}</strong>. We reply
-                  by email, usually within two working days. Keep the reference
-                  if you need to follow up.
+                  ReproCare saved your message. Keep reference{" "}
+                  <strong>{sent.reference}</strong> if you need to follow up.
                 </p>
                 <button
                   className="btn btn-secondary"
@@ -118,6 +137,8 @@ export default function ContactPage() {
               )}
               <TextInput
                 label="Your name"
+                name="name"
+                maxLength={120}
                 value={form.name}
                 onChange={set("name")}
                 error={errors.name}
@@ -126,6 +147,7 @@ export default function ContactPage() {
               />
               <TextInput
                 label="Email address"
+                name="email"
                 type="email"
                 value={form.email}
                 onChange={set("email")}
@@ -145,6 +167,7 @@ export default function ContactPage() {
               <TextArea
                 className="span-2"
                 label="Message"
+                name="message"
                 value={form.message}
                 onChange={set("message")}
                 error={errors.message}
@@ -164,7 +187,11 @@ export default function ContactPage() {
                 />
               </div>
               <div className="span-2 row">
-                <button className="btn btn-primary btn-lg" disabled={sending}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  disabled={sending}
+                  aria-busy={sending}
+                >
                   {sending ? "Sending…" : "Send message"}
                 </button>
                 <span className="small muted">
@@ -195,10 +222,6 @@ export default function ContactPage() {
               <li>
                 <Mail size={16} aria-hidden="true" /> Facility details? Contact
                 the facility using the number on its listing
-              </li>
-              <li>
-                <Clock size={16} aria-hidden="true" /> We reply Monday to
-                Friday, 8 am to 5 pm (EAT)
               </li>
             </ul>
           </section>
