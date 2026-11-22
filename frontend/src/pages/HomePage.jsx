@@ -1,253 +1,448 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  BookOpen,
   Bot,
+  Building2,
+  CalendarCheck,
+  ClipboardList,
+  GitCompareArrows,
+  MapPin,
+  Search,
   ShieldCheck,
-  Trophy,
-  Facebook,
-  SearchX,
+  Stethoscope,
 } from "lucide-react";
-import doctor from "../assets/doctor.jpg";
-import facility from "../assets/facility.jpg";
-import { clinicById } from "../data/clinics";
-import { go, href } from "../lib/router";
-import { useStore } from "../lib/store";
-import { useResults } from "../lib/useResults";
-import { defaultFilters } from "../lib/search";
-import {
-  ActiveFilters,
-  CompareBar,
-  DetailsDrawer,
-  DetailsPanel,
-  FilterBar,
-  ResultRow,
-  SearchBar,
-  SortControl,
-} from "../components/Workspace";
-import { FamilyCard } from "../components/FamilyCard";
-import { OutreachStrip } from "../components/Outreach";
-import { Button, EmptyState } from "../components/ui";
+import { api } from "../services/api";
+import { useFetch } from "../hooks/useFetch";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { facilityTypes } from "../data/labels";
+import { serviceIcons } from "../data/serviceIcons";
+import { ProgramCard } from "../components/ProgramCard";
+import { ErrorState, LoadingState } from "../components/Feedback";
+import clinician from "../assets/reprocare-clinician-hero.webp";
+import clinicianSmall from "../assets/reprocare-clinician-hero-small.webp";
+import familyArt from "../assets/reprocare-family-hero.webp";
+import familyArtSmall from "../assets/reprocare-family-visit-small.webp";
 
-export function Home() {
-  const { selectedId, setSelectedId, setPendingQuestion, setFilters, filters } =
-    useStore();
-  const { results, total, origin } = useResults({ page: 1, pageSize: 3 });
-  const [drawer, setDrawer] = useState(false);
-  const openDrawer = useCallback(() => setDrawer(true), []);
-  const closeDrawer = useCallback(() => setDrawer(false), []);
-  const [ask, setAsk] = useState("");
-  const top = results;
-  useEffect(() => {
-    if (!selectedId || !results.some((r) => r.clinic.id === selectedId))
-      setSelectedId(results[0]?.clinic.id ?? null);
-  }, [results]); // eslint-disable-line react-hooks/exhaustive-deps
-  const submitAsk = (e) => {
-    e.preventDefault();
-    setPendingQuestion(
-      ask.trim() ||
-        "What should I expect during my first fertility consultation?",
-    );
-    go(href.assistant);
+const nextSteps = [
+  {
+    to: "/find-care/facilities",
+    label: "Find care",
+    icon: Search,
+    tone: "blue",
+    description:
+      "Browse healthcare facilities by location and the details they report.",
+  },
+  {
+    to: "/compare",
+    label: "Care Decision Assistant",
+    icon: GitCompareArrows,
+    tone: "mint",
+    description:
+      "Choose a care goal, then weigh up services, hours, feedback and cover for up to three facilities.",
+  },
+  {
+    to: "/prepare-for-your-visit",
+    label: "Prepare for your visit",
+    icon: ClipboardList,
+    tone: "violet",
+    description: "Make a private checklist of the questions you want to ask.",
+  },
+];
+const sources = [
+  [
+    "Official registration",
+    "A matched record shows the registry and the date it was checked.",
+  ],
+  [
+    "Facility information",
+    "Services, hours and accepted insurers come from facility listings. Confirm details before travelling.",
+  ],
+  ["Patient reviews", "Moderated experiences submitted directly to ReproCare."],
+  [
+    "Public feedback",
+    "Comments from public sources appear separately, with links to the original posts.",
+  ],
+];
+
+export default function HomePage() {
+  useDocumentTitle(
+    null,
+    "Find reproductive healthcare in Kenya. Search by service and county, compare facilities, and see where listing information comes from.",
+  );
+  const services = useFetch(() => api.services(), []);
+  const counties = useFetch(() => api.counties(), []);
+  const insurers = useFetch(() => api.insurers(), []);
+  const programs = useFetch(() => api.programs({ page_size: 3 }), []);
+  const articles = useFetch(() => api.articles(), []);
+  const stats = useFetch(() => api.stats(), []);
+  const [service, setService] = useState("");
+  const [county, setCounty] = useState("");
+  const [facilityType, setFacilityType] = useState("");
+  const [insurer, setInsurer] = useState("");
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+
+  const search = (event) => {
+    event.preventDefault();
+    const params = new URLSearchParams();
+    if (service) params.set("service", service);
+    if (county) params.set("county", county);
+    if (facilityType) params.set("facility_type", facilityType);
+    if (insurer) params.set("insurer", insurer);
+    if (query.trim()) params.set("q", query.trim());
+    navigate(`/find-care/facilities${params.size ? `?${params}` : ""}`);
   };
-  return (
-    <div className="dash">
-      <section className="ref-hero" aria-labelledby="hero-title">
-        <div className="ref-hero-art" aria-hidden="true">
-          <img className="ref-hero-bg" src={facility} alt="" />
-          <img className="ref-hero-doc" src={doctor} alt="" />
-        </div>
-        <p className="ref-hero-script" aria-hidden="true">
-          Better care.
-          <br />
-          Brighter future.
-          <svg viewBox="0 0 200 20" preserveAspectRatio="none">
-            <path
-              d="M4 16 C 60 4, 140 2, 196 10"
-              stroke="var(--green)"
-              strokeWidth="4"
-              fill="none"
-              strokeLinecap="round"
-            />
-          </svg>
-        </p>
-        <div className="ref-hero-copy">
-          <h1 id="hero-title">
-            <span>Find care that</span>{" "}
-            <span className="h-green">fits your needs</span>
-          </h1>
-          <p>
-            Search healthcare services, compare practical provider information
-            and decide who to contact. Check each source and confirm service
-            arrangements with the provider.
-          </p>
-          <SearchBar onSearch={() => setSelectedId(null)} />
-          <FilterBar />
-          <ActiveFilters />
-        </div>
-        <span className="sr-only">
-          Photo: a smiling female health professional in a white coat outside a
-          hospital.
-        </span>
-      </section>
 
-      <div className="dash-grid">
-        <section className="dash-results" aria-labelledby="top-title">
-          <div className="dash-results-head">
-            <h2 id="top-title">
-              <Trophy size={26} aria-hidden="true" className="trophy" />
-              {filters.query || filters.service
-                ? "Best matching facilities"
-                : "Facilities near you"}{" "}
-              <span className="count">
-                ({total} {total === 1 ? "result" : "results"})
-              </span>
-            </h2>
-            <div className="head-actions">
-              <SortControl />
-              <a className="text-link" href={href.find}>
-                View all and map
-              </a>
+  return (
+    <div className="home-v2">
+      <section className="home-hero">
+        <div className="container home-hero-layout">
+          <div className="home-hero-copy">
+            <p className="home-hero-eyebrow">
+              <BadgeCheck size={16} aria-hidden="true" /> Independent
+              reproductive healthcare directory for Kenya
+            </p>
+            <h1>
+              Find reproductive care <span>in Kenya.</span>
+            </h1>
+            <p className="lede">
+              Search by service or location, see where listing details come from
+              and make a plan for your next healthcare visit.
+            </p>
+            <div className="home-hero-links">
+              <Link to="/how-it-works">
+                How ReproCare works <ArrowRight size={17} aria-hidden="true" />
+              </Link>
             </div>
           </div>
-          {top.length ? (
-            <div className="rrows">
-              {top.map((r, i) => (
-                <ResultRow
-                  key={r.clinic.id}
-                  result={r}
-                  index={i}
-                  origin={origin}
-                  selected={selectedId === r.clinic.id}
-                  onSelect={setSelectedId}
-                  onOpen={openDrawer}
-                  badge={!!(filters.query || filters.service)}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<SearchX size={28} />}
-              title="No providers match all of these filters"
-              action={
-                <Button
-                  variant="secondary"
-                  onClick={() => setFilters(defaultFilters)}
-                >
-                  Clear search and filters
-                </Button>
-              }
-            >
-              Remove a filter or choose another location.
-            </EmptyState>
-          )}
-          {total > 3 && (
-            <a
-              className="btn btn-secondary btn-md more-results"
-              href={href.find}
-            >
-              <span>See all {total} facilities</span>
-              <ArrowRight size={16} aria-hidden="true" />
-            </a>
-          )}
-        </section>
-        <DetailsPanel
-          clinic={selectedId ? clinicById(selectedId) : undefined}
-        />
-      </div>
-      <DetailsDrawer
-        clinic={selectedId ? clinicById(selectedId) : undefined}
-        open={drawer}
-        onClose={closeDrawer}
-      />
-      <CompareBar />
 
-      <OutreachStrip />
+          <form
+            id="home-find-care"
+            className="home-search"
+            onSubmit={search}
+            role="search"
+            aria-label="Find care"
+          >
+            <div className="home-search-fields">
+              <div className="field">
+                <label className="field-label" htmlFor="home-filter-service">
+                  <Stethoscope size={15} aria-hidden="true" /> Service
+                </label>
+                <select
+                  id="home-filter-service"
+                  className="select"
+                  value={service}
+                  onChange={(event) => setService(event.target.value)}
+                >
+                  <option value="">Any service</option>
+                  {(services.data || []).map((item) => (
+                    <option key={item.slug} value={item.slug}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label className="field-label" htmlFor="home-filter-county">
+                  <MapPin size={15} aria-hidden="true" /> County
+                </label>
+                <select
+                  id="home-filter-county"
+                  className="select"
+                  value={county}
+                  onChange={(event) => setCounty(event.target.value)}
+                >
+                  <option value="">Any county</option>
+                  {(counties.data || []).map((item) => (
+                    <option key={item.county} value={item.county}>
+                      {item.county}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label
+                  className="field-label"
+                  htmlFor="home-filter-facility-type"
+                >
+                  <Building2 size={15} aria-hidden="true" /> Facility type
+                </label>
+                <select
+                  id="home-filter-facility-type"
+                  className="select"
+                  value={facilityType}
+                  onChange={(event) => setFacilityType(event.target.value)}
+                >
+                  <option value="">All facility types</option>
+                  {facilityTypes.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="btn btn-primary btn-lg" type="submit">
+                <Search size={19} aria-hidden="true" /> Find care
+              </button>
+            </div>
+            <details>
+              <summary>More filters</summary>
+              <div className="home-search-extra">
+                <div>
+                  <div className="field">
+                    <label
+                      className="field-label"
+                      htmlFor="home-filter-insurer"
+                    >
+                      Insurer
+                    </label>
+                    <select
+                      id="home-filter-insurer"
+                      className="select"
+                      value={insurer}
+                      onChange={(event) => setInsurer(event.target.value)}
+                      aria-describedby="home-insurer-coverage"
+                    >
+                      <option value="">All insurers</option>
+                      {(insurers.data || []).map((item) => (
+                        <option key={item.slug} value={item.slug}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p id="home-insurer-coverage" className="small muted">
+                    This filter uses reported cover. Some listings have no
+                    insurer information.
+                  </p>
+                </div>
+                <div className="field">
+                  <label className="field-label" htmlFor="home-filter-query">
+                    Facility name or area
+                  </label>
+                  <input
+                    id="home-filter-query"
+                    className="input"
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+              </div>
+            </details>
+            {(services.error || counties.error || insurers.error) && (
+              <p role="status" className="small muted">
+                Some search options could not load. You can still browse the
+                directory.
+              </p>
+            )}
+          </form>
+
+          <figure className="home-hero-art">
+            <img
+              src={clinician}
+              srcSet={clinicianSmall + " 640w, " + clinician + " 1200w"}
+              sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1240px) 45vw, 560px"
+              alt="Kenyan healthcare professional in a consultation room"
+              width="1200"
+              height="960"
+              fetchpriority="high"
+            />
+            {stats.data?.facilities > 0 && (
+              <figcaption className="home-hero-chip home-hero-chip-count">
+                <Building2 size={18} aria-hidden="true" />
+                <span>
+                  <strong>{stats.data.facilities.toLocaleString()}</strong>{" "}
+                  facilities listed
+                  {stats.data.towns ? ` in ${stats.data.towns} towns` : ""}
+                </span>
+              </figcaption>
+            )}
+            <span
+              className="home-hero-chip home-hero-chip-source"
+              aria-hidden="true"
+            >
+              <ShieldCheck size={18} /> Sources shown on every listing
+            </span>
+          </figure>
+        </div>
+      </section>
 
       <section
-        className="home-family"
-        aria-label="For families, providers and partners"
+        className="section container home-actions"
+        aria-labelledby="home-next-step"
       >
-        <FamilyCard />
-        <div className="home-roles">
-          <a className="panel overview-card" href={href.listFacility}>
-            <strong>Run a hospital, clinic or laboratory?</strong>
-            <span>
-              Claim or register your facility and keep its listing accurate.
-            </span>
-          </a>
-          <a className="panel overview-card" href={href.joinPractitioner}>
-            <strong>Independent healthcare practitioner?</strong>
-            <span>
-              Create your professional profile, list your services and manage
-              enquiries.
-            </span>
-          </a>
-          <a className="panel overview-card" href={href.partner}>
-            <strong>Insurer, diagnostic service or sponsor?</strong>
-            <span>Partner with ReproCare under a written agreement.</span>
-          </a>
-          <a className="panel overview-card" href={href.freeCare}>
-            <strong>Looking for free or subsidised care?</strong>
-            <span>
-              Find screenings and community health programmes near you.
-            </span>
-          </a>
+        <h2 id="home-next-step">Plan your next step</h2>
+        <ul className="home-task-list">
+          {nextSteps.map(({ to, label, description, icon: Icon, tone }) => (
+            <li key={to}>
+              <Link className={"home-task home-task-" + tone} to={to}>
+                <span className="home-task-icon">
+                  <Icon size={22} aria-hidden="true" />
+                </span>
+                <strong>{label}</strong>
+                <span className="home-task-description">{description}</span>
+                <ArrowUpRight
+                  className="home-task-arrow"
+                  size={19}
+                  aria-hidden="true"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="section container home-services">
+        <div className="section-head">
+          <h2>Explore care by service</h2>
+        </div>
+        {services.loading && <LoadingState rows={2} height={58} />}
+        {services.error && (
+          <ErrorState error={services.error} onRetry={services.reload} />
+        )}
+        <ul>
+          {(services.data || []).map((item) => {
+            const Icon = serviceIcons[item.slug] || Search;
+            return (
+              <li key={item.slug}>
+                <Link
+                  to={`/find-care/facilities?service=${encodeURIComponent(item.slug)}`}
+                >
+                  <Icon size={22} aria-hidden="true" />
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>{item.short_description}</small>
+                  </span>
+                  <ArrowUpRight size={17} aria-hidden="true" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="home-source-band section">
+        <div className="container home-editorial">
+          <div>
+            <ShieldCheck size={27} aria-hidden="true" />
+            <h2>Know where each listing detail comes from.</h2>
+            <Link to="/trust" className="btn btn-secondary">
+              Our approach to trust <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+          <dl>
+            {sources.map(([name, description]) => (
+              <div key={name}>
+                <dt>{name}</dt>
+                <dd>{description}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
-      <section className="dash-strip" aria-label="More help">
-        <form className="strip-ask" onSubmit={submitAsk}>
-          <span className="strip-bot" aria-hidden="true">
-            <Bot size={28} />
-          </span>
-          <div className="strip-ask-text">
-            <h2>Ask the ReproCare assistant</h2>
-            <p>General answers in English or Kiswahili.</p>
-          </div>
-          <label className="strip-ask-input">
-            <span className="sr-only">Your question</span>
-            <input
-              value={ask}
-              onChange={(e) => setAsk(e.target.value)}
-              placeholder="e.g. What should I expect during a fertility consultation?"
-            />
-            <button type="submit" aria-label="Ask the assistant">
-              <ArrowRight size={18} />
-            </button>
-          </label>
-        </form>
-        <div className="strip-sources">
-          <h2>Where patient experiences come from</h2>
-          <div
-            className="strip-logos"
-            aria-label="ReproCare, Google and Facebook"
-          >
-            <span className="lg rc" title="Moderated ReproCare reviews">
-              <ShieldCheck size={20} />
-            </span>
-            <span className="lg g" title="Google ratings">
-              G
-            </span>
-            <span
-              className="lg fb"
-              title="Facebook recommendations, with the facility’s permission"
-            >
-              <Facebook size={20} />
-            </span>
-          </div>
-          <a className="small" href={href.trust}>
-            How we label sources
-          </a>
-        </div>
-        <div className="strip-privacy">
-          <ShieldCheck size={36} aria-hidden="true" />
-          <div>
-            <h2>Your privacy matters</h2>
+      <section
+        className="section container home-preparation"
+        aria-labelledby="home-prepare-heading"
+      >
+        <div className="home-preparation-inner">
+          <div className="home-preparation-copy">
+            <h2 id="home-prepare-heading">
+              Bring your questions to the visit.
+            </h2>
             <p>
-              Browsing needs no account. Questions are never shared with
-              clinics.
+              Use the checklist to write down what you would like to ask, check
+              what to bring and print a copy if you want one.
+            </p>
+            <Link className="btn btn-primary" to="/prepare-for-your-visit">
+              Prepare for your visit <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+          <img
+            src={familyArt}
+            srcSet={familyArtSmall + " 640w, " + familyArt + " 1448w"}
+            sizes="(max-width: 530px) calc(100vw - 42px), (max-width: 1280px) 42vw, 550px"
+            alt="Illustration of a pregnant woman with her partner and child"
+            width="1448"
+            height="1086"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </section>
+
+      <section className="section container home-guides">
+        <div className="section-head spread">
+          <div>
+            <h2>Understand your care options</h2>
+            <p>
+              Read our health guides or find general answers in the Health
+              Assistant.
             </p>
           </div>
+          <Link className="btn btn-secondary" to="/health-library">
+            Health Library <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
+        <div className="home-guide-grid">
+          <div className="home-guide-list">
+            {articles.loading && <LoadingState rows={2} height={48} />}
+            {articles.error && (
+              <ErrorState error={articles.error} onRetry={articles.reload} />
+            )}
+            <ul className="article-links">
+              {(articles.data || []).slice(0, 4).map((article) => (
+                <li key={article.slug}>
+                  <Link to={`/health-library/${article.slug}`}>
+                    <BookOpen size={17} aria-hidden="true" />
+                    <span>{article.title}</span>
+                    <small>{article.read_minutes} min read</small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="home-guide-assistant">
+            <Bot size={24} aria-hidden="true" />
+            <h3>Have a general question?</h3>
+            <p>
+              Explore reviewed guides in English or Kiswahili with the Health
+              Assistant.
+            </p>
+            <Link to="/assistant" className="btn btn-secondary">
+              Open the assistant <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="section home-community">
+        <div className="container">
+          <div className="section-head spread">
+            <div>
+              <h2>Community Programmes &amp; Affordable Care</h2>
+              <p>
+                Browse community initiatives, screening events and subsidised
+                care where listings are available.
+              </p>
+            </div>
+            <Link to="/health-community/programmes" className="btn btn-primary">
+              <CalendarCheck size={17} aria-hidden="true" /> Browse programmes
+            </Link>
+          </div>
+          {!!programs.data?.items?.length && (
+            <div className="program-list">
+              {programs.data.items.map((program) => (
+                <ProgramCard key={program.slug} program={program} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

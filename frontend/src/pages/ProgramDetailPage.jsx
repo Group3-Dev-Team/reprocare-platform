@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useFetch } from "../hooks/useFetch";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { costTypes, formatDate, programTypes } from "../data/labels";
+import { facilityDisplayName } from "../data/facilityNames";
 import { PageHeader } from "../components/PageHeader";
 import { DemoLabel } from "../components/Badges";
 import { MapView } from "../components/MapView";
@@ -26,7 +27,13 @@ export default function ProgramDetailPage() {
   const result = useFetch(() => api.program(slug), [slug]);
   const [registering, setRegistering] = useState(false);
   const p = result.data;
-  useDocumentTitle(p?.title, p?.summary);
+  useDocumentTitle(
+    result.error?.status === 404 ? "Page not found" : p?.title,
+    result.error?.status === 404
+      ? "ReproCare could not find this page."
+      : p?.summary,
+    { noIndex: !p },
+  );
 
   if (result.error?.status === 404) return <NotFoundPage what="programme" />;
   if (result.error)
@@ -42,8 +49,11 @@ export default function ProgramDetailPage() {
       </div>
     );
 
-  const full = p.spaces_left === 0;
-  const pct = Math.min(100, Math.round((p.registered / p.capacity) * 100));
+  const capacityKnown = Number.isInteger(p.spaces_left) && p.capacity > 0;
+  const full = capacityKnown && p.spaces_left === 0;
+  const pct = capacityKnown
+    ? Math.min(100, Math.round((p.registered / p.capacity) * 100))
+    : 0;
 
   return (
     <>
@@ -83,7 +93,7 @@ export default function ProgramDetailPage() {
                   <dt>Hosted at</dt>
                   <dd>
                     <Link to={`/facilities/${p.host_facility.slug}`}>
-                      {p.host_facility.name}
+                      {facilityDisplayName(p.host_facility)}
                     </Link>
                   </dd>
                 </>
@@ -97,20 +107,21 @@ export default function ProgramDetailPage() {
                 <Users size={16} aria-hidden="true" />
                 <span>
                   <strong>Who can attend:</strong>{" "}
-                  {p.eligibility || "Open to everyone"}
+                  {p.eligibility || "Ask the organiser about eligibility"}
                 </span>
               </li>
               <li>
                 <ClipboardList size={16} aria-hidden="true" />
                 <span>
                   <strong>What to bring:</strong>{" "}
-                  {p.requirements || "Nothing specific"}
+                  {p.requirements || "Ask the organiser what to bring"}
                 </span>
               </li>
               <li>
                 <Wallet size={16} aria-hidden="true" />
                 <span>
-                  <strong>Cost:</strong> {p.cost_note}
+                  <strong>Cost:</strong>{" "}
+                  {p.cost_note || "Ask the organiser to confirm the cost"}
                 </span>
               </li>
             </ul>
@@ -158,22 +169,28 @@ export default function ProgramDetailPage() {
                 <MapPin size={16} aria-hidden="true" /> {p.venue}
               </li>
             </ul>
-            <div className="capacity">
-              <div className="spread small">
-                <span>
-                  {full ? "No places left" : `${p.spaces_left} places left`}
-                </span>
-                <span className="muted">{p.capacity} in total</span>
+            {capacityKnown && !p.is_past && (
+              <div className="capacity">
+                <div className="spread small">
+                  <span>
+                    {full ? "No places left" : `${p.spaces_left} places left`}
+                  </span>
+                  <span className="muted">{p.capacity} in total</span>
+                </div>
+                <div className="bar" aria-hidden="true">
+                  <span style={{ width: `${pct}%` }} />
+                </div>
               </div>
-              <div className="bar" aria-hidden="true">
-                <span style={{ width: `${pct}%` }} />
-              </div>
-            </div>
+            )}
             {p.is_past ? (
               <Alert tone="info">This programme has already taken place.</Alert>
             ) : full ? (
               <Alert tone="warning">
                 This programme is full. Check other dates in the programme list.
+              </Alert>
+            ) : !capacityKnown ? (
+              <Alert tone="info">
+                Confirm registration availability with the organiser.
               </Alert>
             ) : (
               (!user || user.role === "patient") && (
