@@ -18,6 +18,10 @@ const FacilityAppointments = lazy(() => import('./pages/dashboard/FacilityAppoin
 const FacilityReviews = lazy(() => import('./pages/dashboard/FacilityReviews'));
 const AdminReviews = lazy(() => import('./pages/dashboard/AdminReviews'));
 
+// Sign in and accounts (SCRUM-13)
+const SignInPage = lazy(() => import('./pages/SignInPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+
 function AdminHome() {
   return <DashboardHeader title="Administration" description="Review moderation is available. Other administration pages are added by their workstreams." />;
 }
@@ -28,6 +32,8 @@ export default function App() {
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="sign-in" element={<SignInPage />} />
+          <Route path="register" element={<RegisterPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="dashboard" element={<ProtectedRoute />}>
