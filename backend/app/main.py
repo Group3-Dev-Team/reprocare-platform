@@ -18,6 +18,10 @@ from app.routes import (
     appointment_routes,
     review_routes,
     media_routes,
+    auth_routes,
+    password_recovery_routes,
+    account_routes,
+    admin_routes,
 )
 
 ROUTERS: list = [
@@ -29,6 +33,10 @@ ROUTERS: list = [
     appointment_routes,
     review_routes,
     media_routes,
+    auth_routes,
+    password_recovery_routes,
+    account_routes,
+    admin_routes,
 ]
 
 app = FastAPI(
