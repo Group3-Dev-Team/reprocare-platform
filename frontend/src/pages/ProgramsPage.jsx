@@ -1,52 +1,69 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { HandHeart, List, Map as MapIcon } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  CalendarDays,
+  HandHeart,
+  List,
+  Map as MapIcon,
+  Search,
+} from "lucide-react";
 import { api } from "../services/api";
+import { townNames } from "../data/townNames";
 import { useFetch } from "../hooks/useFetch";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { costTypes, programTypes } from "../data/labels";
+import communityPhoto from "../assets/community-care-conversation.webp";
 import { PageHeader } from "../components/PageHeader";
 import { ProgramCard } from "../components/ProgramCard";
 import { MapView } from "../components/MapView";
 import { Pagination } from "../components/Pagination";
 import { EmptyState, ErrorState, LoadingState } from "../components/Feedback";
+import "../styles/resource-pages.css";
 
-const copy = {
-  free: {
-    title: "Free & subsidised care",
-    intro:
-      "Free screening days, testing weekends and reduced-fee clinics run by facilities and community health teams. Register ahead to hold a place.",
-    crumb: "Free & subsidised care",
-  },
-  all: {
-    title: "Community health programmes",
-    intro:
-      "Outreach events, education sessions and screening days across Kenya. Each listing shows eligibility, what to bring and how many places are left.",
-    crumb: "Community programmes",
-  },
-};
+const title = "Community Programmes & Affordable Care";
+const intro =
+  "Find screening days, testing, education and outreach. Check the cost, eligibility, organiser and availability before registering.";
+const affordable = "free,subsidised";
+const filters = [
+  "q",
+  "town",
+  "service",
+  "program_type",
+  "cost_type",
+  "include_past",
+];
 
-export default function ProgramsPage({ variant }) {
-  const text = copy[variant];
-  useDocumentTitle(text.title, text.intro);
+export default function ProgramsPage({ variant = "all" }) {
+  useDocumentTitle(title, intro);
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState("list");
   const services = useFetch(() => api.services(), []);
   const towns = useFetch(() => api.towns(), []);
-  const page = Number(params.get("page") || 1);
-  const query = { ...Object.fromEntries(params.entries()) };
-  if (variant === "free" && !query.cost_type)
-    query.cost_type = "free,subsidised";
-  const key = `${variant}|${params.toString()}`;
+  const inventory = useFetch(
+    (signal) => api.programs({ include_past: true, page_size: 1 }, { signal }),
+    [],
+  );
+  const page = Math.max(1, Number.parseInt(params.get("page"), 10) || 1);
+  const query = Object.fromEntries(
+    filters.flatMap((key) => (params.get(key) ? [[key, params.get(key)]] : [])),
+  );
+  const requestedCost = query.cost_type || "";
+  const cost =
+    variant === "free" &&
+    ![affordable, "free", "subsidised"].includes(requestedCost)
+      ? affordable
+      : requestedCost;
+  if (cost) query.cost_type = cost;
+  const key = JSON.stringify(query);
   const results = useFetch(
-    () => api.programs({ ...query, page, page_size: 15 }),
-    [key],
+    (signal) => api.programs({ ...query, page, page_size: 15 }, { signal }),
+    [key, page],
   );
   const mapData = useFetch(
-    () =>
+    (signal) =>
       view === "map"
-        ? api.programs({ ...query, page: 1, page_size: 40 })
-        : Promise.resolve(null),
+        ? api.programs({ ...query, page: 1, page_size: 40 }, { signal })
+        : null,
     [key, view],
   );
 
@@ -58,133 +75,188 @@ export default function ProgramsPage({ variant }) {
     if (!("page" in changes)) next.delete("page");
     setParams(next);
   };
-  const data = results.data;
+
+  const data = results.loading ? null : results.data;
   const points = useMemo(
     () =>
-      (mapData.data?.items || []).map((p) => ({
-        id: p.slug,
-        name: p.title,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        subtitle: `${p.town} · ${p.start_date}`,
-        href: `/programmes/${p.slug}`,
-        demo: p.is_demo,
-      })),
+      (mapData.data?.items || [])
+        .filter((p) => p.latitude != null && p.longitude != null)
+        .map((p) => ({
+          id: p.slug,
+          name: p.title,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          subtitle: `${p.town} · ${p.start_date}`,
+          href: `/programmes/${p.slug}`,
+          demo: p.is_demo,
+        })),
     [mapData.data],
   );
+  const noPublished = inventory.data?.total === 0;
+  const hasFilters =
+    filters.some((name) => params.has(name)) || variant === "free";
 
   return (
-    <>
+    <div className="resource-page programme-discovery">
       <PageHeader
-        title={text.title}
-        intro={text.intro}
+        title={title}
+        intro={intro}
         crumbs={[
-          { label: "Health & community", to: "/health-community/programmes" },
-          { label: text.crumb },
+          { label: "Health & community" },
+          { label: "Programmes & affordable care" },
         ]}
         tone="green"
+        aside={
+          <img
+            className="header-photo community-header-photo"
+            src={communityPhoto}
+            width="680"
+            height="510"
+            alt=""
+            loading="lazy"
+          />
+        }
       />
-      <div className="container section-sm">
-        <div className="filter-row">
+      <div className="container resource-main">
+        <section
+          className="resource-filters"
+          aria-labelledby="programme-filters"
+        >
+          <div className="resource-filter-heading">
+            <h2 id="programme-filters">Explore programmes</h2>
+            {hasFilters && (
+              <Link to="/health-community/programmes">Clear filters</Link>
+            )}
+          </div>
           <form
-            className="inline-search"
+            className="resource-search"
             role="search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              update({ q: new FormData(e.currentTarget).get("q") });
+            onSubmit={(event) => {
+              event.preventDefault();
+              update({
+                q: String(
+                  new FormData(event.currentTarget).get("q") || "",
+                ).trim(),
+              });
             }}
           >
-            <label className="sr-only" htmlFor="program-q">
-              Search programmes
-            </label>
-            <input
-              id="program-q"
-              name="q"
-              className="input"
-              defaultValue={params.get("q") || ""}
-              placeholder="Search programmes or organisers"
-            />
-            <button className="btn btn-primary">Search</button>
+            <label htmlFor="program-q">Programme or organiser</label>
+            <div className="resource-search-control">
+              <input
+                id="program-q"
+                name="q"
+                className="input"
+                key={query.q || ""}
+                defaultValue={query.q || ""}
+                placeholder="Search by keyword"
+                maxLength={100}
+              />
+              <button className="btn btn-primary">
+                <Search size={17} aria-hidden="true" /> Search
+              </button>
+            </div>
           </form>
-          <select
-            className="select"
-            aria-label="Town"
-            value={params.get("town") || ""}
-            onChange={(e) => update({ town: e.target.value })}
-          >
-            <option value="">All towns</option>
-            {(towns.data || [])
-              .slice()
-              .sort((a, b) => a.town.localeCompare(b.town))
-              .map((t) => (
-                <option key={t.town}>{t.town}</option>
-              ))}
-          </select>
-          <select
-            className="select"
-            aria-label="Service"
-            value={params.get("service") || ""}
-            onChange={(e) => update({ service: e.target.value })}
-          >
-            <option value="">Any service</option>
-            {(services.data || []).map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="select"
-            aria-label="Type"
-            value={params.get("program_type") || ""}
-            onChange={(e) => update({ program_type: e.target.value })}
-          >
-            <option value="">All types</option>
-            {Object.entries(programTypes).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <select
-            className="select"
-            aria-label="Cost"
-            value={params.get("cost_type") || ""}
-            onChange={(e) => update({ cost_type: e.target.value })}
-          >
-            <option value="">
-              {variant === "free" ? "Free or subsidised" : "Any cost"}
-            </option>
-            {Object.entries(costTypes)
-              .filter(([v]) => variant !== "free" || v !== "paid")
-              .map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-          </select>
-          <label className="check">
+          <div className="resource-filter-fields">
+            <label>
+              Town
+              <select
+                className="select"
+                value={query.town || ""}
+                onChange={(event) => update({ town: event.target.value })}
+              >
+                <option value="">All towns</option>
+                {townNames(towns.data || []).map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Service
+              <select
+                className="select"
+                value={query.service || ""}
+                onChange={(event) => update({ service: event.target.value })}
+              >
+                <option value="">Any service</option>
+                {(services.data || []).map((service) => (
+                  <option key={service.slug} value={service.slug}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Programme type
+              <select
+                className="select"
+                value={query.program_type || ""}
+                onChange={(event) =>
+                  update({ program_type: event.target.value })
+                }
+              >
+                <option value="">All types</option>
+                {Object.entries(programTypes).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Cost
+              <select
+                className="select"
+                value={cost}
+                onChange={(event) => update({ cost_type: event.target.value })}
+              >
+                {variant === "all" && <option value="">Any cost</option>}
+                <option value={affordable}>Free or subsidised</option>
+                {Object.entries(costTypes)
+                  .filter(([value]) => variant === "all" || value !== "paid")
+                  .map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+          {towns.error && (
+            <ErrorState error={towns.error} onRetry={towns.reload} />
+          )}
+          {services.error && (
+            <ErrorState error={services.error} onRetry={services.reload} />
+          )}
+          <label className="check resource-past-filter">
             <input
               type="checkbox"
-              checked={params.get("include_past") === "true"}
-              onChange={(e) => update({ include_past: e.target.checked })}
+              checked={query.include_past === "true"}
+              onChange={(event) =>
+                update({ include_past: event.target.checked })
+              }
             />
-            <span>Include past events</span>
+            Include past events
           </label>
-        </div>
+        </section>
 
-        <div className="results-toolbar">
-          <h2 className="results-count">
-            {results.loading ? "Searching…" : `${data?.total ?? 0} programmes`}
+        <div className="resource-results-heading">
+          <h2 aria-live="polite">
+            {results.loading
+              ? "Loading programmes…"
+              : results.error
+                ? "Programmes"
+                : `${data?.total ?? 0} ${data?.total === 1 ? "programme" : "programmes"}`}
           </h2>
-          <div className="segmented" role="group" aria-label="View">
+          <div className="segmented" role="group" aria-label="Programme view">
             <button
+              type="button"
               aria-pressed={view === "list"}
               onClick={() => setView("list")}
             >
               <List size={16} aria-hidden="true" /> List
             </button>
             <button
+              type="button"
               aria-pressed={view === "map"}
               onClick={() => setView("map")}
             >
@@ -194,39 +266,92 @@ export default function ProgramsPage({ variant }) {
         </div>
 
         {view === "map" && (
-          <div className="map-panel">
-            <MapView points={points} height={420} label="Map of programmes" />
-            <p className="small muted map-help">
-              Showing up to 40 matching programmes with a stored venue location.
-            </p>
+          <div className="resource-map">
+            {mapData.loading && (
+              <LoadingState
+                rows={1}
+                height={180}
+                label="Loading programme locations"
+              />
+            )}
+            {mapData.error && (
+              <ErrorState error={mapData.error} onRetry={mapData.reload} />
+            )}
+            {!mapData.loading &&
+              !mapData.error &&
+              (points.length > 0 ? (
+                <>
+                  <MapView
+                    points={points}
+                    height={380}
+                    label="Map of programmes"
+                  />
+                  <p className="small muted map-help">
+                    Showing up to 40 matching programmes with a listed location.
+                  </p>
+                </>
+              ) : (
+                <p className="muted">
+                  No mapped venue locations for these results.
+                </p>
+              ))}
           </div>
         )}
-        {results.loading && <LoadingState rows={3} height={150} />}
+        {results.loading && <LoadingState rows={3} height={135} />}
         {results.error && (
           <ErrorState error={results.error} onRetry={results.reload} />
         )}
         {data?.total === 0 && (
           <EmptyState
-            icon={<HandHeart size={26} />}
-            title="No programmes match these filters"
+            icon={
+              noPublished ? <CalendarDays size={26} /> : <HandHeart size={26} />
+            }
+            title={
+              noPublished
+                ? "No programmes are listed yet"
+                : hasFilters
+                  ? "No programmes match these filters"
+                  : query.include_past
+                    ? "No programmes are listed"
+                    : "No upcoming programmes listed"
+            }
             action={
-              <button
-                className="btn btn-primary"
-                onClick={() => setParams(new URLSearchParams())}
-              >
-                Clear filters
-              </button>
+              noPublished ? (
+                <div className="row">
+                  <Link className="btn btn-primary" to="/find-care/facilities">
+                    Find care instead
+                  </Link>
+                  <Link to="/health-community/alerts">
+                    Check public health updates
+                  </Link>
+                </div>
+              ) : hasFilters ? (
+                <Link
+                  className="btn btn-secondary"
+                  to="/health-community/programmes"
+                >
+                  Clear filters
+                </Link>
+              ) : (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => update({ include_past: true })}
+                >
+                  Include past events
+                </button>
+              )
             }
           >
-            New programmes are added regularly. Try another town or service, or
-            include past events to see what has run before.
+            {noPublished
+              ? "Check back for listings or contact a facility directly to ask about upcoming outreach and reduced-cost services."
+              : "Check another town, service or cost option."}
           </EmptyState>
         )}
         {data?.total > 0 && (
           <>
             <div className="program-list">
-              {data.items.map((p) => (
-                <ProgramCard key={p.slug} program={p} />
+              {data.items.map((program) => (
+                <ProgramCard key={program.slug} program={program} />
               ))}
             </div>
             <Pagination
@@ -236,11 +361,11 @@ export default function ProgramsPage({ variant }) {
               total={data.total}
               pageSize={data.page_size}
               noun="programmes"
-              onChange={(p) => update({ page: p })}
+              onChange={(next) => update({ page: next })}
             />
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }
