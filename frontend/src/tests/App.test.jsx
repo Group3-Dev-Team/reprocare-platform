@@ -3,12 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { expect, it } from 'vitest';
 import App from '../App';
 import { AuthProvider } from '../hooks/useAuth';
+import { SavedProvider } from '../hooks/useSaved';
+import { CompareProvider } from '../hooks/useCompare';
 import { ToastProvider } from '../components/Toast';
 
 function renderAt(url) {
   render(
     <MemoryRouter initialEntries={[url]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider><ToastProvider><App /></ToastProvider></AuthProvider>
+      <AuthProvider><SavedProvider><CompareProvider><ToastProvider><App /></ToastProvider></CompareProvider></SavedProvider></AuthProvider>
     </MemoryRouter>,
   );
 }

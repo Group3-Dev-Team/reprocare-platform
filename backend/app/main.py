@@ -10,15 +10,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes import (
+    facility_routes,
+    practitioner_routes,
+    program_routes,
+    content_routes,
+    reference_routes,
     import_routes,
     places_routes,
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
-<<<<<<< HEAD
-=======
     facebook_collection_routes,
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     appointment_routes,
     review_routes,
     facility_staff_routes,
@@ -30,15 +32,17 @@ from app.routes import (
 )
 
 ROUTERS: list = [
+    facility_routes,
+    practitioner_routes,
+    program_routes,
+    content_routes,
+    reference_routes,
     import_routes,
     places_routes,
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
-<<<<<<< HEAD
-=======
     facebook_collection_routes,
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     appointment_routes,
     review_routes,
     facility_staff_routes,
