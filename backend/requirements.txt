@@ -1,0 +1,13 @@
+# Runtime
+fastapi==0.163.1
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.9
+psycopg[binary]==3.3.9
+pydantic==2.14.3
+email-validator==2.4.0
+bcrypt==5.0.0
+httpx==0.28.1
+python-dotenv==1.2.4
+
+# Tests
+pytest==9.2.0

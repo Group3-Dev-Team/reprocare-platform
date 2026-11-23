@@ -1,0 +1,43 @@
+{
+  "source": {
+    "code": "reprocare_bot_test",
+    "name": "ReproCare data bot (test fixture)",
+    "attribution": "Test fixture: not a real facility"
+  },
+  "is_demo": true,
+  "facilities": [
+    {
+      "external_id": "fixture-0001",
+      "name": "Fixture Riverside Clinic",
+      "facility_type": "clinic",
+      "town": "Nakuru",
+      "county": "Nakuru",
+      "address": "Fixture address, Nakuru (not real)",
+      "latitude": -0.2950,
+      "longitude": 36.0700,
+      "phone": "+254700123456",
+      "weekday_hours": "8:00 am – 5:00 pm",
+      "saturday_hours": "9:00 am – 1:00 pm",
+      "services": ["contraception", "sti", "hiv"],
+      "insurers": ["sha"],
+      "registration": {"status": "not_checked"}
+    },
+    {
+      "external_id": "fixture-0002",
+      "name": "Fixture Lakeside Laboratory",
+      "facility_type": "laboratory",
+      "town": "Kisumu",
+      "county": "Kisumu",
+      "latitude": -0.1000,
+      "longitude": 34.7600,
+      "services": ["lab"]
+    },
+    {
+      "external_id": "fixture-0003",
+      "name": "Broken Record With A Bad Type",
+      "facility_type": "spaceship",
+      "town": "Kisumu",
+      "county": "Kisumu"
+    }
+  ]
+}
