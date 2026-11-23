@@ -1,0 +1,65 @@
+/* Shared public presentation and the editorial home layout. */
+
+.home-v2 { background: var(--surface); }
+
+.home-services ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.home-services li a {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 100%;
+  padding: 17px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-decoration: none;
+}
+.home-services li a:hover { background: var(--canvas-blue); color: var(--blue-700); }
+.home-services li a > svg:first-child { color: var(--green-700); }
+.home-services li small { display: block; color: var(--text-muted); margin-top: 4px; }
+
+.home-source-band { background: var(--canvas-sage); }
+.home-editorial { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(26px, 5vw, 85px); align-items: start; }
+.home-editorial h2 { max-width: 20ch; margin: 12px 0 24px; }
+.home-editorial > div > svg { color: var(--green-700); }
+.home-editorial dl { margin: 0; }
+.home-editorial dl > div { border-top: 1px solid #c4d7d0; padding: 13px 0; }
+.home-editorial dt { font-weight: 720; }
+.home-editorial dd { margin: 2px 0 0; color: var(--text-muted); }
+.home-guide-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 24px; }
+.home-guide-list .article-links a { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.home-guide-assistant { background: var(--canvas-blue); color: var(--ink-blue); border-radius: var(--radius-lg); padding: clamp(20px, 3vw, 32px); }
+.home-guide-assistant h3 { margin-top: 12px; }
+.home-community { background: var(--surface-muted); border-top: 1px solid var(--border); }
+.home-community .section-head:last-child { margin-bottom: 0; }
+.home-guides .section-head p, .home-community .section-head p { margin-bottom: 0; color: var(--text-muted); }
+
+.page-header {
+  background: var(--canvas-blue); border-bottom: 1px solid var(--border);
+}
+.page-header h1 { letter-spacing: -.047em; }
+.page-header-inner { padding-block: clamp(24px, 4vw, 50px); }
+.page-header .header-photo { border-radius: var(--radius-lg); }
+.contact-layout > section.panel { padding: clamp(18px, 3vw, 34px); }
+.auth-page .auth-card { border-radius: var(--radius-xl); }
+.auth-page .auth-aside {
+  background: var(--canvas-blue); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-xl);
+}
+.auth-page .auth-aside h2, .auth-page .auth-aside li { color: var(--text); }
+.auth-page .auth-aside li svg { color: var(--green-700); }
+.auth-page .auth-aside img { border-radius: var(--radius-md); width: 100%; height: auto; object-fit: cover; }
+.auth-audience { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.auth-audience button[aria-pressed="true"] { border-color: var(--blue-700); background: var(--canvas-blue); color: var(--blue-700); }
+.auth-staff-help { border-top: 1px solid var(--border); padding-top: 16px; }
+.patient-overview-banner {
+  padding: clamp(18px, 3vw, 34px); border-radius: var(--radius-lg);
+  background: var(--canvas-blue); border: 1px solid var(--border); margin-bottom: var(--space-6);
+}
+.patient-overview-banner .dash-header { margin-bottom: 0; }
+.about-editorial .timeline { max-width: 900px; }
+.trust-editorial .layer-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.trust-editorial .layer-table .layer-row { padding: clamp(16px, 3vw, 32px); margin: 0; border-radius: 0; }
+.trust-editorial .layer-table .layer-row + .layer-row { border-top: 1px solid var(--border); }
+.about-editorial .prose-split > div { border-top: 2px solid var(--border-strong); padding-top: 18px; }
+
+@media (max-width: 760px) {
+  .home-services ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 8px; }
+  .home-editorial, .home-guide-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 460px) {
+  .home-services ul { grid-template-columns: minmax(0, 1fr); }
+  .home-guide-list .article-links a small { grid-column: 2; }
+}
