@@ -2,6 +2,17 @@
 
 from datetime import datetime, timezone
 from typing import Annotated, Literal
+<<<<<<< HEAD
+from urllib.parse import urlsplit
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from pydantic import BaseModel, Field, StringConstraints
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.database.session import get_db
+from app.models import ExternalComment, ExternalPost, FacilityExternalProfile, User
+=======
 from urllib.parse import parse_qs, urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -11,6 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.database.session import get_db
 from app.models import ExternalComment, ExternalPost, Facility, FacilityExternalProfile, User
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 from app.services.auth_service import require_role
 from app.services.common import paginate
 from app.services.external_feedback_service import PLATFORM_HOSTS, comment_to_dict, mask_contact_details, valid_source_url
@@ -32,23 +44,37 @@ def _page_key(url: str) -> str:
     try:
         source = urlsplit(url)
         if source.hostname in PLATFORM_HOSTS["facebook"]:
+<<<<<<< HEAD
+            return source.path.strip("/").split("/")[0].casefold()
+=======
             segment = source.path.strip("/").split("/")[0].casefold()
             if segment in {"profile.php", "permalink.php", "story.php"}:
                 page_id = parse_qs(source.query).get("id", [""])[0]
                 return page_id if page_id.isascii() and page_id.isdecimal() else ""
             if segment not in {"photo", "photo.php", "photos", "posts", "reel", "reels", "videos", "watch"}:
                 return segment
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     except ValueError:
         pass
     return ""
 
 
 def _post_shape(post: ExternalPost) -> dict:
+<<<<<<< HEAD
+=======
     published = post.is_visible and post.facebook_scope is not None
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     return {
         "id": post.id,
         "facility": post.facility.name if post.facility else None,
         "source_url": post.url if valid_source_url("facebook", post.url) else None,
+<<<<<<< HEAD
+        "author": post.author_name,
+        "caption": mask_contact_details(post.caption or ""),
+        "scope": post.facebook_scope,
+        "previously_visible": post.is_visible and post.facebook_scope is None,
+        "published": post.is_visible and post.facebook_scope is not None,
+=======
         "page": _page_key(post.url) or None,
         "author": post.author_name,
         "caption": mask_contact_details(post.caption or ""),
@@ -58,6 +84,7 @@ def _post_shape(post: ExternalPost) -> dict:
         "previously_visible": post.is_visible and post.facebook_scope is None,
         "published": published,
         "status": "published" if published else "withheld" if post.facebook_reviewed_at and not post.is_visible else "pending",
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
         "reviewed_at": post.facebook_reviewed_at,
         "reviewed_by": post.facebook_reviewed_by,
         "note": post.facebook_review_note,
@@ -75,19 +102,33 @@ def _facebook_post(post_id: int, db: Session, lock: bool = False) -> ExternalPos
 @router.get("")
 def moderation_queue(
     response: Response,
+<<<<<<< HEAD
+    status: Literal["pending", "published", "withheld"] = "pending",
+    page: int = Query(1, ge=1),
+=======
     status: Literal["all", "pending", "published", "withheld"] = "pending",
     page: int = Query(1, ge=1),
     facility_id: int | None = Query(None, ge=1),
     q: str = Query("", max_length=200),
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     user: User = Depends(admin_only),
     db: Session = Depends(get_db),
 ):
     response.headers["Cache-Control"] = "no-store"
+<<<<<<< HEAD
+    query = select(ExternalPost).where(ExternalPost.platform == "facebook").options(selectinload(ExternalPost.facility))
+=======
     query = select(ExternalPost).where(ExternalPost.platform == "facebook")
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     if status == "pending":
         query = query.where(ExternalPost.facebook_reviewed_at.is_(None))
     elif status == "published":
         query = query.where(ExternalPost.is_visible.is_(True), ExternalPost.facebook_scope.is_not(None))
+<<<<<<< HEAD
+    else:
+        query = query.where(ExternalPost.facebook_reviewed_at.is_not(None), ExternalPost.is_visible.is_(False))
+    return paginate(db, query.order_by(ExternalPost.id), page, 20, _post_shape)
+=======
     elif status == "withheld":
         query = query.where(ExternalPost.facebook_reviewed_at.is_not(None), ExternalPost.is_visible.is_(False))
     if facility_id is not None:
@@ -119,6 +160,7 @@ def moderation_queue(
         )
     ]
     return result
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 
 @router.get("/{post_id}")
@@ -137,7 +179,10 @@ def moderation_detail(post_id: int, response: Response, user: User = Depends(adm
     ).all()
     return {
         **_post_shape(post),
+<<<<<<< HEAD
+=======
         "comment_count": len(comments),
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
         "profiles": [
             {"facility": p.facility.name, "linked_facility": p.facility_id == post.facility_id,
              "page": _page_key(p.url), "page_matches": bool(page) and _page_key(p.url) == page,

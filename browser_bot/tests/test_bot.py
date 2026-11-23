@@ -85,7 +85,11 @@ def fixture_server():
 
 @pytest.mark.skipif(not (bot_config.BROWSER_PATH or shutil.which("google-chrome") or os.path.isdir(os.path.expanduser("~/.cache/ms-playwright"))), reason="no browser available")
 def test_facebook_collector_extraction_with_playwright(fixture_server, monkeypatch):
+<<<<<<< HEAD
+    """Runs the legacy extraction logic in a real browser against a local imitation of a post page."""
+=======
     """Runs comment and reply extraction in a browser against an offline fixture."""
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     if not bot_config.BROWSER_PATH and shutil.which("google-chrome"):
         monkeypatch.setattr(bot_config, "BROWSER_PATH", shutil.which("google-chrome"))
     result = fb.collect_post(f"{fixture_server}/facebook_post.html", page_name="Fixture General Hospital")
@@ -95,6 +99,15 @@ def test_facebook_collector_extraction_with_playwright(fixture_server, monkeypat
     texts = [c["text"] for c in result["comments"]]
     assert texts == [
         "Test fixture: the maternity nurses were very kind to me.",
+<<<<<<< HEAD
+        "Test fixture: thank you, we are glad you were well cared for.",
+        "Test fixture: do you take SHA for scans?",
+    ]  # mismatched text skipped, duplicate skipped
+    first, reply, third = result["comments"]
+    assert first["author_name"] == "Amina Fixture" and first["published_at_approximate"]
+    assert reply["author_is_facility"] and reply["parent_external_id"] == first["external_id"]
+    assert third["parent_external_id"] is None
+=======
         "Test fixture: do you take SHA for scans?",
         "Test fixture: please check the listing.",
         "Test fixture: thank you, we are glad you were well cared for.",
@@ -104,6 +117,7 @@ def test_facebook_collector_extraction_with_playwright(fixture_server, monkeypat
     assert reply["author_is_facility"] and reply["parent_external_id"] == first["external_id"]
     assert second["parent_external_id"] is None and nested["parent_external_id"] == second["external_id"]
     assert result["unlinked_replies"] == 1
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 
 def test_tiktok_parsing():
@@ -334,6 +348,8 @@ def test_facebook_login_wall_is_recorded_without_prompting(db, monkeypatch, caps
     assert "requires sign-in" in capsys.readouterr().out
     run = db.query(ExternalCollectionRun).filter_by(platform="facebook").order_by(ExternalCollectionRun.id.desc()).first()
     assert run.status == "failed" and "facebook-login" in run.message
+<<<<<<< HEAD
+=======
 
 
 def test_facebook_collection_stages_empty_posts_and_preserves_prior_capture(db, monkeypatch, tmp_path):
@@ -377,3 +393,4 @@ def test_facebook_collection_stages_empty_posts_and_preserves_prior_capture(db, 
     assert comments[1].parent_id == comments[0].id
     run = db.query(ExternalCollectionRun).filter_by(platform="facebook").order_by(ExternalCollectionRun.id.desc()).first()
     assert run.status == "succeeded" and "2 staged" in run.message and "unreachable (1)" in run.message
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
