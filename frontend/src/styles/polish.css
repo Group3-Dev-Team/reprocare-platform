@@ -411,6 +411,9 @@ html {
   font-size: var(--text-base);
   overflow-wrap: anywhere;
 }
+.xpost-title > a {
+  overflow-wrap: anywhere;
+}
 .xpost-title p {
   margin: 2px 0 0;
 }
