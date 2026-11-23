@@ -53,8 +53,10 @@ List / Grid / Map parity checks with a small, reviewable set of facilities.
 * Use **facility** attribution only when the post or page evidence identifies that location.
 * Website-platform pages (for example a `/wix` link) and generic Facebook path categories (`people`, `brand`) are not
   facility pages. Withhold them and correct the stored profile link.
-* Every Facebook post requires an administrator decision at `/dashboard/admin/facebook-feedback` before it is shown.
-  Publishing requires a note, explicit comment selection and an attribution scope.
+* Public Facebook publication requires an administrator decision at `/dashboard/admin/facebook-feedback` with a note,
+  explicit comment selection and an attribution scope. On loopback in development, facility pages also show a separate,
+  unreviewed collection from verified page links. This feed excludes withheld posts, hidden comments and replies whose
+  eligible parent is missing. It screens for service and logistical relevance and holds poorly attributed or sensitive content.
 * Commenters are members of the public. ReproCare does not verify that they were patients, and public feedback is
   presented separately from moderated ReproCare patient reviews.
 

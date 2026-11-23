@@ -13,14 +13,14 @@
       "town": "Nakuru",
       "county": "Nakuru",
       "address": "Fixture address, Nakuru (not real)",
-      "latitude": -0.2950,
-      "longitude": 36.0700,
+      "latitude": -0.295,
+      "longitude": 36.07,
       "phone": "+254700123456",
       "weekday_hours": "8:00 am – 5:00 pm",
       "saturday_hours": "9:00 am – 1:00 pm",
       "services": ["contraception", "sti", "hiv"],
       "insurers": ["sha"],
-      "registration": {"status": "not_checked"}
+      "registration": { "status": "not_checked" }
     },
     {
       "external_id": "fixture-0002",
@@ -28,8 +28,8 @@
       "facility_type": "laboratory",
       "town": "Kisumu",
       "county": "Kisumu",
-      "latitude": -0.1000,
-      "longitude": 34.7600,
+      "latitude": -0.1,
+      "longitude": 34.76,
       "services": ["lab"]
     },
     {

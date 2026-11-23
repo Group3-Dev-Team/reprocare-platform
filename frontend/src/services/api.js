@@ -210,8 +210,8 @@ export const api = {
   // Administration
   adminOverview: () => get('/admin/overview'),
   adminReviews: (params) => get('/admin/reviews', params),
-  adminFacebookPosts: (params) => get('/admin/facebook-feedback', params),
-  adminFacebookPost: (id) => get(`/admin/facebook-feedback/${id}`),
+  adminFacebookPosts: (params, options) => get('/admin/facebook-feedback', params, options),
+  adminFacebookPost: (id, options) => get(`/admin/facebook-feedback/${id}`, undefined, options),
   moderateFacebookPost: (id, body) => post(`/admin/facebook-feedback/${id}/moderate`, body),
   moderateReview: (id, body) => post(`/admin/reviews/${id}/moderate`, body),
   adminUsers: (params) => get('/admin/users', params),

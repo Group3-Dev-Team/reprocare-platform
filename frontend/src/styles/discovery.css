@@ -1,0 +1,238 @@
+/* Facility discovery and comparison */
+.directory-layout .filters {
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.directory-layout .filters-head {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.directory-layout .filters-head h2 {
+  font-size: var(--text-md);
+  letter-spacing: -0.025em;
+}
+
+.directory-layout .search-input .input { padding-right: 86px; }
+.directory-layout .search-input .btn { padding-inline: 11px; }
+.directory-location .muted:not(:empty) { margin-top: var(--space-2); }
+.directory-radius { margin-top: var(--space-3); }
+.directory-spinner { animation: directory-spin 900ms linear infinite; }
+@keyframes directory-spin { to { transform: rotate(360deg); } }
+
+.directory-filter-note {
+  margin: var(--space-1) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.directory-layout .results-toolbar {
+  min-height: 54px;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.directory-layout .results-count { letter-spacing: -0.035em; }
+
+.directory-layout .filter-chip {
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.directory-card.facility-card {
+  gap: var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  background: var(--surface);
+}
+
+.directory-card.facility-card:hover {
+  box-shadow: var(--shadow-1);
+}
+
+.directory-card .facility-thumb,
+.directory-card .facility-thumb img { border-radius: var(--radius-md); }
+.directory-card .facility-foot { align-items: center; }
+.directory-card .google-rating.is-compact { padding: var(--space-2); }
+.directory-card .facility-sources > .rating { font-size: var(--text-xs); }
+.directory-card .directory-compare-toggle[aria-pressed='true'] {
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border-color: var(--blue-700);
+}
+
+.compare-tray-count,
+.compare-present {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.compare-present { color: var(--green-700); }
+
+.directory-compare .compare-table {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+
+.directory-compare .compare-table thead th,
+.directory-compare .compare-group { background: var(--blue-50); }
+
+.directory-compare .compare-table th[scope='row'] { min-width: 140px; }
+.directory-compare .compare-table th[scope='col']:not(:first-child) { min-width: 170px; }
+
+@media (max-width: 960px) {
+  .directory-layout .filters:not(.is-open) { visibility: hidden; }
+  .directory-layout .filters {
+    border-radius: 0;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .directory-layout .results-toolbar > .row { gap: var(--space-2); }
+  .directory-card.facility-card { gap: var(--space-3); }
+  .directory-card .facility-foot > .row { justify-content: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directory-spinner { animation: none; }
+}
+
+.directory-reference-filters {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+#lab-test-results { scroll-margin-top: calc(var(--header-h) + var(--space-5)); }
+#lab-test-results > .check { margin-bottom: var(--space-4); }
+
+@media (max-width: 600px) {
+  .directory-reference-filters > .select { min-width: 0; flex: 1 1 150px; }
+  .compare-bar-inner .compare-chips {
+    flex: 1 0 100%;
+    order: 1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .compare-bar-inner .compare-chips li { min-width: min(210px, 60vw); }
+}
+
+.directory-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.directory-results-grid .directory-card.facility-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.directory-results-grid .facility-thumb {
+  width: 100%;
+  height: 110px;
+}
+
+.directory-results-grid .facility-body {
+  width: 100%;
+}
+
+.directory-results-grid .facility-foot {
+  align-items: flex-start;
+}
+
+@media (max-width: 660px) {
+  .directory-results-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.staff-facility-picker { position: relative; }
+.staff-facility-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.staff-facility-popover > p {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.staff-facility-options {
+  list-style: none;
+  margin: 0;
+  box-shadow: var(--shadow-2);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.staff-facility-options > li {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.staff-facility-options > li:hover,
+.staff-facility-options > li[aria-selected='true'] {
+  outline: 2px solid var(--border-strong);
+  outline-offset: -2px;
+}
+
+.care-service-guide .care-service-goal { max-width: 30rem; }
+.care-service-guide .row { flex-wrap: wrap; }
+
+.care-decision-topics .btn[aria-pressed='true'] {
+  border-color: var(--blue-700);
+  color: var(--blue-700);
+  background: var(--blue-50);
+}
+
+.care-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.care-decision-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.care-decision-card .care-decision-actions {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.care-decision-card header h3 { margin-block: var(--space-1) var(--space-2); }
+.care-decision-facts div { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); }
+.care-decision-facts dd { margin: 0; }
+.care-decision-contact { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: var(--text-sm, 0.875rem); }
+.care-decision-contact a { overflow-wrap: anywhere; }
