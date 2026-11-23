@@ -157,11 +157,8 @@ export const api = {
   // External public feedback (Facebook, TikTok, Google) — separate from ReproCare reviews
   facilityPublicFeedback: (slug, options) => get(`/facilities/${slug}/public-feedback`, undefined, options),
   facilityPublicPosts: (slug, params, options) => get(`/facilities/${slug}/public-feedback/posts`, params, options),
-<<<<<<< HEAD
-=======
   facilityCollectedFacebookPosts: (slug, params, options) => get(`/local-collection/facebook/facilities/${slug}/posts`, params, options),
   collectedFacebookComments: (id, params, options) => get(`/local-collection/facebook/posts/${id}/comments`, params, options),
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
   instagramDemoPosts: (slug, options) => get(`/local-demo/instagram/${slug}`, undefined, options),
   facebookDemoCounts: (options) => get('/local-demo/facebook/counts', undefined, options),
   facebookDemoFacilities: (options) => get('/local-demo/facebook/facilities', undefined, options),

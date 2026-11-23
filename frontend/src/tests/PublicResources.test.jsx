@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { townNames } from "../data/townNames";
 import { healthUpdatesForDate } from "../data/healthUpdates";
-import { carePlanKey, writeCarePlan } from "../data/carePlan";
+import { carePlanKey, writeCarePlan } from "../data/careplan";
 import CarePlannerPage from "../pages/CarePlannerPage";
 import LibraryPage from "../pages/LibraryPage";
 import { PlanFacilityButton } from "../components/PlanFacilityButton";

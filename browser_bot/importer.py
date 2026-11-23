@@ -46,22 +46,14 @@ def _prepare(db, raw: list[dict]) -> tuple[list[ExternalBatchIn], list[str]]:
 def import_direct(raw: list[dict], label: str = "import") -> dict:
     with SessionLocal() as db:
         batches, problems = _prepare(db, raw)
-<<<<<<< HEAD
-        result = import_batches(db, batches) if batches else {"received": 0, "imported": 0, "comments_created": 0, "comments_skipped": 0, "errors": [], "results": []}
-=======
         result = import_batches(db, batches) if batches else {"received": 0, "imported": 0, "comments_created": 0, "comments_skipped": 0, "comments_unlinked": 0, "errors": [], "results": []}
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
         result["unresolved"] = problems
         record_run(
             db,
             "import",
             "succeeded" if not (result["errors"] or problems) else "failed" if not result["imported"] else "succeeded",
-<<<<<<< HEAD
-            f"{label}: {result['imported']} posts, {result['comments_created']} new comments, {len(result['errors']) + len(problems)} problems",
-=======
             f"{label}: {result['imported']} posts, {result['comments_created']} new comments, "
             f"{result.get('comments_unlinked', 0)} replies with missing parents, {len(result['errors']) + len(problems)} problems",
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
             posts_found=result["imported"],
             comments_created=result["comments_created"],
             comments_skipped=result["comments_skipped"],
@@ -77,11 +69,7 @@ def import_http(raw: list[dict], api: str) -> dict:
         raise SystemExit("IMPORT_API_KEY is not set; it is required for --api imports")
     unresolved = [b for b in raw if not b.get("facility_slug") and not b.get("google_place_id")]
     raw = [b for b in raw if b not in unresolved]
-<<<<<<< HEAD
-    totals = {"received": 0, "imported": 0, "comments_created": 0, "comments_skipped": 0, "errors": [], "unresolved": [f"{len(unresolved)} legacy batches need a direct import"] if unresolved else []}
-=======
     totals = {"received": 0, "imported": 0, "comments_created": 0, "comments_skipped": 0, "comments_unlinked": 0, "errors": [], "unresolved": [f"{len(unresolved)} legacy batches need a direct import"] if unresolved else []}
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     for start in range(0, len(raw), 50):
         body = json.dumps({"batches": raw[start : start + 50]}, default=str).encode("utf-8")
         request = urllib.request.Request(api.rstrip("/") + "/api/import/external-feedback", data=body, method="POST", headers={"Content-Type": "application/json", "X-Import-Key": key})
@@ -90,11 +78,7 @@ def import_http(raw: list[dict], api: str) -> dict:
                 part = json.load(response)
         except urllib.error.HTTPError as exc:
             raise SystemExit(f"Import API returned HTTP {exc.code}") from None
-<<<<<<< HEAD
-        for k in ("received", "imported", "comments_created", "comments_skipped"):
-=======
         for k in ("received", "imported", "comments_created", "comments_skipped", "comments_unlinked"):
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
             totals[k] += part.get(k, 0)
         totals["errors"] += part.get("errors", [])
     return totals

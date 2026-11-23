@@ -15,7 +15,7 @@ from app.models import User
 # Branch-local fixtures: built with the shared factories so these tests run on main without the
 # authentication workstream's routes. The HTTP sign-in checks run once /api/auth/login is registered.
 def _has_route(path):
-    return any(getattr(r, "path", None) == path for r in app.routes)
+    return path in app.openapi()["paths"]
 
 
 @pytest.fixture()

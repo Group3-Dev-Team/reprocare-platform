@@ -13,21 +13,15 @@ import hashlib
 import json
 import os
 import re
-<<<<<<< HEAD
-=======
 import tempfile
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 
 from bot_config import BATCHES, LEGACY_FACEBOOK_DIR, LEGACY_GOOGLE_FILE, LEGACY_TIKTOK_DIR, private_dir
 
-<<<<<<< HEAD
-=======
 MAX_COMMENTS_PER_IMPORT_BATCH = 2000
 
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 def facebook_post_id(url: str) -> str:
     return hashlib.sha256(url.encode("utf-8")).hexdigest()[:32]
@@ -37,27 +31,6 @@ def write_batch(batch: dict) -> Path:
     folder = private_dir(BATCHES / batch["platform"])
     key = re.sub(r"[^A-Za-z0-9_-]+", "_", batch["post"]["external_id"])[:60]
     path = folder / f"{batch.get('facility_slug') or 'unlinked'}__{key}.json"
-<<<<<<< HEAD
-    tmp = path.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump(batch, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, path)
-    return path
-
-
-def read_batches() -> list[tuple[Path, dict]]:
-    out = []
-    for path in sorted(BATCHES.glob("*/*.json")) if BATCHES.is_dir() else []:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            print("  unreadable batch skipped:", path.name)
-            continue
-        if isinstance(data, dict) and data.get("platform") and isinstance(data.get("post"), dict):
-            out.append((path, data))
-    return out
-=======
     if batch["platform"] == "facebook" and path.exists():
         previous = json.loads(path.read_text(encoding="utf-8"))
         if previous["post"]["external_id"] != batch["post"]["external_id"]:
@@ -97,7 +70,6 @@ def read_batch(path: Path) -> list[dict]:
 
 def read_batches() -> list[tuple[Path, dict]]:
     return [(path, batch) for path in sorted(BATCHES.glob("*/*.json")) for batch in read_batch(path)]
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 
 # --------------------------------------------------------------------------- legacy staging formats

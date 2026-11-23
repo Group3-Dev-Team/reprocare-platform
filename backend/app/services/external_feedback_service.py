@@ -129,21 +129,6 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
             value = getattr(batch.post, attr)
             if value and not getattr(post, attr):
                 setattr(post, attr, value)
-<<<<<<< HEAD
-    post.collected_at = batch.post.collected_at or post.collected_at or _now()
-    db.flush()
-
-    existing = {
-        ext_id: cid
-        for ext_id, cid in db.execute(
-            select(ExternalComment.external_id, ExternalComment.id).where(
-                ExternalComment.platform == batch.platform,
-                ExternalComment.external_id.in_([c.external_id for c in batch.comments] or [""]),
-            )
-        ).all()
-    }
-    created = skipped = empty = 0
-=======
     if batch.platform == "facebook":
         post.collected_at = post.collected_at or batch.post.collected_at or _now()
     else:
@@ -161,7 +146,6 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
         ).all()
     }
     created = skipped = empty = unlinked = 0
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     by_external_id: dict[str, ExternalComment] = {}
     # Top-level comments first so replies can point at their parent.
     ordered = sorted(batch.comments, key=lambda c: c.parent_external_id is not None)
@@ -176,13 +160,6 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
         parent_id = None
         if item.parent_external_id:
             parent = by_external_id.get(item.parent_external_id)
-<<<<<<< HEAD
-            parent_id = parent.id if parent else existing.get(item.parent_external_id)
-            if parent_id is None:
-                parent_id = db.scalar(
-                    select(ExternalComment.id).where(ExternalComment.platform == batch.platform, ExternalComment.external_id == item.parent_external_id)
-                )
-=======
             stored_parent = existing.get(item.parent_external_id)
             if parent is not None:
                 parent_id = parent.id
@@ -192,7 +169,6 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
                 # Let the caller retry with the correct parent instead of storing a misleading root.
                 unlinked += 1
                 continue
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
         if item.author_is_facility:
             screening_status, reasons = "facility_reply", []
         else:
@@ -228,10 +204,7 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
         "comments_created": created,
         "comments_skipped": skipped,
         "comments_empty": empty,
-<<<<<<< HEAD
-=======
         "comments_unlinked": unlinked,
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     }
 
 
@@ -250,10 +223,7 @@ def import_batches(db: Session, batches: list[ExternalBatchIn]) -> dict:
         "imported": len(results),
         "comments_created": sum(r["comments_created"] for r in results),
         "comments_skipped": sum(r["comments_skipped"] for r in results),
-<<<<<<< HEAD
-=======
         "comments_unlinked": sum(r["comments_unlinked"] for r in results),
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
         "errors": errors,
         "results": results,
     }

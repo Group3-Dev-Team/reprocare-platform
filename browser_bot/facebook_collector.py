@@ -1,14 +1,9 @@
 """Facebook post discovery and comment collection with Playwright (the legacy scripts' facebook_post_finder.py and
 facebook_collector.py, preserved).
 
-<<<<<<< HEAD
-The core comment extraction is the legacy scripts', unchanged: inside each visible comment `[role="article"]` that has
-a "Reply" control, the comment text is the 3rd `[dir="auto"]` element and must equal the 4th.
-=======
 Inside each visible comment article with a "Reply" control, the third and fourth own
 `[dir="auto"]` elements must contain the same text. Replies are associated by nesting
 or by a permalink that identifies their parent on the same post.
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 Added (best effort, each step isolated so it can never break the extraction above):
 * author and age from the comment article's aria-label ("Comment by NAME 3 weeks ago");
@@ -25,24 +20,17 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, urlunparse
 
 from bot_config import FACEBOOK_PROFILE, launch_kwargs, private_dir
-<<<<<<< HEAD
-from facebook_pages import FACEBOOK_HOSTS, KNOWN_PAGE_ALIASES
-=======
 from facebook_pages import FACEBOOK_HOSTS, KNOWN_PAGE_ALIASES, page_slug
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 AGE = re.compile(
     r"^(?P<kind>Comment|Reply) by (?P<name>.+?)\s+(?P<n>a|an|\d+)\s+(?P<unit>second|minute|hour|day|week|month|year)s?\s+ago\b",
     re.IGNORECASE,
 )
 UNIT_SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 604800, "month": 2629800, "year": 31557600}
-<<<<<<< HEAD
-=======
 MORE_COMMENTS = re.compile(
     r"^(?:View|See) (?:(?:all|more|previous) |\d+ |\d+ (?:more|previous) |all \d+ )?(?:comments|repl(?:y|ies))$",
     re.I,
 )
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 
 def parse_aria_label(label: str, now: datetime | None = None) -> dict:
@@ -91,10 +79,7 @@ def find_posts(page_url: str, limit: int = 5) -> tuple[list[str], str, bool]:
     from playwright.sync_api import sync_playwright
 
     posts, page_name = set(), ""
-<<<<<<< HEAD
-=======
     slug = page_slug(page_url)
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     with sync_playwright() as p:
         context = _context(p)
         try:
@@ -107,19 +92,12 @@ def find_posts(page_url: str, limit: int = 5) -> tuple[list[str], str, bool]:
             except Exception:
                 page_name = ""
             for _ in range(12):
-<<<<<<< HEAD
-                for href in page.locator('a[href*="/posts/"]').evaluate_all("(els) => els.map(e => e.href)"):
-                    clean = clean_post_url(href)
-                    if clean:
-                        posts.add(clean)
-=======
                 found = []
                 for href in page.locator('a[href*="/posts/"]').evaluate_all("(els) => els.map(e => e.href)"):
                     clean = clean_post_url(href)
                     if clean:
                         found.append(clean)
                 posts.update(official_posts(found, slug) if slug else found)
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
                 if len(posts) >= limit:
                     break
                 page.mouse.wheel(0, 1500)
@@ -136,8 +114,6 @@ def _meta(page, prop: str) -> str:
         return ""
 
 
-<<<<<<< HEAD
-=======
 def _expand_comments(page, limit: int) -> None:
     """Follow a bounded number of read-only controls for already accessible threads."""
     from playwright.sync_api import TimeoutError as PWTimeout
@@ -248,38 +224,19 @@ def _linked_comments(articles: list[dict], post_url: str, page_name: str, now: d
     return captured, unlinked
 
 
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def collect_post(post_url: str, page_name: str = "", max_comments: int = 100) -> dict:
     """Collect one post's context and visible comments. Returns {'post': {...}, 'comments': [...], 'status': str}."""
     from playwright.sync_api import TimeoutError as PWTimeout
     from playwright.sync_api import sync_playwright
 
-<<<<<<< HEAD
-    collected_at = datetime.now(timezone.utc).isoformat()
-    post = {"url": post_url, "caption": "", "thumbnail_url": "", "author_name": page_name}
-    comments, seen = [], set()
-=======
     now = datetime.now(timezone.utc)
     post = {"url": post_url, "caption": "", "thumbnail_url": "", "author_name": page_name}
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
     with sync_playwright() as p:
         context = _context(p)
         try:
             page = context.pages[0] if context.pages else context.new_page()
             try:
-<<<<<<< HEAD
-                page.goto(post_url, wait_until="domcontentloaded", timeout=30000)
-            except PWTimeout:
-                return {"post": post, "comments": [], "status": "unreachable"}
-
-            post["caption"] = _meta(page, "og:description")
-            image = _meta(page, "og:image")
-            post["thumbnail_url"] = image if image.startswith("https://") else ""
-            if needs_login(page.url):
-                return {"post": post, "comments": [], "status": "login_required"}
-
-=======
                 response = page.goto(post_url, wait_until="domcontentloaded", timeout=30000)
             except PWTimeout:
                 return {"post": post, "comments": [], "status": "unreachable"}
@@ -293,57 +250,11 @@ def collect_post(post_url: str, page_name: str = "", max_comments: int = 100) ->
             post["thumbnail_url"] = image if image.startswith("https://") else ""
 
             _expand_comments(page, max_comments)
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
             try:
                 page.get_by_text("Reply", exact=True).first.wait_for(state="visible", timeout=20000)
             except PWTimeout:
                 return {"post": post, "comments": [], "status": "no_comments_visible"}
 
-<<<<<<< HEAD
-            articles = page.locator('[role="article"]:visible')
-            last_top_level = None
-            for i in range(min(articles.count(), max_comments)):
-                article = articles.nth(i)
-                if not article.get_by_text("Reply", exact=True).count():
-                    continue
-                elements = article.locator('[dir="auto"]')
-                if elements.count() < 4:
-                    continue
-                text = elements.nth(2).inner_text().strip()
-                duplicate = elements.nth(3).inner_text().strip()
-                if not text or text != duplicate:
-                    continue
-
-                identifier = hashlib.sha256((post_url + "\n" + text).encode("utf-8")).hexdigest()
-                if identifier in seen:
-                    continue
-                seen.add(identifier)
-
-                meta = {"author": "", "is_reply": False, "published_at": None}
-                try:
-                    meta = parse_aria_label(article.get_attribute("aria-label", timeout=1000) or "")
-                except Exception:
-                    pass
-                is_facility = bool(page_name and meta["author"] and meta["author"].casefold() == page_name.casefold())
-                comments.append(
-                    {
-                        "external_id": identifier,
-                        "parent_external_id": last_top_level if meta["is_reply"] else None,
-                        "author_name": meta["author"],
-                        "author_is_facility": is_facility,
-                        "text": text,
-                        "published_at": meta["published_at"],
-                        "published_at_approximate": meta["published_at"] is not None,
-                        "collected_at": collected_at,
-                    }
-                )
-                if not meta["is_reply"]:
-                    last_top_level = identifier
-        finally:
-            context.close()
-
-    return {"post": post, "comments": comments, "status": "ok" if comments else "no_comments_visible"}
-=======
             articles = _comment_articles(page, post_url, max_comments)
         finally:
             context.close()
@@ -353,7 +264,6 @@ def collect_post(post_url: str, page_name: str = "", max_comments: int = 100) ->
         "post": post, "comments": comments, "status": "ok" if comments else "no_comments_visible",
         "unlinked_replies": unlinked,
     }
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 
 def login_session(start_url: str = "https://web.facebook.com/") -> None:

@@ -26,7 +26,7 @@ _FACILITIES = {
 
 
 def _has_route(path):
-    return any(getattr(r, "path", None) == path for r in _app.routes)
+    return path in _app.openapi()["paths"]
 
 
 needs_route = lambda path: pytest.mark.skipif(not _has_route(path), reason=f"needs {path} from another workstream (integration test)")  # noqa: E731
@@ -80,11 +80,7 @@ def test_import_requires_key_or_admin(client, new_patient):
 
 
 def approve_fixture(client, admin_headers, source_url, scope="facility"):
-<<<<<<< HEAD
-    queue = client.get("/api/admin/facebook-feedback", headers=admin_headers).json()
-=======
     queue = client.get("/api/admin/facebook-feedback", params={"q": source_url}, headers=admin_headers).json()
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     post = next(p for p in queue["items"] if p["source_url"] == source_url)
     detail = client.get(f"/api/admin/facebook-feedback/{post['id']}", headers=admin_headers).json()
     result = client.post(
@@ -284,8 +280,6 @@ def test_hidden_status_respected_if_set_in_database(client):
         db.commit()
 
 
-<<<<<<< HEAD
-=======
 def test_admin_collected_facebook_inventory(client, admin_headers, new_patient):
     from app.database.session import SessionLocal
     from app.models import ExternalComment, ExternalPost
@@ -376,7 +370,6 @@ def test_facebook_import_preserves_collection_time_and_same_post_parents(client,
     assert detail["comment_count"] == 2 and detail["comments"][1]["parent_id"] == detail["comments"][0]["id"]
 
 
->>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def test_public_feedback_empty_and_missing(client):
     empty = client.get("/api/facilities/kipepeo/public-feedback").json()
     assert empty["total_comments"] == 0 and empty["google"] is None
