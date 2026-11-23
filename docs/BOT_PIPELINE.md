@@ -28,14 +28,16 @@ earlier integration build used: **Google Places API (New)**, **Playwright** (Fac
 * **Facebook page** (`facebook_pages.find_official_page`): first, Facebook links published on the facility's own homepage (Playwright, the legacy scripts' `find_social_links`) → `match_method = official_website`. Only if none: the legacy scripts' public-search fallback (Bing RSS) accepted **only when exactly one** page title contains the full facility name with health context → `public_search_exact`. Ambiguous → nothing. The chosen page is stored on `facility_external_profiles` so later runs reuse it.
 
 ## 3. How Facebook posts are located
-`facebook_collector.find_posts()` (the legacy scripts' `facebook_post_finder`): opens the page in the signed-in persistent profile, scrolls at most 4 times, collects `a[href*="/posts/"]`, strips tracking parameters, then `official_posts()` keeps only posts on **that** page (the legacy scripts' rule, including its KNH alias). The page's `og:title` gives the page name. `--max-posts` 1–5 (default 2).
+`facebook_collector.find_posts()` opens the matched page in the existing browser profile and looks for post links with bounded scrolling. It strips tracking parameters and counts only posts from that page toward the limit. The page's `og:title` supplies the page name. `--max-posts` accepts 1–10 (default 10).
 
 ## 4. How comments inside those posts are collected
-`facebook_collector.collect_post()` — the legacy scripts' extraction, unchanged: each visible `[role="article"]` with a "Reply" control; the comment text is the 3rd `[dir="auto"]` element and must equal the 4th; at most 30 articles. Added, each isolated so it cannot break the above:
-* author and approximate time from the article's `aria-label` ("Comment by NAME 3 weeks ago") — stored with `published_at_approximate = true`;
-* replies are attached to the preceding top-level comment; a reply whose author equals the page name is flagged `author_is_facility` (shown as "Facility reply");
-* post context from `og:description` (post text) and `og:image` (thumbnail).
-A login wall is reported as `login_required` (run `facebook-login` once — you sign in yourself; the bot never handles credentials).
+`facebook_collector.collect_post()` reads visible comment articles with a Reply control. It opens up to five supported comment or reply controls before reading the articles. The third and fourth `[dir="auto"]` elements belonging to the article must contain the same text. The Facebook CLI checks up to 100 visible articles per post.
+
+- The collector reads the author and approximate time from the article's accessibility label and records the collection time.
+- Replies are linked through article nesting or a same-post comment permalink. Replies whose parent cannot be confirmed are counted in diagnostics. A reply whose author matches the page name is labelled as a facility reply.
+- Reachable posts are staged even when no comments are visible. Repeated captures retain earlier staged comments and metadata. Failed collection attempts leave earlier captures available for import.
+
+A login wall is reported as `login_required`. Run `facebook-login` to sign in directly in the browser.
 
 ## 5. How TikTok videos and their comments are collected
 `tiktok_collector.collect_for_facility()` — the legacy scripts' actors and limits: `epctex~tiktok-search-scraper` (≤10 results per term; terms = facility name, and name + town) → keep a video **only if its caption contains the facility's full name** → `socialdataapi~tiktok-comments-scraper` (≤2 videos, ≤10 top-level comments, ≤2 replies each). Video caption, creator, cover and date are kept from the search record (the legacy scripts discarded them). Comment id `cid`, text, `createTimeISO`, likes and replies are normalised in `comments_from_dataset()`; comments belonging to another video are dropped.
@@ -50,12 +52,16 @@ A login wall is reported as `login_required` (run `facebook-login` once — you 
 ## 8. How collected information is normalised and stored
 Every collector produces the same batch shape — one post/video/listing plus its comments — written privately (0600) to `staging/batches/<platform>/<facility>__<post>.json`, then imported by `importer.import_direct()` (or over HTTP with `--api` and `IMPORT_API_KEY`) through `app.services.external_feedback_service.import_batches` — the same code the `POST /api/import/external-feedback` endpoint uses. Text is stored exactly as collected. Screening records reasons with each comment. Phone numbers and email addresses inside comments are masked when shown to visitors. Empty comments are skipped.
 
-Facebook posts and new Facebook comments await an admin decision at `/dashboard/admin/facebook-feedback`. Admins review the original post, stored profile associations, and individual comments. Publishing requires a note, explicit comment selection, and facility or organization attribution. Use facility attribution only when the evidence identifies that location. Use organization attribution when evidence links the post to the organization and the branch is unspecified. Withhold the post when the source, organization, or context cannot be confirmed. Public Facebook feedback is unverified and excluded from ReproCare ratings. See [the Facebook attribution audit](FACEBOOK_FEEDBACK_AUDIT.md).
+The bot can collect and store Facebook posts and comments before any moderation decision. Admins can use **Collected Facebook Feedback** at `/dashboard/admin/facebook-feedback` to inspect the original post, linked page, and all stored comments and replies. The **All Posts** tab includes pending, published, withheld and previously visible posts. The displayed totals include replies.
+
+Publishing still requires a note, explicit comment selection, and facility or organization attribution. Use facility attribution only when the evidence identifies that location. Use organization attribution when evidence links the post to the organization and the branch is unspecified. Withhold the post when the source, organization, or context cannot be confirmed. Public Facebook feedback is unverified and excluded from ReproCare ratings.
+
+In the Vite development app on loopback, facility pages can also read eligible stored Facebook threads through `/api/local-collection/facebook`. The collection checks official website profile links and matching post URLs, keeps shared organization pages separate from branch feedback, and shows screened threads as unreviewed. It leaves publication decisions and database records intact.
 
 ## 9. How duplicates are identified
 * posts: unique `(platform, external_id)` — Facebook `sha256(post url)[:32]`, TikTok video id, Google place id;
 * comments: unique `(platform, external_id)` — Facebook `sha256(post url + "\n" + text)` (the legacy scripts' fingerprint, so migrated and new data de-duplicate against each other), TikTok `cid`, Google review resource name / Apify `reviewId`;
-* re-running any step or re-importing the same files changes nothing (tested).
+* re-importing the same post and comment IDs does not create duplicate records.
 
 ## 10. How feedback is associated with the correct hospital
 The bot always collects **for one facility at a time** and imports with that facility's slug; Google data is linked by place id. Rules enforced on import (`resolve_facility`): slug or place id only; a post already attributed to one facility is never moved to another. The legacy scripts' staged files only carry a hospital *name*; they are imported only when that name equals exactly **one** facility name (case and spacing ignored) — otherwise they are reported as unresolved and not stored. Rows migrated from the legacy scripts' database that cannot be linked are kept but not shown (`facility_id` empty); `report` counts them. Link one by setting `external_posts.facility_id` (and its comments') in the database.

@@ -13,11 +13,14 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 
 from bot_config import BATCHES, LEGACY_FACEBOOK_DIR, LEGACY_GOOGLE_FILE, LEGACY_TIKTOK_DIR, private_dir
+
+MAX_COMMENTS_PER_IMPORT_BATCH = 2000
 
 
 def facebook_post_id(url: str) -> str:
@@ -28,25 +31,45 @@ def write_batch(batch: dict) -> Path:
     folder = private_dir(BATCHES / batch["platform"])
     key = re.sub(r"[^A-Za-z0-9_-]+", "_", batch["post"]["external_id"])[:60]
     path = folder / f"{batch.get('facility_slug') or 'unlinked'}__{key}.json"
-    tmp = path.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump(batch, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, path)
+    if batch["platform"] == "facebook" and path.exists():
+        previous = json.loads(path.read_text(encoding="utf-8"))
+        if previous["post"]["external_id"] != batch["post"]["external_id"]:
+            raise ValueError("The staged file belongs to a different post.")
+        post = {**batch["post"], **{key: value for key, value in previous["post"].items() if value}}
+        comments = {}
+        for comment in previous["comments"] + batch["comments"]:
+            comments.setdefault(comment["external_id"], comment)
+        batch = {**batch, "post": post, "comments": list(comments.values())}
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=folder, suffix=".tmp", delete=False) as f:
+        tmp = Path(f.name)
+        try:
+            json.dump(batch, f, ensure_ascii=False, indent=2)
+            f.close()
+            os.replace(tmp, path)
+        finally:
+            tmp.unlink(missing_ok=True)
     return path
 
 
+def read_batch(path: Path) -> list[dict]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        print("  unreadable batch skipped:", path.name)
+        return []
+    if not (isinstance(data, dict) and data.get("platform") and isinstance(data.get("post"), dict)):
+        return []
+    comments = data.get("comments", [])
+    if data["platform"] == "facebook" and isinstance(comments, list) and len(comments) > MAX_COMMENTS_PER_IMPORT_BATCH:
+        return [
+            {**data, "comments": comments[start : start + MAX_COMMENTS_PER_IMPORT_BATCH]}
+            for start in range(0, len(comments), MAX_COMMENTS_PER_IMPORT_BATCH)
+        ]
+    return [data]
+
+
 def read_batches() -> list[tuple[Path, dict]]:
-    out = []
-    for path in sorted(BATCHES.glob("*/*.json")) if BATCHES.is_dir() else []:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            print("  unreadable batch skipped:", path.name)
-            continue
-        if isinstance(data, dict) and data.get("platform") and isinstance(data.get("post"), dict):
-            out.append((path, data))
-    return out
+    return [(path, batch) for path in sorted(BATCHES.glob("*/*.json")) for batch in read_batch(path)]
 
 
 # --------------------------------------------------------------------------- legacy staging formats
