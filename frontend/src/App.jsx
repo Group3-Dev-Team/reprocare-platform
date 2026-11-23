@@ -20,6 +20,9 @@ const FacilityAppointments = lazy(
 );
 const FacilityReviews = lazy(() => import("./pages/dashboard/FacilityReviews"));
 const AdminReviews = lazy(() => import("./pages/dashboard/AdminReviews"));
+const AdminFacebookFeedback = lazy(
+  () => import("./pages/dashboard/AdminFacebookFeedback"),
+);
 
 // Sign in, accounts and administration (SCRUM-13)
 const SignInPage = lazy(() => import("./pages/SignInPage"));
@@ -65,6 +68,10 @@ export default function App() {
             <Route path="admin" element={<ProtectedRoute roles={["admin"]} />}>
               <Route index element={<AdminOverview />} />
               <Route path="reviews" element={<AdminReviews />} />
+              <Route
+                path="facebook-feedback"
+                element={<AdminFacebookFeedback />}
+              />
               <Route path="users" element={<AdminUsers />} />
               <Route path="messages" element={<AdminMessages />} />
             </Route>
