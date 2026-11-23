@@ -15,7 +15,7 @@ function renderAt(url) {
 
 it('renders the home shell', async () => {
   renderAt('/');
-  expect(await screen.findByRole('heading', { level: 1, name: 'ReproCare' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { level: 1, name: /Find reproductive care/ })).toBeInTheDocument();
 });
 
 it('renders the shared header and footer', async () => {
