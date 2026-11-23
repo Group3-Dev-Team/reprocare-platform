@@ -11,6 +11,7 @@ class StaffAccountCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(max_length=128)
+
     role: Literal["facility_staff", "admin"]
     facility_slug: str | None = None
 
@@ -22,7 +23,6 @@ class UserStatusUpdate(BaseModel):
 
 
 class FacilityProfileUpdate(BaseModel):
-    """Fields a facility's own staff may maintain. Registration details are not editable here."""
 
     description: str = Field(default="", max_length=2000)
     phone: str = Field(default="", max_length=40)
@@ -32,4 +32,4 @@ class FacilityProfileUpdate(BaseModel):
     saturday_hours: str = Field(default="", max_length=60)
     sunday_hours: str = Field(default="", max_length=60)
     accepts_appointment_requests: bool = False
-    offers_telehealth: bool = False
+

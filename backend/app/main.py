@@ -15,9 +15,15 @@ from app.routes import (
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
+    facebook_collection_routes,
     appointment_routes,
     review_routes,
+    facility_staff_routes,
     media_routes,
+    auth_routes,
+    password_recovery_routes,
+    account_routes,
+    admin_routes,
 )
 
 ROUTERS: list = [
@@ -26,9 +32,15 @@ ROUTERS: list = [
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
+    facebook_collection_routes,
     appointment_routes,
     review_routes,
+    facility_staff_routes,
     media_routes,
+    auth_routes,
+    password_recovery_routes,
+    account_routes,
+    admin_routes,
 ]
 
 app = FastAPI(

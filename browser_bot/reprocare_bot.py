@@ -19,6 +19,7 @@ administrators and the facility page can see. Nothing is invented when a source 
 import argparse
 import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 
 import bot_config
@@ -190,7 +191,7 @@ def cmd_facebook(args):
     from facebook_collector import collect_post, find_posts, official_posts
     from facebook_pages import find_official_page, page_slug
     from importer import import_direct
-    from staging import facebook_post_id, write_batch
+    from staging import facebook_post_id, read_batch, write_batch
 
     if not 1 <= args.max_posts <= 10:
         raise SystemExit("--max-posts must be between 1 and 10")
@@ -229,23 +230,26 @@ def cmd_facebook(args):
             upsert_profile(db, facility, "facebook", slug, url=page_url, display_name=page_name or None, match_method=method)
             posts = official_posts(discovered, page_slug(page_url) or slug)
             log("  posts on the facility's page:", len(posts))
-            created = 0
-            problems = []
+            collected = staged = 0
+            problems = Counter()
             for post_url in posts:
                 try:
                     result = collect_post(post_url, page_name=page_name, max_comments=100)
                     if result["status"] == "login_required" and offer_login(post_url):
                         result = collect_post(post_url, page_name=page_name, max_comments=100)
                 except Exception as exc:
-                    problems.append(type(exc).__name__)
+                    problems[f"collection {type(exc).__name__}"] += 1
                     continue
                 if result["status"] == "login_required":
-                    problems.append("login_required")
+                    problems["login_required"] += 1
                     log("  Facebook asked to sign in — run `facebook-login` once")
                     break
-                if not result["comments"]:
-                    problems.append(result["status"])
+                if result["status"] != "ok":
+                    problems[result["status"]] += 1
+                if result["status"] not in {"ok", "no_comments_visible"}:
                     continue
+                if result.get("unlinked_replies"):
+                    problems["replies without a matched parent"] += result["unlinked_replies"]
                 post = result["post"]
                 batch = {
                     "platform": "facebook",
@@ -261,12 +265,22 @@ def cmd_facebook(args):
                     },
                     "comments": result["comments"],
                 }
-                write_batch(batch)
-                batches.append(batch)
-                created += len(result["comments"])
+                try:
+                    path = write_batch(batch)
+                except (OSError, ValueError, TypeError, KeyError) as exc:
+                    problems[f"staging {type(exc).__name__}"] += 1
+                    continue
+                if not args.no_import:
+                    batches.extend(read_batch(path))
+                staged += 1
+                collected += len(result["comments"])
                 log(f"  post URL: {post_url} | comments: {len(result['comments'])}")
-            status = "succeeded" if created else ("failed" if "login_required" in problems else "empty")
-            record_run(db, "facebook", status, f"{len(posts)} posts checked, {created} comments collected" + (f"; issues: {', '.join(sorted(set(problems)))}" if problems else ""), facility, posts_found=len(posts))
+            status = "succeeded" if staged else ("failed" if problems else "empty")
+            notes = ", ".join(f"{reason} ({count})" for reason, count in sorted(problems.items()))
+            message = f"{len(posts)} posts found, {staged} staged, {collected} comments collected"
+            if notes:
+                message += f"; issues: {notes}"
+            record_run(db, "facebook", status, message, facility, posts_found=len(posts))
             db.commit()
     if batches and not args.no_import:
         report_import(import_direct(batches, "facebook"))
@@ -328,6 +342,8 @@ def report_import(result: dict):
         log("  rejected:", err.get("error"))
     for problem in result.get("unresolved", []):
         log("  unresolved:", problem)
+    if result.get("comments_unlinked"):
+        log(f"  replies with a missing parent left in staging: {result['comments_unlinked']}")
 
 
 def cmd_report(args):
