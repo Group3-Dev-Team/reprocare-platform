@@ -4,15 +4,12 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy.orm import Session, selectinload
 
 from app.database.session import get_db
 from app.models import AppointmentRequest, CommunityProgram, ContactMessage, Facility, ImportBatch, ProgramRegistration, Review, User
-from app.schemas.admin import StaffAccountCreate, UserStatusUpdate
-from app.schemas.contact import ContactStatusUpdate
-from app.services.auth_service import hash_password, require_role, user_to_dict
-from app.services.common import paginate
+
 
 router = APIRouter(prefix="/admin", tags=["Administration"])
 admin_only = require_role("admin")
@@ -35,6 +32,7 @@ def overview(user: User = Depends(admin_only), db: Session = Depends(get_db)):
         "registrations_active": _count(db, ProgramRegistration, ProgramRegistration.status == "registered"),
         "import_batches": _count(db, ImportBatch),
     }
+
 
 
 @router.get("/users")
@@ -66,11 +64,7 @@ def create_staff_account(body: StaffAccountCreate, user: User = Depends(admin_on
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Choose the facility this staff account belongs to.")
     account = User(email=email, full_name=body.full_name.strip(), password_hash=hash_password(body.password), role=body.role, facility_id=facility_id)
     db.add(account)
-    try:
-        db.commit()
-    except IntegrityError:  # another request created the same email between the check and the insert
-        db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.") from None
+n
     db.refresh(account)
     return user_to_dict(account)
 
