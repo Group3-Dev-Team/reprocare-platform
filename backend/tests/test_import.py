@@ -52,3 +52,4 @@ def test_admin_can_import_and_see_history(client, admin_headers):
 def test_demo_source_is_reserved(client):
     payload = {"source": {"code": "demo"}, "facilities": [{"external_id": "1"}]}
     assert client.post("/api/import/facilities", headers=KEY, json=payload).status_code == 400
+

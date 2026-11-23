@@ -4,16 +4,12 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+
 from sqlalchemy.orm import Session, selectinload
 
 from app.database.session import get_db
 from app.models import AppointmentRequest, CommunityProgram, ContactMessage, Facility, ImportBatch, ProgramRegistration, Review, User
-from app.routes.facility_routes import review_to_dict
-from app.schemas.admin import StaffAccountCreate, UserStatusUpdate
-from app.schemas.contact import ContactStatusUpdate
-from app.schemas.review import ReviewModeration
-from app.services.auth_service import hash_password, require_role, user_to_dict
-from app.services.common import notify, paginate
+
 
 router = APIRouter(prefix="/admin", tags=["Administration"])
 admin_only = require_role("admin")
@@ -37,30 +33,6 @@ def overview(user: User = Depends(admin_only), db: Session = Depends(get_db)):
         "import_batches": _count(db, ImportBatch),
     }
 
-
-@router.get("/reviews")
-def reviews_for_moderation(
-    status_filter: str = Query("pending", alias="status", pattern="^(pending|published|rejected)$"),
-    page: int = Query(1, ge=1),
-    user: User = Depends(admin_only),
-    db: Session = Depends(get_db),
-):
-    query = select(Review).where(Review.status == status_filter).options(selectinload(Review.facility), selectinload(Review.service)).order_by(Review.created_at.desc())
-    return paginate(db, query, page, 20, lambda r: review_to_dict(r, include_status=True))
-
-
-@router.post("/reviews/{review_id}/moderate")
-def moderate_review(review_id: int, body: ReviewModeration, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    review = db.scalar(select(Review).where(Review.id == review_id).options(selectinload(Review.facility), selectinload(Review.service)))
-    if review is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Review not found.")
-    review.status = body.decision
-    review.moderation_note = body.note.strip()
-    if review.user_id:
-        word = "is now published" if body.decision == "published" else "was not published"
-        notify(db, review.user_id, f"Your review {word}", body.note.strip() or review.title, "/dashboard/reviews")
-    db.commit()
-    return review_to_dict(review, include_status=True)
 
 
 @router.get("/users")
@@ -92,7 +64,7 @@ def create_staff_account(body: StaffAccountCreate, user: User = Depends(admin_on
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Choose the facility this staff account belongs to.")
     account = User(email=email, full_name=body.full_name.strip(), password_hash=hash_password(body.password), role=body.role, facility_id=facility_id)
     db.add(account)
-    db.commit()
+n
     db.refresh(account)
     return user_to_dict(account)
 

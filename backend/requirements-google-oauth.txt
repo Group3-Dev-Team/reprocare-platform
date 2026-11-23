@@ -1,0 +1,2 @@
+# Optional server-side Google OIDC verification. Ordinary local development can omit this file.
+google-auth[requests]==2.62.2
