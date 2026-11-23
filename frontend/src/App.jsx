@@ -19,6 +19,7 @@ const FacilityAppointments = lazy(
   () => import("./pages/dashboard/FacilityAppointments"),
 );
 const FacilityReviews = lazy(() => import("./pages/dashboard/FacilityReviews"));
+const FacilityProfile = lazy(() => import("./pages/dashboard/FacilityProfile"));
 const AdminReviews = lazy(() => import("./pages/dashboard/AdminReviews"));
 const AdminFacebookFeedback = lazy(
   () => import("./pages/dashboard/AdminFacebookFeedback"),
@@ -64,6 +65,7 @@ export default function App() {
               <Route index element={<FacilityOverview />} />
               <Route path="appointments" element={<FacilityAppointments />} />
               <Route path="reviews" element={<FacilityReviews />} />
+              <Route path="profile" element={<FacilityProfile />} />
             </Route>
             <Route path="admin" element={<ProtectedRoute roles={["admin"]} />}>
               <Route index element={<AdminOverview />} />
