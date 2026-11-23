@@ -17,6 +17,10 @@ const FacilityOverview = lazy(() => import('./pages/dashboard/FacilityOverview')
 const FacilityAppointments = lazy(() => import('./pages/dashboard/FacilityAppointments'));
 const FacilityReviews = lazy(() => import('./pages/dashboard/FacilityReviews'));
 const AdminReviews = lazy(() => import('./pages/dashboard/AdminReviews'));
+<<<<<<< HEAD
+=======
+const AdminFacebookFeedback = lazy(() => import('./pages/dashboard/AdminFacebookFeedback'));
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
 function AdminHome() {
   return <DashboardHeader title="Administration" description="Review moderation is available. Other administration pages are added by their workstreams." />;
@@ -46,6 +50,10 @@ export default function App() {
             <Route path="admin" element={<ProtectedRoute roles={['admin']} />}>
               <Route index element={<AdminHome />} />
               <Route path="reviews" element={<AdminReviews />} />
+<<<<<<< HEAD
+=======
+              <Route path="facebook-feedback" element={<AdminFacebookFeedback />} />
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
             </Route>
             <Route path="*" element={<NotFoundPage what="dashboard page" />} />
           </Route>

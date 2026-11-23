@@ -1,5 +1,6 @@
 """The data-ingestion contract used by the independent bot."""
 
+<<<<<<< HEAD
 import pytest
 import json
 from pathlib import Path
@@ -46,11 +47,19 @@ def new_patient(make_user):
     user, headers = make_user()
     return headers, {"id": user.id, "email": user.email}
 
+=======
+import json
+from pathlib import Path
+
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 SAMPLE = json.loads((Path(__file__).parent / "sample_import.json").read_text())
 KEY = {"X-Import-Key": "test-import-key"}
 
 
+<<<<<<< HEAD
 @needs_route("/api/facilities/{slug}")
+=======
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def test_import_creates_then_updates_and_is_retrievable(client):
     first = client.post("/api/import/facilities", headers=KEY, json=SAMPLE)
     assert first.status_code == 200, first.text
@@ -84,7 +93,10 @@ def test_unknown_service_codes_are_reported(client):
     assert r["failed"] == 1 and "teleportation" in r["errors"][0]["error"]
 
 
+<<<<<<< HEAD
 @needs_route("/api/admin/imports")
+=======
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def test_admin_can_import_and_see_history(client, admin_headers):
     payload = {"source": {"code": "admin_upload_test"}, "is_demo": True, "facilities": [
         {"external_id": "adm-1", "name": "Admin Test Health Centre", "facility_type": "health_centre", "town": "Nyeri", "county": "Nyeri"}
@@ -99,6 +111,7 @@ def test_demo_source_is_reserved(client):
     assert client.post("/api/import/facilities", headers=KEY, json=payload).status_code == 400
 
 
+<<<<<<< HEAD
 def _links(slug):
     with _SessionLocal() as db:
         f = db.query(_Facility).filter_by(slug=slug).one()
@@ -118,6 +131,8 @@ def test_import_creates_and_updates_records(client):
     assert _links(slug)[2] == "+254700111999"
 
 
+=======
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def test_reimport_without_services_keeps_existing_links(client):
     base = {"external_id": "keep-links-1", "name": "Link Keeper Clinic", "facility_type": "clinic", "town": "Thika", "county": "Kiambu"}
     payload = {"source": {"code": "reprocare_bot_test"}, "is_demo": True, "facilities": [{**base, "services": ["antenatal", "lab"], "insurers": ["sha"]}]}
@@ -126,9 +141,20 @@ def test_reimport_without_services_keeps_existing_links(client):
     # a location-only refresh omits services and insurers: links stay
     refresh = {**payload, "facilities": [{**base, "phone": "+254700111222"}]}
     assert client.post("/api/import/facilities", headers=KEY, json=refresh).json()["updated"] == 1
+<<<<<<< HEAD
     assert _links(slug)[:2] == ({"antenatal", "lab"}, {"sha"})
+=======
+    detail = client.get(f"/api/facilities/{slug}").json()
+    assert {s["slug"] for s in detail["services"]} == {"antenatal", "lab"}
+    assert {i["slug"] for i in detail["insurers"]} == {"sha"}
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 
     # an explicit empty list still clears them
     clear = {**payload, "facilities": [{**base, "services": [], "insurers": []}]}
     client.post("/api/import/facilities", headers=KEY, json=clear)
+<<<<<<< HEAD
     assert _links(slug)[:2] == (set(), set())
+=======
+    detail = client.get(f"/api/facilities/{slug}").json()
+    assert detail["services"] == [] and detail["insurers"] == []
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68

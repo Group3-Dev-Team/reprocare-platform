@@ -80,7 +80,11 @@ def test_import_requires_key_or_admin(client, new_patient):
 
 
 def approve_fixture(client, admin_headers, source_url, scope="facility"):
+<<<<<<< HEAD
     queue = client.get("/api/admin/facebook-feedback", headers=admin_headers).json()
+=======
+    queue = client.get("/api/admin/facebook-feedback", params={"q": source_url}, headers=admin_headers).json()
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     post = next(p for p in queue["items"] if p["source_url"] == source_url)
     detail = client.get(f"/api/admin/facebook-feedback/{post['id']}", headers=admin_headers).json()
     result = client.post(
@@ -280,6 +284,99 @@ def test_hidden_status_respected_if_set_in_database(client):
         db.commit()
 
 
+<<<<<<< HEAD
+=======
+def test_admin_collected_facebook_inventory(client, admin_headers, new_patient):
+    from app.database.session import SessionLocal
+    from app.models import ExternalComment, ExternalPost
+
+    url = "/api/admin/facebook-feedback"
+    term = "fixture-collected-inventory"
+    batches = [
+        fb_batch(
+            slug="mwangaza" if i < 20 else "kipepeo", ext=f"{term}-{i}",
+            post_url=f"https://web.facebook.com/testfixturepage/posts/{term}-{i}",
+        )
+        for i in range(21)
+    ]
+    assert client.post("/api/import/external-feedback", headers=KEY, json={"batches": batches}).json()["comments_created"] == 63
+
+    with SessionLocal() as db:
+        posts = [db.query(ExternalPost).filter_by(external_id=f"{term}-{i}").one() for i in range(3)]
+        old_id, publish_id, withhold_id = [post.id for post in posts]
+        posts[0].is_visible = True
+        db.query(ExternalComment).filter_by(external_id=f"{term}-0-c2").one().status = "hidden"
+        db.commit()
+
+    patient, _ = new_patient
+    params = {"status": "all", "q": term}
+    assert client.get(url, params=params, headers=patient).status_code == 403
+    assert client.get(f"{url}/{old_id}").status_code == 401
+    assert client.get(f"{url}/{old_id}", headers=patient).status_code == 403
+
+    first = client.get(url, params=params, headers=admin_headers).json()
+    last = client.get(url, params={**params, "page": 2}, headers=admin_headers).json()
+    assert (first["total"], first["comment_total"], first["pages"]) == (21, 63, 2)
+    assert len(first["items"]) == 20 and len(last["items"]) == 1
+    assert all(post["comment_count"] == 3 and post["page"] == "testfixturepage" for post in first["items"] + last["items"])
+
+    other_facility = last["items"][0]["facility"]
+    facility_id = next(facility["id"] for facility in last["facilities"] if facility["name"] == other_facility)
+    matching = client.get(url, params={**params, "facility_id": facility_id}, headers=admin_headers).json()
+    assert matching["items"] == last["items"] and matching["comment_total"] == 3
+
+    detail = client.get(f"{url}/{old_id}", headers=admin_headers).json()
+    assert detail["previously_visible"] and not detail["published"] and detail["status"] == "pending"
+    assert detail["collected_at"] and detail["source_url"] == batches[0]["post"]["url"]
+    parent, hidden, reply = detail["comments"]
+    assert reply["parent_id"] == parent["id"] and reply["collected_at"]
+    assert hidden["status"] == "hidden" and "[phone number hidden]" in hidden["text"]
+    assert client.get(f"/api/external-posts/{old_id}/comments").status_code == 404
+
+    decision = {"note": "Fixture decision", "reviewed_at": None}
+    publish_detail = client.get(f"{url}/{publish_id}", headers=admin_headers).json()
+    assert client.post(f"{url}/{publish_id}/moderate", headers=admin_headers, json={
+        **decision, "decision": "publish", "scope": "facility", "comment_ids": [publish_detail["comments"][0]["id"]],
+    }).status_code == 200
+    assert client.post(f"{url}/{withhold_id}/moderate", headers=admin_headers, json={
+        **decision, "decision": "withhold",
+    }).status_code == 200
+    for status, post_id in (("published", publish_id), ("withheld", withhold_id)):
+        filtered = client.get(url, params={**params, "status": status}, headers=admin_headers).json()
+        assert filtered["total"] == 1 and filtered["comment_total"] == 3
+        assert filtered["items"][0]["id"] == post_id and filtered["items"][0]["status"] == status
+    unfiltered = client.get(url, params=params, headers=admin_headers).json()
+    assert (unfiltered["total"], unfiltered["comment_total"]) == (21, 63)
+
+
+def test_facebook_import_preserves_collection_time_and_same_post_parents(client, admin_headers):
+    url = "/api/import/external-feedback"
+    root = {"external_id": "fixture-same-post-parent", "text": "Fixture parent."}
+    reply = {"external_id": "fixture-same-post-reply", "parent_external_id": root["external_id"], "text": "Fixture reply."}
+    batch = fb_batch(ext="fixture-same-post", comments=[root])
+    batch["post"]["collected_at"] = "2026-01-01T00:00:00Z"
+    assert client.post(url, headers=KEY, json={"batches": [batch]}).json()["comments_created"] == 1
+    alternate = fb_batch(ext="fixture-other-post", comments=[reply])
+    unmatched = client.post(url, headers=KEY, json={"batches": [alternate]}).json()
+    assert unmatched["imported"] == 1 and unmatched["comments_unlinked"] == 1 and unmatched["comments_created"] == 0
+
+    batch["post"]["collected_at"] = "2026-02-01T00:00:00Z"
+    batch["comments"] = [reply]
+    matched = client.post(url, headers=KEY, json={"batches": [batch]}).json()
+    assert matched["comments_unlinked"] == 0 and matched["comments_created"] == 1
+    repeated = client.post(url, headers=KEY, json={"batches": [batch]}).json()
+    assert repeated["comments_created"] == 0 and repeated["comments_skipped"] == 1
+    from app.database.session import SessionLocal
+    from app.models import ExternalPost
+
+    with SessionLocal() as db:
+        post_id = db.query(ExternalPost).filter_by(external_id="fixture-same-post").one().id
+    detail = client.get(f"/api/admin/facebook-feedback/{post_id}", headers=admin_headers).json()
+    assert detail["collected_at"].startswith("2026-01-01") and not detail["published"]
+    assert detail["comment_count"] == 2 and detail["comments"][1]["parent_id"] == detail["comments"][0]["id"]
+
+
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
 def test_public_feedback_empty_and_missing(client):
     empty = client.get("/api/facilities/kipepeo/public-feedback").json()
     assert empty["total_comments"] == 0 and empty["google"] is None

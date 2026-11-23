@@ -15,6 +15,10 @@ from app.routes import (
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
+<<<<<<< HEAD
+=======
+    facebook_collection_routes,
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     appointment_routes,
     review_routes,
     media_routes,
@@ -26,6 +30,10 @@ ROUTERS: list = [
     external_feedback_routes,
     facebook_moderation_routes,
     facebook_demo_routes,
+<<<<<<< HEAD
+=======
+    facebook_collection_routes,
+>>>>>>> 7d1aa0c985beb916cfb0006f09d64bdd4e41ab68
     appointment_routes,
     review_routes,
     media_routes,
