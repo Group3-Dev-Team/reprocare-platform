@@ -1,3 +1,4 @@
+import { facilityDisplayName } from '../data/facilityNames';
 import { Link } from 'react-router-dom';
 import { Languages, MapPin, Video } from 'lucide-react';
 import { DemoLabel, Rating, SourceLabel } from './Badges';
@@ -21,7 +22,7 @@ export function PractitionerCard({ practitioner: p }) {
       </div>
       <ul className="facility-facts">
         <li>
-          <MapPin size={14} aria-hidden="true" /> {p.facility ? `${p.facility.name}, ${p.town}` : p.town}
+          <MapPin size={14} aria-hidden="true" /> {p.facility ? `${facilityDisplayName(p.facility)}, ${p.town}` : p.town}
         </li>
         <li>
           <Languages size={14} aria-hidden="true" /> {(p.languages || []).join(', ') || 'Languages not listed'}
