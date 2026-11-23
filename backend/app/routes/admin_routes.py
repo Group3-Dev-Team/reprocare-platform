@@ -1,4 +1,4 @@
-"""Admin dashboard: overview, accounts, contact messages and import history."""
+"""Platform administration: overview, review moderation, accounts, contact messages and import history."""
 
 from datetime import date
 
@@ -24,7 +24,6 @@ def _count(db: Session, model, *where) -> int:
 
 @router.get("/overview")
 def overview(user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    # the numbers on the admin home page
     return {
         "users": dict(db.execute(select(User.role, func.count()).group_by(User.role)).all()),
         "facilities": _count(db, Facility),
@@ -50,7 +49,6 @@ def list_users(
     if role:
         query = query.where(User.role == role)
     if q:
-        # search name or email
         like = f"%{q.lower()}%"
         query = query.where(func.lower(User.email).like(like) | func.lower(User.full_name).like(like))
     return paginate(db, query.order_by(User.created_at.desc(), User.id.desc()), page, 20, user_to_dict)
@@ -62,7 +60,6 @@ def create_staff_account(body: StaffAccountCreate, user: User = Depends(admin_on
     if db.scalar(select(User.id).where(func.lower(User.email) == email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
     facility_id = None
-    # staff accounts must belong to a facility
     if body.role == "facility_staff":
         facility_id = db.scalar(select(Facility.id).where(Facility.slug == (body.facility_slug or "")))
         if facility_id is None:
@@ -71,7 +68,7 @@ def create_staff_account(body: StaffAccountCreate, user: User = Depends(admin_on
     db.add(account)
     try:
         db.commit()
-    except IntegrityError:  # same email created by another request at the same time
+    except IntegrityError:  # another request created the same email between the check and the insert
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.") from None
     db.refresh(account)
@@ -119,7 +116,6 @@ def update_contact_message(reference: str, body: ContactStatusUpdate, user: User
 
 @router.get("/imports")
 def import_history(user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    # last 50 imports from the data bot
     rows = db.scalars(select(ImportBatch).options(selectinload(ImportBatch.source)).order_by(ImportBatch.created_at.desc(), ImportBatch.id.desc()).limit(50))
     return [
         {
