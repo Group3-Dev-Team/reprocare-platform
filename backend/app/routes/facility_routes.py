@@ -31,6 +31,7 @@ def facility_filters(
     insurer: str | None = Query(None, description="Insurer slug, e.g. 'sha'"),
     open_weekends: bool = False,
     open_24_hours: bool = False,
+    open_now: bool = Query(False, description="Open at this moment (Kenya time), from the stored opening hours"),
     telehealth: bool = False,
     accepts_requests: bool = False,
     verified_only: bool = False,
