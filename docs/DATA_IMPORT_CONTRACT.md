@@ -66,6 +66,16 @@ A signed-in administrator can call the same endpoint (the *Data imports* page do
 * Every call is logged in `import_batches` and visible on the admin *Data imports* page.
 * Only send data the source permits you to store. Google Places content (other than place IDs) must not be sent here; use the live search page instead.
 
+## Import reliability and validation
+
+* Repeated `external_id` values within the same batch are rejected. All occurrences of the repeated ID receive record-level errors.
+* A database error affecting one record does not prevent other valid records in the batch from being saved. Failed updates preserve the previous facility data.
+* Demonstration records cannot overwrite genuine records, and genuine records cannot overwrite demonstration records.
+* Optional `email`, `phone` and `website` fields are validated. Invalid values reject that record rather than being silently changed. Empty values remain allowed.
+* `phone` accepts common phone-number punctuation and requires at least seven digits. `website` requires an HTTP(S) URL with a valid hostname format.
+* Possible duplicate-name warnings are retained in the import batch history and returned by the administrator's `GET /api/admin/imports` endpoint.
+* Database migration `0008_import_batch_warnings.sql` must be applied before deploying backend code that uses the stored warnings column.
+
 ## Response
 
 ```json

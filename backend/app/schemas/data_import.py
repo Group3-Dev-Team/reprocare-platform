@@ -3,10 +3,16 @@
 Full description and an example: docs/DATA_IMPORT_CONTRACT.md and backend/tests/sample_import.json.
 """
 
+import re
 from datetime import date
 from typing import Literal
+from urllib.parse import urlsplit
 
+from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, Field, field_validator
+
+# Digits, spaces, brackets, hyphens, dots and "/" between numbers; "+" only at the start; at least 7 digits.
+_PHONE = re.compile(r"^\+?[0-9 ()./-]+$")
 
 RegistrationStatus = Literal["matched", "not_checked", "unresolved"]
 FacilityType = Literal["hospital", "clinic", "maternity_home", "health_centre", "laboratory"]
@@ -51,6 +57,34 @@ class ImportFacility(BaseModel):
     @classmethod
     def strip_text(cls, v: str) -> str:
         return " ".join(v.split())
+
+    # Contact fields are checked, never rewritten: an invalid value fails this record with a clear error.
+    # An empty string still means "not known".
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, v: str) -> str:
+        if v:
+            try:
+                validate_email(v, check_deliverability=False)
+            except EmailNotValidError:
+                raise ValueError("is not a valid email address") from None
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def valid_phone(cls, v: str) -> str:
+        if v and not (_PHONE.match(v) and sum(c.isdigit() for c in v) >= 7):
+            raise ValueError("is not a valid phone number (digits, spaces, +, -, brackets; at least 7 digits)")
+        return v
+
+    @field_validator("website")
+    @classmethod
+    def valid_website(cls, v: str) -> str:
+        if v:
+            parts = urlsplit(v)
+            if parts.scheme not in {"http", "https"} or "." not in (parts.hostname or "") or any(c.isspace() for c in v):
+                raise ValueError("must be a full web address starting with http:// or https://")
+        return v
 
 
 class ImportRequest(BaseModel):

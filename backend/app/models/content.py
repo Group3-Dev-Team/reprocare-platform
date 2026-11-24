@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import JSON, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, func, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.session import Base
@@ -24,6 +24,10 @@ class Article(Base):
     related_services: Mapped[str] = mapped_column(String(255), default="")  # comma-separated service slugs
     review_status: Mapped[str] = mapped_column(String(160), default="Awaiting clinical review")
     updated_on: Mapped[date | None] = mapped_column(Date)
+    # Unpublished articles are hidden from the public library. Seeded and existing articles are published;
+    # articles written by administrators start unpublished (see content_routes.create_article).
+    # Added to existing databases by migrations/versions/0007_article_publishing.sql.
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), index=True)
 
 
 class ContactMessage(Base):
