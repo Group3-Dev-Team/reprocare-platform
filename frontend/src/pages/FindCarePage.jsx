@@ -56,6 +56,7 @@ function positivePage(value) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 const FLAGS = [
+  ['open_now', 'Open now'],
   ['open_weekends', 'Open at weekends'],
   ['open_24_hours', 'Open 24 hours'],
   ['telehealth', 'Remote consultations'],
@@ -373,7 +374,7 @@ export default function FindCarePage({ variant = 'facilities' }) {
                 <span>{label}</span>
               </label>
             ))}
-            <p className="small muted directory-filter-note">Registry matching means a record was matched to a professional register. For inpatient or outpatient care, check the services on the listing and confirm with the facility.</p>
+            <p className="small muted directory-filter-note">Open now uses the opening hours listed for each facility, in Kenya time; facilities without listed hours are not included. Registry matching means a record was matched to a professional register. For inpatient or outpatient care, check the services on the listing and confirm with the facility.</p>
           </fieldset>
           <fieldset className="filter-flags">
             <legend className="field-label">Ratings and feedback</legend>
