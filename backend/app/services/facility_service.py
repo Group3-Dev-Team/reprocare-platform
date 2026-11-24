@@ -1,5 +1,7 @@
 """Facility search, filtering, sorting and the JSON shapes the frontend receives."""
 
+import re
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 from sqlalchemy import and_, case, func, or_, select
@@ -66,6 +68,58 @@ def latest_google_snapshot():
         .order_by(profile.facility_id, profile.fetched_at.desc().nulls_last(), profile.id.desc())
         .subquery()
     )
+
+
+# Kenya keeps East Africa Time (UTC+3) all year, so a fixed offset needs no time zone database.
+KENYA_TIME = timezone(timedelta(hours=3))
+# Stored opening hours look like "8:00 AM – 5:00 PM" (Google Places), "8:00 – 11:30 AM", "08:00-17:00",
+# "Open 24 hours" or "Closed".
+_HOURS_RANGE = re.compile(r"^(\d{1,2}):(\d{2})\s*(?:([ap])\.?m\.?)?\s*[-–—]\s*(\d{1,2}):(\d{2})\s*(?:([ap])\.?m\.?)?$", re.IGNORECASE)
+
+
+def _minute_of_day(hour: str, minute: str, period: str | None) -> int | None:
+    hour, minute = int(hour), int(minute)
+    if minute > 59 or (period and not 1 <= hour <= 12) or (not period and hour > 23):
+        return None
+    if period:
+        hour = hour % 12 + (12 if period.lower() == "p" else 0)
+    return hour * 60 + minute
+
+
+def open_at(hours: str, minute: int) -> bool | None:
+    """Whether stored opening hours say the facility is open at this minute of the day; None when they cannot be read."""
+    text = " ".join((hours or "").replace("\u202f", " ").replace("\u2009", " ").replace("\xa0", " ").split())
+    if text.lower() in ("open 24 hours", "24 hours"):
+        return True
+    if text.lower() == "closed":
+        return False
+    match = _HOURS_RANGE.match(text)
+    if not match:
+        return None
+    first_period, second_period = match.group(3), match.group(6)
+    if first_period and not second_period:
+        return None
+    start = _minute_of_day(match.group(1), match.group(2), first_period or second_period)  # "8:00 – 11:30 AM"
+    end = _minute_of_day(match.group(4), match.group(5), second_period)
+    if start is None or end is None or start == end:
+        return None
+    return start <= minute < end if start < end else (minute >= start or minute < end)  # past midnight
+
+
+def _kenya_now() -> datetime:
+    return datetime.now(KENYA_TIME)
+
+
+def open_now_ids(db: Session) -> list[int]:
+    """Facilities whose stored hours for today say they are open now (Kenya time). Facilities without
+    readable hours for today are left out rather than guessed, unless they are marked open 24 hours."""
+    now = _kenya_now()
+    hours_today = {5: Facility.saturday_hours, 6: Facility.sunday_hours}.get(now.weekday(), Facility.weekday_hours)
+    minute = now.hour * 60 + now.minute
+    rows = db.execute(
+        select(Facility.id, hours_today, Facility.open_24_hours).where(or_(func.trim(hours_today) != "", Facility.open_24_hours.is_(True)))
+    ).all()
+    return [facility_id for facility_id, hours, always in rows if open_at(hours, minute) or (always and open_at(hours, minute) is None)]
 
 
 def has_published_written_activity():
@@ -139,6 +193,8 @@ def build_facility_query(db: Session, filters: dict):
         query = query.where(Facility.open_weekends.is_(True))
     if filters.get("open_24_hours"):
         query = query.where(Facility.open_24_hours.is_(True))
+    if filters.get("open_now"):
+        query = query.where(Facility.id.in_(open_now_ids(db)))
     if filters.get("telehealth"):
         query = query.where(Facility.offers_telehealth.is_(True))
     if filters.get("accepts_requests"):
