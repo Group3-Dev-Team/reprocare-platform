@@ -19,11 +19,13 @@ const labels = { new: "New", in_progress: "In progress", resolved: "Resolved" };
 export default function AdminMessages() {
   useDocumentTitle("Contact messages");
   const [status, setStatus] = useState("new");
+  const [topic, setTopic] = useState("");
+  const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const toast = useToast();
   const result = useFetch(
-    () => api.adminMessages({ status, page }),
-    [status, page],
+    () => api.adminMessages({ status, topic, q: q.trim(), page }),
+    [status, topic, q, page],
   );
   const move = async (m, next) => {
     try {
@@ -40,19 +42,52 @@ export default function AdminMessages() {
         title="Contact messages"
         description="Questions, listing corrections and privacy requests sent from the Contact Us page."
       />
-      <Tabs
-        value={status}
-        onChange={(v) => {
-          setStatus(v);
-          setPage(1);
-        }}
-        options={[
-          { value: "new", label: "New" },
-          { value: "in_progress", label: "In progress" },
-          { value: "resolved", label: "Resolved" },
-          { value: "", label: "All" },
-        ]}
-      />
+      <div className="spread">
+        <Tabs
+          value={status}
+          onChange={(v) => {
+            setStatus(v);
+            setPage(1);
+          }}
+          options={[
+            { value: "new", label: "New" },
+            { value: "in_progress", label: "In progress" },
+            { value: "resolved", label: "Resolved" },
+            { value: "", label: "All" },
+          ]}
+        />
+        {/* narrow the list by topic, or search sender, email, message text and reference */}
+        <div className="row">
+          <select
+            className="select"
+            aria-label="Topic"
+            value={topic}
+            onChange={(e) => {
+              setTopic(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All topics</option>
+            {Object.entries(contactTopics).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <input
+            className="input"
+            style={{ maxWidth: 280 }}
+            placeholder="Search name, email, message or reference"
+            aria-label="Search messages"
+            maxLength={100}
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+      </div>
       {result.loading && <LoadingState rows={3} height={110} />}
       {result.error && (
         <ErrorState error={result.error} onRetry={result.reload} />

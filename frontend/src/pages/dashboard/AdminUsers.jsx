@@ -25,10 +25,18 @@ export default function AdminUsers() {
     () => api.adminUsers({ role, q, page }),
     [role, q, page],
   );
-  // facilities for the dropdown when creating a staff account
+  // facilities for the dropdown when creating a staff account; the search reaches every
+  // facility, not only the first 40 by name
+  const [facilityQuery, setFacilityQuery] = useState("");
   const facilities = useFetch(
-    () => api.facilities({ page_size: 40, sort: "name", hide_demo: false }),
-    [],
+    () =>
+      api.facilities({
+        q: facilityQuery.trim(),
+        page_size: 40,
+        sort: "name",
+        hide_demo: false,
+      }),
+    [facilityQuery],
   );
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -228,17 +236,35 @@ export default function AdminUsers() {
               ]}
             />
             {form.role === "facility_staff" && (
-              <Select
-                label="Facility"
-                value={form.facility_slug}
-                onChange={set("facility_slug")}
-                placeholder="Choose a facility"
-                options={(facilities.data?.items || []).map((f) => ({
-                  value: f.slug,
-                  label: `${f.name} (${f.town})`,
-                }))}
-                required
-              />
+              <>
+                <TextInput
+                  label="Find facility"
+                  value={facilityQuery}
+                  onChange={(e) => {
+                    // a new search starts a new choice
+                    setFacilityQuery(e.target.value);
+                    setForm({ ...form, facility_slug: "" });
+                  }}
+                  maxLength={100}
+                  hint="Type part of the facility name or town. Up to 40 matches are listed."
+                />
+                <Select
+                  label="Facility"
+                  value={form.facility_slug}
+                  onChange={set("facility_slug")}
+                  placeholder="Choose a facility"
+                  options={(facilities.data?.items || []).map((f) => ({
+                    value: f.slug,
+                    label: `${f.name} (${f.town})`,
+                  }))}
+                  hint={
+                    facilities.data?.total === 0
+                      ? "No facility matches that search."
+                      : undefined
+                  }
+                  required
+                />
+              </>
             )}
           </form>
         </Modal>
