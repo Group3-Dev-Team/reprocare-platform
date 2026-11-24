@@ -1,207 +1,115 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import {
-  CalendarDays,
-  Clock,
-  ClipboardList,
-  MapPin,
-  Users,
-  Wallet,
-} from "lucide-react";
-import { api } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
-import { useFetch } from "../hooks/useFetch";
-import { useDocumentTitle } from "../hooks/useDocumentTitle";
-import { costTypes, formatDate, programTypes } from "../data/labels";
-import { PageHeader } from "../components/PageHeader";
-import { DemoLabel } from "../components/Badges";
-import { MapView } from "../components/MapView";
-import { RegistrationModal } from "../components/RegistrationModal";
-import { Alert, ErrorState, LoadingState } from "../components/Feedback";
-import NotFoundPage from "./NotFoundPage";
+import { facilityDisplayName } from '../data/facilityNames';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { CalendarCheck, Languages, MapPin, Receipt, Video } from 'lucide-react';
+import { api } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
+import { useFetch } from '../hooks/useFetch';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { formatDate } from '../data/labels';
+import { PageHeader } from '../components/PageHeader';
+import { DemoLabel, SourceLabel } from '../components/Badges';
+import { AppointmentModal } from '../components/AppointmentModal';
+import { ErrorState, LoadingState, Alert } from '../components/Feedback';
+import NotFoundPage from './NotFoundPage';
 
-export default function ProgramDetailPage() {
+export default function PractitionerDetailPage() {
   const { slug } = useParams();
   const { user } = useAuth();
-  const result = useFetch(() => api.program(slug), [slug]);
-  const [registering, setRegistering] = useState(false);
+  const result = useFetch(() => api.practitioner(slug), [slug]);
+  const facility = useFetch(() => (result.data?.facility ? api.facility(result.data.facility.slug) : Promise.resolve(null)), [result.data?.facility?.slug]);
+  const [requesting, setRequesting] = useState(false);
   const p = result.data;
-  useDocumentTitle(p?.title, p?.summary);
+  const notFound = result.error?.status === 404;
+  useDocumentTitle(
+    notFound ? 'Not found' : p?.full_name,
+    notFound ? 'ReproCare could not find this page.' : p ? `${p.title} in ${p.town}.` : undefined,
+    { noIndex: notFound },
+  );
 
-  if (result.error?.status === 404) return <NotFoundPage what="programme" />;
-  if (result.error)
-    return (
-      <div className="container section">
-        <ErrorState error={result.error} onRetry={result.reload} />
-      </div>
-    );
-  if (!p)
-    return (
-      <div className="container section">
-        <LoadingState rows={2} />
-      </div>
-    );
-
-  const full = p.spaces_left === 0;
-  const pct = Math.min(100, Math.round((p.registered / p.capacity) * 100));
+  if (notFound) return <NotFoundPage what="practitioner" />;
+  if (result.error) return <div className="container section"><ErrorState error={result.error} onRetry={result.reload} /></div>;
+  if (!p) return <div className="container section"><LoadingState rows={2} /></div>;
 
   return (
     <>
-      <PageHeader
-        title={p.title}
-        intro={p.summary}
-        tone="green"
-        crumbs={[
-          { label: "Health & community", to: "/health-community/programmes" },
-          { label: "Programmes", to: "/health-community/programmes" },
-          { label: p.title },
-        ]}
-      >
-        <div className="row" style={{ gap: 6 }}>
-          <span
-            className={`badge ${p.cost_type === "free" ? "badge-success" : "badge-info"}`}
-          >
-            {costTypes[p.cost_type]}
-          </span>
-          <span className="badge">{programTypes[p.program_type]}</span>
-          {p.service && (
-            <span className="badge badge-rose">{p.service.name}</span>
-          )}
+      <PageHeader title={p.full_name} intro={p.title} crumbs={[{ label: 'Find care', to: '/find-care/facilities' }, { label: 'Specialists', to: '/find-care/specialists' }, { label: p.full_name }]}>
+        <div className="row" style={{ gap: 8 }}>
+          {p.registration.status === 'matched' ? <SourceLabel layer="registry">{p.registration.body} record matched</SourceLabel> : <SourceLabel layer="unverified">Registration not yet checked</SourceLabel>}
           {p.is_demo && <DemoLabel />}
         </div>
       </PageHeader>
       <div className="container detail-layout section-sm">
         <div className="detail-main">
           <section className="panel">
-            <h2>About this programme</h2>
-            <p>{p.description}</p>
+            <div className="panel-title">
+              <h2>About</h2>
+              <SourceLabel layer="provider">Stated by the practitioner</SourceLabel>
+            </div>
+            <p>{p.bio || 'No biography provided yet.'}</p>
+            <ul className="contact-list">
+              <li>
+                <MapPin size={16} aria-hidden="true" /> {p.facility ? <Link to={`/facilities/${p.facility.slug}`}>{facilityDisplayName(p.facility)}</Link> : 'Independent practice'}, {p.town}
+              </li>
+              <li>
+                <Languages size={16} aria-hidden="true" /> {p.languages.join(', ')}
+              </li>
+              {p.offers_telehealth && (
+                <li>
+                  <Video size={16} aria-hidden="true" /> Offers telehealth consultations
+                </li>
+              )}
+              {p.fee_note && (
+                <li>
+                  <Receipt size={16} aria-hidden="true" /> {p.fee_note}
+                </li>
+              )}
+            </ul>
+          </section>
+          <section className="panel">
+            <h2>Professional registration</h2>
             <dl className="definition-list">
-              <dt>Organised by</dt>
-              <dd>{p.organizer_name}</dd>
-              {p.host_facility && (
+              <dt>Register</dt>
+              <dd>{p.registration.body || 'Not stated'}</dd>
+              <dt>Status</dt>
+              <dd>{p.registration.status === 'matched' ? 'A matching record was found' : 'Not yet checked by ReproCare'}</dd>
+              {p.registration.code && (
                 <>
-                  <dt>Hosted at</dt>
-                  <dd>
-                    <Link to={`/facilities/${p.host_facility.slug}`}>
-                      {p.host_facility.name}
-                    </Link>
-                  </dd>
+                  <dt>Reference</dt>
+                  <dd>{p.registration.code}</dd>
+                </>
+              )}
+              {p.registration.checked_on && (
+                <>
+                  <dt>Checked</dt>
+                  <dd>{formatDate(p.registration.checked_on)}</dd>
                 </>
               )}
             </dl>
+            <p className="small muted" style={{ marginTop: 12, marginBottom: 0 }}>
+              A matched register record confirms identity and registration at the time of checking. It is not a recommendation.
+            </p>
           </section>
-          <section className="panel">
-            <h2>Before you go</h2>
-            <ul className="contact-list">
-              <li>
-                <Users size={16} aria-hidden="true" />
-                <span>
-                  <strong>Who can attend:</strong>{" "}
-                  {p.eligibility || "Open to everyone"}
-                </span>
-              </li>
-              <li>
-                <ClipboardList size={16} aria-hidden="true" />
-                <span>
-                  <strong>What to bring:</strong>{" "}
-                  {p.requirements || "Nothing specific"}
-                </span>
-              </li>
-              <li>
-                <Wallet size={16} aria-hidden="true" />
-                <span>
-                  <strong>Cost:</strong> {p.cost_note}
-                </span>
-              </li>
-            </ul>
-          </section>
-          {p.latitude != null && (
-            <section className="panel">
-              <h2>Venue</h2>
-              <p>{p.venue}</p>
-              <MapView
-                points={[
-                  {
-                    id: p.slug,
-                    name: p.title,
-                    latitude: p.latitude,
-                    longitude: p.longitude,
-                    subtitle: p.venue,
-                    demo: p.is_demo,
-                  },
-                ]}
-                selectedId={p.slug}
-                zoom={14}
-                height={260}
-                label="Venue map"
-              />
-            </section>
-          )}
         </div>
         <aside className="detail-side">
-          <section className="panel register-panel">
-            <ul className="contact-list">
-              <li>
-                <CalendarDays size={16} aria-hidden="true" />{" "}
-                {formatDate(p.start_date, {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </li>
-              <li>
-                <Clock size={16} aria-hidden="true" /> {p.start_time} –{" "}
-                {p.end_time}
-              </li>
-              <li>
-                <MapPin size={16} aria-hidden="true" /> {p.venue}
-              </li>
-            </ul>
-            <div className="capacity">
-              <div className="spread small">
-                <span>
-                  {full ? "No places left" : `${p.spaces_left} places left`}
-                </span>
-                <span className="muted">{p.capacity} in total</span>
-              </div>
-              <div className="bar" aria-hidden="true">
-                <span style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-            {p.is_past ? (
-              <Alert tone="info">This programme has already taken place.</Alert>
-            ) : full ? (
-              <Alert tone="warning">
-                This programme is full. Check other dates in the programme list.
-              </Alert>
+          <section className="panel">
+            <h2>Next step</h2>
+            {p.facility?.accepts_appointment_requests ? (
+              <>
+                <p className="small">Send a request to {facilityDisplayName(p.facility)}, mentioning that you would like to see {p.full_name}.</p>
+                {(!user || user.role === 'patient') && (
+                  <button className="btn btn-primary btn-block" onClick={() => setRequesting(true)} disabled={!facility.data}>
+                    <CalendarCheck size={17} aria-hidden="true" /> Request appointment
+                  </button>
+                )}
+              </>
             ) : (
-              (!user || user.role === "patient") && (
-                <button
-                  className="btn btn-success btn-block btn-lg"
-                  onClick={() => setRegistering(true)}
-                >
-                  Register for this programme
-                </button>
-              )
+              <Alert tone="info">Contact {p.facility ? facilityDisplayName(p.facility) : 'the practitioner'} directly to arrange a visit.</Alert>
             )}
-            <p
-              className="small muted"
-              style={{ marginTop: 12, marginBottom: 0 }}
-            >
-              Registering holds a place. It does not record any health service,
-              and your registration details are shared only with the organiser.
-            </p>
           </section>
         </aside>
       </div>
-      {registering && (
-        <RegistrationModal
-          program={p}
-          onClose={() => setRegistering(false)}
-          onDone={result.reload}
-        />
-      )}
+      {requesting && facility.data && <AppointmentModal facility={facility.data} practitioner={p} onClose={() => setRequesting(false)} />}
     </>
   );
 }

@@ -1,4 +1,3 @@
- SCRUM-16-programmes-health-content-public-pages-frontend
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -447,6 +446,5 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-
   );
 }

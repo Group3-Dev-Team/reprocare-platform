@@ -26,7 +26,7 @@ _FACILITIES = {
 
 
 def _has_route(path):
-    return any(getattr(r, "path", None) == path for r in _app.routes)
+    return path in _app.openapi()["paths"]
 
 
 needs_route = lambda path: pytest.mark.skipif(not _has_route(path), reason=f"needs {path} from another workstream (integration test)")  # noqa: E731
