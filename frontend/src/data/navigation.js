@@ -98,6 +98,7 @@ export const dashboardNav = {
     { to: '/dashboard/admin/reviews', label: 'Review moderation', icon: 'star' },
     { to: '/dashboard/admin/facebook-feedback', label: 'Facebook feedback', icon: 'star' },
     { to: '/dashboard/admin/programmes', label: 'Community programmes', icon: 'megaphone' },
+    { to: '/dashboard/admin/articles', label: 'Health library', icon: 'book' },
     { to: '/dashboard/admin/messages', label: 'Contact messages', icon: 'inbox' },
     { to: '/dashboard/admin/users', label: 'Accounts', icon: 'users' },
     { to: '/dashboard/admin/imports', label: 'Data imports', icon: 'database' },

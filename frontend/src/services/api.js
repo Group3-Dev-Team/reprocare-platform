@@ -220,6 +220,13 @@ export const api = {
   createProgram: (body) => post('/admin/programs', body),
   updateProgram: (slug, body) => patch(`/admin/programs/${slug}`, body),
   programRegistrations: (slug) => get(`/admin/programs/${slug}/registrations`),
+  setRegistrationStatus: (slug, ref, status) => patch(`/admin/programs/${slug}/registrations/${ref}`, { status }),
+  adminArticles: () => get('/admin/articles'),
+  adminArticle: (slug) => get(`/admin/articles/${slug}`),
+  createArticle: (body) => post('/admin/articles', body),
+  updateArticle: (slug, body) => patch(`/admin/articles/${slug}`, body),
+  publishArticle: (slug) => post(`/admin/articles/${slug}/publish`),
+  unpublishArticle: (slug) => post(`/admin/articles/${slug}/unpublish`),
   importHistory: () => get('/admin/imports'),
   importFacilities: (body) => post('/import/facilities', body),
 };

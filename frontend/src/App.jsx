@@ -35,6 +35,7 @@ const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
 const TrustPage = lazy(() => import("./pages/TrustPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AdminPrograms = lazy(() => import("./pages/dashboard/AdminPrograms"));
+const AdminArticles = lazy(() => import("./pages/dashboard/AdminArticles"));
 const AdminImports = lazy(() => import("./pages/dashboard/AdminImports"));
 
 // Appointments, reviews and dashboards (SCRUM-15). Other workstreams register their pages the same way.
@@ -132,6 +133,7 @@ export default function App() {
               <Route index element={<AdminOverview />} />
               <Route path="reviews" element={<AdminReviews />} />
               <Route path="programmes" element={<AdminPrograms />} />
+              <Route path="articles" element={<AdminArticles />} />
               <Route path="imports" element={<AdminImports />} />
               <Route
                 path="facebook-feedback"
