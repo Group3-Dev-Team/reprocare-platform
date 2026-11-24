@@ -157,6 +157,8 @@ export const api = {
   // External public feedback (Facebook, TikTok, Google) — separate from ReproCare reviews
   facilityPublicFeedback: (slug, options) => get(`/facilities/${slug}/public-feedback`, undefined, options),
   facilityPublicPosts: (slug, params, options) => get(`/facilities/${slug}/public-feedback/posts`, params, options),
+  facilityCollectedFacebookPosts: (slug, params, options) => get(`/local-collection/facebook/facilities/${slug}/posts`, params, options),
+  collectedFacebookComments: (id, params, options) => get(`/local-collection/facebook/posts/${id}/comments`, params, options),
   instagramDemoPosts: (slug, options) => get(`/local-demo/instagram/${slug}`, undefined, options),
   facebookDemoCounts: (options) => get('/local-demo/facebook/counts', undefined, options),
   facebookDemoFacilities: (options) => get('/local-demo/facebook/facilities', undefined, options),
@@ -205,8 +207,8 @@ export const api = {
   // Administration
   adminOverview: () => get('/admin/overview'),
   adminReviews: (params) => get('/admin/reviews', params),
-  adminFacebookPosts: (params) => get('/admin/facebook-feedback', params),
-  adminFacebookPost: (id) => get(`/admin/facebook-feedback/${id}`),
+  adminFacebookPosts: (params, options) => get('/admin/facebook-feedback', params, options),
+  adminFacebookPost: (id, options) => get(`/admin/facebook-feedback/${id}`, undefined, options),
   moderateFacebookPost: (id, body) => post(`/admin/facebook-feedback/${id}/moderate`, body),
   moderateReview: (id, body) => post(`/admin/reviews/${id}/moderate`, body),
   adminUsers: (params) => get('/admin/users', params),

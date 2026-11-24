@@ -1,12 +1,4 @@
-"""Live facility discovery with Google Places API (New) — Text Search.
 
-* Uses a narrow field mask: only the fields the interface shows are requested (and billed).
-* One Text Search response holds at most 20 places. To fill a 40-result page we request a second page
-  with `nextPageToken`. Google returns at most 60 places for one query in total.
-* Results are shown live with Google attribution and are NOT copied into the ReproCare database.
-  Google's terms allow storing the place ID; other content must not be cached beyond what the terms permit.
-* The API key stays on the server (GOOGLE_PLACES_API_KEY). The browser never sees it.
-"""
 
 import httpx
 

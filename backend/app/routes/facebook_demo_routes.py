@@ -24,6 +24,7 @@ DEMO_COMMENT_STATUSES = ("visible", "held")
 FACILITY_PAGES = {
     "africa-inuka-hospital": "africainukahospital",
     "aic-litein-hospital": "liteinhospitalaic",
+    "ankh-women-s-clinic-best-gynaecologist-obstetrician-clinic-in-nairobi-kenya": "ankhwomensclinic",
     "bayleaf-hospital": "bayleafhospital",
     "embu-level-5-hospital": "embulevel5hosp",
     "guardian-hospital-meru": "guardianhospitalmeru",

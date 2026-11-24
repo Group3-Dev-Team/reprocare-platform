@@ -4,7 +4,7 @@
     python -m app.database.seed_reference --admin-email you@example.com --admin-name "Your Name"
         (prompts for the password; never pass it on the command line)
 
-Loads only: the service taxonomy, real insurers/schemes and the data sources
+Loads only: the service taxonomy, real insurers/schemes, health-library articles and the data sources
 used by the bot. It never creates facilities, reviews, practitioners or programmes — facilities come
 from the ReproCare bot (Google Places discovery) or the import API, reviews come from real patients.
 Safe to run repeatedly: existing rows are left as they are.
@@ -13,13 +13,14 @@ Safe to run repeatedly: existing rows are left as they are.
 import argparse
 import getpass
 import json
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy import select
 
 from app.database.init_db import create_tables
 from app.database.session import SessionLocal
-from app.models import DataSource, Insurer, Service, User
+from app.models import Article, DataSource, Insurer, Service, User
 from app.services.auth_service import hash_password
 
 DATA_FILE = Path(__file__).with_name("reference_data.json")
@@ -32,7 +33,7 @@ DATA_SOURCES = [
 
 def load_reference(db) -> dict:
     data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    created = {"services": 0, "insurers": 0, "data_sources": 0}
+    created = {"services": 0, "insurers": 0, "articles": 0, "data_sources": 0}
 
     for s in data["services"]:
         if not db.scalar(select(Service.id).where(Service.slug == s["slug"])):
@@ -42,7 +43,13 @@ def load_reference(db) -> dict:
         if not db.scalar(select(Insurer.id).where(Insurer.slug == i["slug"])):
             db.add(Insurer(**i))
             created["insurers"] += 1
-    # Health-library articles are loaded by the content workstream's own seed.
+    for a in data["articles"]:
+        if not db.scalar(select(Article.id).where(Article.slug == a["slug"])):
+            a = dict(a)
+            a["related_services"] = ",".join(a["related_services"])
+            a["updated_on"] = date.fromisoformat(a["updated_on"]) if a.get("updated_on") else None
+            db.add(Article(**a))
+            created["articles"] += 1
     for code, name, description, attribution in DATA_SOURCES:
         if not db.scalar(select(DataSource.id).where(DataSource.code == code)):
             db.add(DataSource(code=code, name=name, description=description, attribution=attribution))
