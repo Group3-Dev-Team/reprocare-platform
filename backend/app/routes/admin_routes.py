@@ -97,6 +97,8 @@ def set_user_status(user_id: int, body: UserStatusUpdate, user: User = Depends(a
 @router.get("/contact-messages")
 def contact_messages(
     status_filter: str | None = Query(None, alias="status", pattern="^(new|in_progress|resolved)$"),
+    topic: str | None = Query(None, pattern="^(general|listing_correction|privacy|technical|feedback)$"),
+    q: str | None = Query(None, max_length=100),
     page: int = Query(1, ge=1),
     user: User = Depends(admin_only),
     db: Session = Depends(get_db),
@@ -104,6 +106,19 @@ def contact_messages(
     query = select(ContactMessage)
     if status_filter:
         query = query.where(ContactMessage.status == status_filter)
+    if topic:
+        query = query.where(ContactMessage.topic == topic)
+    if q and q.strip():
+        # Case-insensitive search of sender, email, message and reference; % and _ in the search are literal.
+        term = q.strip().lower()
+        query = query.where(
+            or_(
+                *(
+                    func.lower(column).contains(term, autoescape=True)
+                    for column in (ContactMessage.name, ContactMessage.email, ContactMessage.message, ContactMessage.reference)
+                )
+            )
+        )
 
     def shape(m: ContactMessage) -> dict:
         return {"reference": m.reference, "name": m.name, "email": m.email, "topic": m.topic, "message": m.message, "status": m.status, "created_at": m.created_at.isoformat()}
@@ -133,6 +148,7 @@ def import_history(user: User = Depends(admin_only), db: Session = Depends(get_d
             "updated": b.updated_count,
             "failed": b.error_count,
             "errors": b.errors,
+            "warnings": b.warnings,
             "created_at": b.created_at.isoformat(),
         }
         for b in rows

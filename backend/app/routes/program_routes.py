@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.database.session import get_db
 from app.models import CommunityProgram, ProgramRegistration, Service, User
-from app.schemas.program import ProgramCreate, ProgramUpdate, RegistrationCreate
+from app.schemas.program import ProgramCreate, ProgramUpdate, RegistrationCreate, RegistrationStatusUpdate
 from app.services.auth_service import require_role
 from app.services.common import MAX_PAGE_SIZE, make_reference, notify, paginate
 from app.services.import_service import slugify
@@ -185,27 +185,66 @@ def admin_programs(user: User = Depends(require_role("admin")), db: Session = De
     return [program_to_dict(p, counts.get(p.id, 0)) for p in rows]
 
 
-@router.post("/admin/programs", status_code=status.HTTP_201_CREATED)
-def create_program(body: ProgramCreate, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
-    service = db.scalar(select(Service).where(Service.slug == body.service_slug)) if body.service_slug else None
-    base = slugify(f"{body.title} {body.town}")
+SLUG_ATTEMPTS = 3
+
+
+def _free_program_slug(db: Session, base: str) -> str:
     slug, n = base, 2
     while db.scalar(select(CommunityProgram.id).where(CommunityProgram.slug == slug)):
         slug, n = f"{base}-{n}", n + 1
+    return slug
+
+
+def _is_slug_conflict(exc: IntegrityError) -> bool:
+    constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None) or ""
+    return "slug" in constraint
+
+
+@router.post("/admin/programs", status_code=status.HTTP_201_CREATED)
+def create_program(body: ProgramCreate, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    service = None
+    if body.service_slug:
+        service = db.scalar(select(Service).where(Service.slug == body.service_slug))
+        if service is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown service '{body.service_slug}'.")
+    base = slugify(f"{body.title} {body.town}")
     data = body.model_dump(exclude={"service_slug"})
-    program = CommunityProgram(slug=slug, service_id=service.id if service else None, **data)
-    db.add(program)
-    db.commit()
-    return program_to_dict(_get_program(db, slug, published_only=False))
+    # Two administrators can pick the same free slug at the same moment; the unique index catches the second one.
+    for _ in range(SLUG_ATTEMPTS):
+        slug = _free_program_slug(db, base)
+        db.add(CommunityProgram(slug=slug, service_id=service.id if service else None, **data))
+        try:
+            db.commit()
+            return program_to_dict(_get_program(db, slug, published_only=False))
+        except IntegrityError as exc:
+            db.rollback()
+            if not _is_slug_conflict(exc):
+                raise
+    raise HTTPException(status.HTTP_409_CONFLICT, "Another programme with this name was created at the same time. Please try again.")
 
 
 @router.patch("/admin/programs/{slug}")
 def update_program(slug: str, body: ProgramUpdate, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
-    program = _get_program(db, slug, published_only=False)
+    # Lock the row, as registration does, so a capacity check cannot race a new registration.
+    program = db.scalar(select(CommunityProgram).where(CommunityProgram.slug == slug).with_for_update())
+    if program is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "We could not find that programme.")
+    active = registered_counts(db, [program.id]).get(program.id, 0)
+    if body.capacity is not None and body.capacity < active:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{active} people are already registered, so the capacity cannot be lower than {active}.")
+    if body.start_date is not None and body.start_date < date.today() and active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "People are registered for this programme, so it cannot be moved to a date that has passed.")
+    newly_cancelled = body.status == "cancelled" and program.status != "cancelled"
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(program, field, value)
+    if newly_cancelled:
+        registrations = db.scalars(
+            select(ProgramRegistration).where(ProgramRegistration.program_id == program.id, ProgramRegistration.status == "registered")
+        )
+        for r in registrations:
+            notify(db, r.user_id, "Programme cancelled", f"{program.title} on {program.start_date:%d %b %Y} has been cancelled. Reference {r.reference}.", "/dashboard/registrations")
     db.commit()
-    return program_to_dict(program, registered_counts(db, [program.id]).get(program.id, 0))
+    return program_to_dict(program, active)
 
 
 @router.get("/admin/programs/{slug}/registrations")
@@ -213,3 +252,26 @@ def program_registrations(slug: str, user: User = Depends(require_role("admin"))
     program = _get_program(db, slug, published_only=False)
     rows = db.scalars(select(ProgramRegistration).where(ProgramRegistration.program_id == program.id).order_by(ProgramRegistration.created_at))
     return [registration_to_dict(r, include_program=False) for r in rows]
+
+
+@router.patch("/admin/programs/{slug}/registrations/{reference}")
+def set_registration_status(
+    slug: str, reference: str, body: RegistrationStatusUpdate, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)
+):
+    """Record attendance from the programme date onwards, or undo a mark made by mistake (allowed at any time).
+    Cancelled registrations stay cancelled: the person cancelled their place."""
+    program = _get_program(db, slug, published_only=False)
+    registration = db.scalar(
+        select(ProgramRegistration).where(ProgramRegistration.program_id == program.id, ProgramRegistration.reference == reference)
+    )
+    if registration is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "We could not find that registration for this programme.")
+    if registration.status == "cancelled":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This registration was cancelled, so attendance cannot be recorded.")
+    if body.status == "attended" and program.start_date > date.today():
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"Attendance can be recorded from the programme date ({program.start_date:%d %b %Y}) onwards."
+        )
+    registration.status = body.status
+    db.commit()
+    return registration_to_dict(registration, include_program=False)
