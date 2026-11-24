@@ -7,7 +7,7 @@ import {
   Clock,
   Search,
 } from "lucide-react";
-import { readCarePlan, writeCarePlan } from "../data/carePlan";
+import { readCarePlan, writeCarePlan } from "../data/careplan";
 import { api } from "../services/api";
 import { formatDate } from "../data/labels";
 import { useFetch } from "../hooks/useFetch";

@@ -3,6 +3,14 @@
 import json
 from pathlib import Path
 
+import pytest
+
+
+@pytest.fixture()
+def admin_headers(make_user):
+    return make_user(role="admin")[1]
+
+
 SAMPLE = json.loads((Path(__file__).parent / "sample_import.json").read_text())
 KEY = {"X-Import-Key": "test-import-key"}
 

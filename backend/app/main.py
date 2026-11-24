@@ -10,6 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes import (
+    facility_routes,
+    practitioner_routes,
+    program_routes,
+    content_routes,
+    reference_routes,
     import_routes,
     places_routes,
     external_feedback_routes,
@@ -27,6 +32,11 @@ from app.routes import (
 )
 
 ROUTERS: list = [
+    facility_routes,
+    practitioner_routes,
+    program_routes,
+    content_routes,
+    reference_routes,
     import_routes,
     places_routes,
     external_feedback_routes,

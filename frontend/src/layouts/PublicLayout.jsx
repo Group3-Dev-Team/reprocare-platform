@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { LoadingState } from '../components/Feedback';
+import { CompareBar } from '../components/CompareBar';
 
 /** Public page frame: skip link, header, routed page and footer. Feature-specific overlays are added by their workstreams. */
 export function PublicLayout() {
@@ -21,6 +22,7 @@ export function PublicLayout() {
           <Outlet />
         </Suspense>
       </main>
+      <CompareBar />
       <Footer />
     </>
   );

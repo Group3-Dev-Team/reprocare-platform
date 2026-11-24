@@ -105,5 +105,502 @@
       "kind": "Private insurer",
       "note": "Facility-reported acceptance. Confirm cover with the insurer."
     }
+  ],
+  "articles": [
+    {
+      "slug": "first-antenatal-visit",
+      "title": "Your first antenatal visit: what to expect",
+      "category": "Pregnancy",
+      "summary": "What usually happens at the first pregnancy check-up, which tests are common, and what to bring.",
+      "read_minutes": 5,
+      "sections": [
+        {
+          "heading": "When to go",
+          "paragraphs": [
+            "It is usually recommended to have your first antenatal contact as early as possible, ideally within the first 12 weeks of pregnancy. Going early gives the health worker time to check your health, plan your care and start supplements if they are needed.",
+            "The World Health Organization recommends at least eight antenatal contacts during a pregnancy. Your facility will tell you how they schedule them."
+          ]
+        },
+        {
+          "heading": "What usually happens",
+          "paragraphs": [
+            "The first visit is often the longest. A health worker will usually:"
+          ],
+          "list": [
+            "Ask about your health, previous pregnancies, medicines you take and the date of your last period.",
+            "Measure your blood pressure, weight and sometimes height.",
+            "Offer blood tests, commonly for blood group, haemoglobin (anaemia), HIV, syphilis and hepatitis B.",
+            "Test a urine sample.",
+            "Discuss iron and folic acid supplements and when to come back."
+          ]
+        },
+        {
+          "heading": "Tests are offered, not forced",
+          "paragraphs": [
+            "You can ask what each test is for before it is done. Results are confidential. If a result needs follow-up, the health worker should explain the next step and any treatment available."
+          ]
+        },
+        {
+          "heading": "What to bring",
+          "list": [
+            "Your national ID or other identification.",
+            "Any previous health records, including from earlier pregnancies.",
+            "Insurance or SHA details if you plan to use them.",
+            "A list of questions. It is easy to forget them in the room."
+          ]
+        },
+        {
+          "heading": "When not to wait for an appointment",
+          "paragraphs": [
+            "Go to the nearest emergency service, or call 999 or 112, if you have heavy bleeding, severe abdominal pain, a severe headache with blurred vision, fits, or a high fever."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "How many visits should I plan for, and when is the next one?",
+        "Which tests are included in the fee or my cover?",
+        "Who do I call if I have a problem at night?"
+      ],
+      "references": [
+        {
+          "label": "WHO recommendations on antenatal care for a positive pregnancy experience (2016)",
+          "publisher": "World Health Organization"
+        },
+        {
+          "label": "National guidelines on obstetric and perinatal care (placeholder: confirm current edition)",
+          "publisher": "Ministry of Health, Kenya"
+        }
+      ],
+      "related_services": [
+        "antenatal",
+        "ultrasound"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-10-14"
+    },
+    {
+      "slug": "sti-testing",
+      "title": "STI testing: how it works and what to ask",
+      "category": "Sexual health",
+      "summary": "Common tests, why many infections have no symptoms, and how confidentiality and results work.",
+      "read_minutes": 4,
+      "sections": [
+        {
+          "heading": "Why test",
+          "paragraphs": [
+            "Many sexually transmitted infections cause no symptoms for a long time, so testing is the only way to know. Most are treatable, and all can be managed. Testing also protects partners."
+          ]
+        },
+        {
+          "heading": "How tests are usually done",
+          "list": [
+            "Urine sample or swab: commonly used for chlamydia and gonorrhoea.",
+            "Blood test or finger-prick: commonly used for HIV, syphilis and hepatitis B.",
+            "Physical examination: if you have symptoms such as sores, discharge or pain."
+          ]
+        },
+        {
+          "heading": "Timing matters",
+          "paragraphs": [
+            "Some infections take time to show up on a test after exposure. If you test soon after a possible exposure, the health worker may advise a repeat test later. If you think you were exposed to HIV in the last 72 hours, ask urgently about PEP (post-exposure prophylaxis), which works best the sooner it is started."
+          ]
+        },
+        {
+          "heading": "Confidentiality and results",
+          "paragraphs": [
+            "Your results should be shared only with you. Ask how you will receive them, and who to talk to if a result is positive. Some public facilities and programmes offer free or low-cost testing; check with the facility."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "Which infections will this test cover?",
+        "When and how will I get results?",
+        "Should my partner be tested, and can you help me tell them?"
+      ],
+      "references": [
+        {
+          "label": "Guidelines for the management of symptomatic sexually transmitted infections (2021)",
+          "publisher": "World Health Organization"
+        },
+        {
+          "label": "Kenya HIV prevention and treatment guidelines (placeholder: confirm current edition)",
+          "publisher": "NASCOP, Ministry of Health"
+        }
+      ],
+      "related_services": [
+        "sti",
+        "hiv",
+        "lab"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-10-02"
+    },
+    {
+      "slug": "contraception-options",
+      "title": "Comparing contraception options",
+      "category": "Family planning",
+      "summary": "Short-acting, long-acting and permanent methods, and what to discuss in counselling.",
+      "read_minutes": 6,
+      "sections": [
+        {
+          "heading": "There is no single best method",
+          "paragraphs": [
+            "The right method depends on how long you want to avoid pregnancy, how you feel about daily or occasional routines, your health history, and whether you also need protection from sexually transmitted infections. Counselling is there to help you weigh these, not to choose for you."
+          ]
+        },
+        {
+          "heading": "Short-acting methods",
+          "paragraphs": [
+            "These work for as long as you keep using them correctly, and fertility usually returns soon after stopping."
+          ],
+          "list": [
+            "Male and female condoms: the only methods that also reduce the risk of STIs and HIV.",
+            "Combined or progestogen-only pills: taken every day, ideally at the same time.",
+            "The injectable (often every three months): one clinic or self-injection visit per cycle; fertility can take a few months to return after stopping."
+          ]
+        },
+        {
+          "heading": "Long-acting reversible methods",
+          "paragraphs": [
+            "Once fitted, these need little day-to-day attention and are among the most effective options. A trained provider fits and removes them."
+          ],
+          "list": [
+            "Implant: a small rod placed under the skin of the upper arm, effective for several years depending on the type.",
+            "Hormonal IUD (intrauterine system): placed in the womb; many people have lighter periods.",
+            "Copper IUD: hormone-free, placed in the womb, effective for many years; periods may become heavier for some users."
+          ]
+        },
+        {
+          "heading": "Permanent methods",
+          "paragraphs": [
+            "Tubal ligation and vasectomy are intended to be permanent. Counselling should make sure the decision is fully informed and voluntary."
+          ]
+        },
+        {
+          "heading": "What a good counselling visit includes",
+          "list": [
+            "Questions about your health, medicines and any previous experience with contraception.",
+            "Clear information about effectiveness, common side effects and how to stop.",
+            "Time to decide, and the option to change methods later.",
+            "Advice on dual protection with condoms if STI prevention matters to you."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "Which side effects are common with this method, and which should make me come back?",
+        "How do I stop or switch if it does not suit me?",
+        "Is the method and its removal included in the fee or my cover?"
+      ],
+      "references": [
+        {
+          "label": "Medical eligibility criteria for contraceptive use",
+          "publisher": "World Health Organization"
+        }
+      ],
+      "related_services": [
+        "contraception"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-09-20"
+    },
+    {
+      "slug": "fertility-consultation",
+      "title": "Preparing for a fertility consultation",
+      "category": "Fertility",
+      "summary": "What a first fertility assessment covers for both partners, and what to bring.",
+      "read_minutes": 5,
+      "sections": [
+        {
+          "heading": "When people usually seek advice",
+          "paragraphs": [
+            "Health workers commonly suggest a fertility assessment after 12 months of regular unprotected sex without pregnancy, or sooner (often after six months) if the woman is 35 or older, has irregular periods, or either partner has a known condition that affects fertility."
+          ]
+        },
+        {
+          "heading": "Both partners matter",
+          "paragraphs": [
+            "Fertility problems can involve either partner or both. A first consultation is most useful when both partners attend, or at least when both are prepared to be assessed."
+          ]
+        },
+        {
+          "heading": "What the first visit often covers",
+          "list": [
+            "A detailed history: menstrual cycles, previous pregnancies, infections, surgery, medicines and lifestyle.",
+            "A physical examination where appropriate.",
+            "A plan for initial tests, which may include blood hormone tests, an ultrasound scan, and a semen analysis for the male partner.",
+            "Advice on timing, general health and what happens next."
+          ]
+        },
+        {
+          "heading": "What to bring",
+          "list": [
+            "A record of your last few menstrual cycles if you have one.",
+            "Results of any previous tests or treatments.",
+            "A list of medicines and supplements you both take.",
+            "Questions about costs, including which tests are done in-house and which are sent to a laboratory."
+          ]
+        },
+        {
+          "heading": "A note on costs and expectations",
+          "paragraphs": [
+            "Fertility investigations and treatments can be expensive and are not always covered by insurance. Ask for an estimate before tests are ordered, and ask what each result will change in your plan."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "Which tests do we each need first, and what will they cost?",
+        "How long will it take to get results and a plan?",
+        "Which parts of the assessment can a laboratory near us do?"
+      ],
+      "references": [
+        {
+          "label": "Infertility: key facts and guidance",
+          "publisher": "World Health Organization"
+        }
+      ],
+      "related_services": [
+        "fertility",
+        "lab"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-10-08"
+    },
+    {
+      "slug": "cervical-screening",
+      "title": "Cervical screening explained",
+      "category": "Screening",
+      "summary": "Who is offered screening, how VIA, Pap and HPV tests differ, and how often to go.",
+      "read_minutes": 4,
+      "sections": [
+        {
+          "heading": "Why screening matters",
+          "paragraphs": [
+            "Cervical cancer develops slowly from changes in the cells of the cervix, usually caused by long-lasting infection with high-risk types of human papillomavirus (HPV). Screening finds these changes early, when treatment is simple and effective."
+          ]
+        },
+        {
+          "heading": "The main screening tests",
+          "list": [
+            "VIA (visual inspection with acetic acid): a health worker applies a mild vinegar solution and looks for changes. Results are available the same day.",
+            "Pap smear: cells are collected and examined in a laboratory. Results take several days.",
+            "HPV test: checks for high-risk HPV types. Some programmes offer self-collected samples."
+          ]
+        },
+        {
+          "heading": "Who is offered screening and how often",
+          "paragraphs": [
+            "Recommendations depend on the test used and on national guidance. Programmes in Kenya commonly offer screening to women aged 25 to 49, with shorter intervals for women living with HIV. Ask the facility which test it uses and when you should return."
+          ]
+        },
+        {
+          "heading": "What happens at the visit",
+          "paragraphs": [
+            "The test takes a few minutes and is done in a private room. You can ask for a female health worker and for someone to accompany you. It is best to avoid screening during your period."
+          ]
+        },
+        {
+          "heading": "If a result is not normal",
+          "paragraphs": [
+            "An abnormal result does not mean you have cancer. Many changes can be treated the same day or at a follow-up visit. The health worker should explain the next step and where treatment is available."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "Which test do you use, and when will I get the result?",
+        "If treatment is needed, can it be done here?",
+        "When should I come back for my next screening?"
+      ],
+      "references": [
+        {
+          "label": "Guideline for screening and treatment of cervical pre-cancer lesions",
+          "publisher": "World Health Organization"
+        }
+      ],
+      "related_services": [
+        "cervical"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-08-29"
+    },
+    {
+      "slug": "emergency-contraception",
+      "title": "Emergency contraception: timing and access",
+      "category": "Family planning",
+      "summary": "How emergency pills and the copper IUD work, and why sooner is better.",
+      "read_minutes": 3,
+      "sections": [
+        {
+          "heading": "What it is for",
+          "paragraphs": [
+            "Emergency contraception can prevent pregnancy after unprotected sex, a condom that broke or slipped, or missed contraceptive pills. It does not end an existing pregnancy and does not protect against STIs."
+          ]
+        },
+        {
+          "heading": "The options",
+          "list": [
+            "Levonorgestrel emergency pill: most effective the sooner it is taken, and recommended within 72 hours (3 days).",
+            "Ulipristal acetate pill: can be taken up to 120 hours (5 days) after unprotected sex, where it is available.",
+            "Copper IUD: the most effective option when fitted by a trained provider within 5 days, and it can then continue as regular contraception."
+          ]
+        },
+        {
+          "heading": "Sooner is better",
+          "paragraphs": [
+            "All pill options work best when taken as early as possible. If you are close to the time limit, a pharmacist or clinic can advise which option is still suitable."
+          ]
+        },
+        {
+          "heading": "Where to get it",
+          "paragraphs": [
+            "Emergency pills are commonly available from pharmacies and many clinics. A copper IUD must be fitted at a facility, so call ahead to check that a trained provider is available that day."
+          ]
+        },
+        {
+          "heading": "Afterwards",
+          "list": [
+            "Your next period may come a little earlier or later than usual.",
+            "Take a pregnancy test if your period is more than a week late.",
+            "Consider testing for STIs if you may have been exposed, and ask about ongoing contraception."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "Which option is still suitable for me given the time since sex?",
+        "Can the copper IUD be fitted today?",
+        "What regular method could suit me afterwards?"
+      ],
+      "references": [
+        {
+          "label": "Emergency contraception fact sheet",
+          "publisher": "World Health Organization"
+        }
+      ],
+      "related_services": [
+        "contraception"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-09-11"
+    },
+    {
+      "slug": "questions-to-ask",
+      "title": "Questions to ask before you visit a facility",
+      "category": "Visiting a facility",
+      "summary": "Costs, cover, waiting times and privacy: how to ask before you arrive.",
+      "read_minutes": 3,
+      "sections": [
+        {
+          "heading": "Before you travel",
+          "paragraphs": [
+            "A short phone call can save a wasted journey. Facilities change hours, services and payment arrangements, and information online is not always current. ReproCare shows the date and source of each detail so you know what to confirm."
+          ]
+        },
+        {
+          "heading": "Services and availability",
+          "list": [
+            "Is the service I need offered on the day I plan to come?",
+            "Do I need an appointment or can I walk in?",
+            "Is a female health worker available if I prefer one?"
+          ]
+        },
+        {
+          "heading": "Costs and cover",
+          "list": [
+            "What is the consultation fee, and which tests or medicines cost extra?",
+            "Do you accept my insurer or SHA for this service? Is pre-authorisation needed?",
+            "Which payment methods do you accept?"
+          ]
+        },
+        {
+          "heading": "Privacy and support",
+          "list": [
+            "Will I be seen in a private room?",
+            "Can I bring someone with me?",
+            "How are results shared, and who can see them?"
+          ]
+        },
+        {
+          "heading": "Your rights as a patient",
+          "paragraphs": [
+            "You have the right to information about your care, to privacy, and to give or withhold consent for examinations and tests. If something is unclear, it is reasonable to ask the health worker to explain it again."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "What should I bring with me?",
+        "How long is the usual wait at the time I plan to come?",
+        "Who do I contact if I have a problem afterwards?"
+      ],
+      "references": [
+        {
+          "label": "Patient rights charter (placeholder: confirm current edition)",
+          "publisher": "Ministry of Health, Kenya"
+        }
+      ],
+      "related_services": [],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-10-25"
+    },
+    {
+      "slug": "postnatal-check",
+      "title": "The postnatal check for you and your baby",
+      "category": "Pregnancy",
+      "summary": "When postnatal checks happen and the warning signs not to ignore after birth.",
+      "read_minutes": 4,
+      "sections": [
+        {
+          "heading": "Why postnatal checks matter",
+          "paragraphs": [
+            "The weeks after birth are an important time for both the mother and the baby. Postnatal checks look at recovery from birth, feeding, the baby's growth and the mother's emotional wellbeing."
+          ]
+        },
+        {
+          "heading": "When checks usually happen",
+          "paragraphs": [
+            "International guidance recommends a check within the first 24 hours after birth, and further contacts during the first six weeks, commonly around day 3, between days 7 and 14, and at six weeks. Your facility will tell you its schedule."
+          ]
+        },
+        {
+          "heading": "What is usually checked",
+          "list": [
+            "For the mother: bleeding, blood pressure, healing, breastfeeding, mood and contraception plans.",
+            "For the baby: feeding, weight, temperature, the cord, jaundice and immunisations."
+          ]
+        },
+        {
+          "heading": "Warning signs: seek care immediately",
+          "paragraphs": [
+            "Go to the nearest facility, or call 999 or 112, for:"
+          ],
+          "list": [
+            "Heavy bleeding, or bleeding that suddenly increases.",
+            "A severe headache, blurred vision, fits or difficulty breathing.",
+            "Fever, or a wound or breast that is red, hot and painful.",
+            "A baby who will not feed, is very sleepy, has a fever or feels cold, has fast breathing, or has yellow skin in the first day."
+          ]
+        },
+        {
+          "heading": "Your mood counts too",
+          "paragraphs": [
+            "Feeling low or tearful in the first days is common. If sadness, worry or hopelessness lasts more than two weeks or makes it hard to cope, tell a health worker. Support is available."
+          ]
+        }
+      ],
+      "questions_to_ask": [
+        "When is our next check, and is the baby's visit at the same time?",
+        "Which immunisations are due and when?",
+        "Which contraception options are suitable while breastfeeding?"
+      ],
+      "references": [
+        {
+          "label": "WHO recommendations on maternal and newborn care for a positive postnatal experience (2022)",
+          "publisher": "World Health Organization"
+        }
+      ],
+      "related_services": [
+        "postnatal"
+      ],
+      "review_status": "Awaiting review by a qualified clinician before production use",
+      "updated_on": "2026-09-02"
+    }
   ]
 }
