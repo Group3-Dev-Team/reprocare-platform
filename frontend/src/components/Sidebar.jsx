@@ -1,11 +1,11 @@
 import { facilityDisplayName } from '../data/facilityNames';
 import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Bell, Building2, CalendarDays, Database, Heart, Home, Inbox, LogOut, Megaphone, Settings, Star, Ticket, Users, X } from 'lucide-react';
+import { ArrowLeft, Bell, BookOpen, Building2, CalendarDays, Database, Heart, Home, Inbox, LogOut, Megaphone, Settings, Star, Ticket, Users, X } from 'lucide-react';
 import { dashboardNav, roleLabels } from '../data/navigation';
 import { Logo } from './Logo';
 import { initials, useSignOut } from './UserMenu';
 
-const icons = { home: Home, calendar: CalendarDays, heart: Heart, ticket: Ticket, star: Star, bell: Bell, settings: Settings, building: Building2, megaphone: Megaphone, inbox: Inbox, users: Users, database: Database };
+const icons = { home: Home, calendar: CalendarDays, heart: Heart, ticket: Ticket, star: Star, bell: Bell, settings: Settings, building: Building2, megaphone: Megaphone, book: BookOpen, inbox: Inbox, users: Users, database: Database };
 
 export function Sidebar({ user, unread, open, drawerRef, onNavigate, onClose }) {
   const doSignOut = useSignOut();

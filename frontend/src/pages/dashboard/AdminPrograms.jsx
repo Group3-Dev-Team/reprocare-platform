@@ -4,12 +4,17 @@ import { Plus } from "lucide-react";
 import { api } from "../../services/api";
 import { useFetch } from "../../hooks/useFetch";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { costTypes, formatDate, programTypes } from "../../data/labels";
+import {
+  costTypes,
+  formatDate,
+  programTypes,
+  registrationStatus,
+} from "../../data/labels";
 import { DashboardHeader } from "../../components/DashboardParts";
 import { Modal } from "../../components/Modal";
 import { Select, TextArea, TextInput } from "../../components/Forms";
 import { Alert, ErrorState, LoadingState } from "../../components/Feedback";
-import { DemoLabel } from "../../components/Badges";
+import { DemoLabel, StatusBadge } from "../../components/Badges";
 import { useToast } from "../../components/Toast";
 
 const empty = {
@@ -78,6 +83,32 @@ export default function AdminPrograms() {
       program: p,
       rows: await api.programRegistrations(p.slug),
     });
+
+  // attendance is recorded from the programme date onwards (the server checks this too);
+  // a mark made by mistake can be removed at any time
+  const today = new Date().toLocaleDateString("en-CA");
+  const markAttendance = async (r, status) => {
+    try {
+      const updated = await api.setRegistrationStatus(
+        registrations.program.slug,
+        r.reference,
+        status,
+      );
+      setRegistrations((current) => ({
+        ...current,
+        rows: current.rows.map((row) =>
+          row.reference === r.reference ? { ...row, ...updated } : row,
+        ),
+      }));
+      toast(
+        status === "attended"
+          ? `${r.full_name} marked as attended`
+          : "Attendance mark removed",
+      );
+    } catch (e) {
+      toast(e.message, "error");
+    }
+  };
 
   return (
     <>
@@ -342,28 +373,62 @@ export default function AdminPrograms() {
           {registrations.rows.length === 0 ? (
             <p className="muted">No one has registered yet.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Reference</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registrations.rows.map((r) => (
-                    <tr key={r.reference}>
-                      <td>{r.full_name}</td>
-                      <td>{r.phone}</td>
-                      <td>{r.reference}</td>
-                      <td>{r.status}</td>
+            <>
+              <p className="small muted">
+                {registrations.rows.filter((r) => r.status === "attended").length}{" "}
+                of{" "}
+                {registrations.rows.filter((r) => r.status !== "cancelled").length}{" "}
+                registered people attended.
+                {registrations.program.start_date > today &&
+                  ` Attendance can be recorded from ${formatDate(registrations.program.start_date)}.`}
+              </p>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Reference</th>
+                      <th>Status</th>
+                      <th>
+                        <span className="sr-only">Attendance</span>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {registrations.rows.map((r) => (
+                      <tr key={r.reference}>
+                        <td>{r.full_name}</td>
+                        <td>{r.phone}</td>
+                        <td>{r.reference}</td>
+                        <td>
+                          <StatusBadge status={r.status} map={registrationStatus} />
+                        </td>
+                        <td>
+                          {r.status === "registered" &&
+                            registrations.program.start_date <= today && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => markAttendance(r, "attended")}
+                              >
+                                Mark attended
+                              </button>
+                            )}
+                          {r.status === "attended" && (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => markAttendance(r, "registered")}
+                            >
+                              Undo attended
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </Modal>
       )}
