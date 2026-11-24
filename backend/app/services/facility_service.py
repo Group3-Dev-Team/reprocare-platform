@@ -1,10 +1,18 @@
 """Facility search, filtering, sorting and the JSON shapes the frontend receives."""
 
-from sqlalchemy import and_, func, or_, select
+from urllib.parse import urlencode
+
+from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Facility, Insurer, Review, Service, facility_insurers, facility_services
+from app.models import (
+    ExternalComment, ExternalPost, Facility, FacilityExternalProfile, Insurer, Review, Service,
+    facility_insurers, facility_services,
+)
 from app.services.common import split_list
+from app.services.county_service import county_filter_labels
+from app.services.external_feedback_service import published_external_post, viewable_comment
 
 FACILITY_TYPE_LABELS = {
     "hospital": "Hospital",
@@ -48,11 +56,43 @@ def matching_service_ids(db: Session, text: str) -> list[int]:
     return list(db.scalars(select(Service.id).where(or_(func.lower(Service.name).like(like), func.lower(Service.keywords).like(like)))))
 
 
+def latest_google_snapshot():
+    """Use the same most recent valid rating as the facility card."""
+    profile = FacilityExternalProfile
+    return (
+        select(profile.facility_id, profile.rating, profile.rating_count)
+        .where(profile.platform == "google", profile.rating.between(1, 5))
+        .ext(distinct_on(profile.facility_id))
+        .order_by(profile.facility_id, profile.fetched_at.desc().nulls_last(), profile.id.desc())
+        .subquery()
+    )
+
+
+def has_published_written_activity():
+    """Only visible, written facility activity with the same reply rules as the public page."""
+    return (
+        select(ExternalPost.id)
+        .join(ExternalComment, ExternalComment.post_id == ExternalPost.id)
+        .where(
+            ExternalPost.facility_id == Facility.id,
+            published_external_post(),
+            or_(
+                ExternalPost.platform == "tiktok",
+                and_(ExternalPost.platform == "facebook", ExternalPost.facebook_scope == "facility"),
+            ),
+            viewable_comment(),
+            func.length(func.trim(ExternalComment.text)) > 0,
+        )
+        .exists()
+    )
+
+
 def build_facility_query(db: Session, filters: dict):
     """Return (select statement, distance expression or None) for the given filters."""
     ratings = rating_subquery()
     query = select(Facility).outerjoin(ratings, ratings.c.facility_id == Facility.id)
 
+    sort = filters.get("sort") or "relevance"
     q = (filters.get("q") or "").strip()
     if q:
         like = f"%{q.lower()}%"
@@ -72,9 +112,9 @@ def build_facility_query(db: Session, filters: dict):
     if filters.get("town"):
         query = query.where(func.lower(Facility.town) == filters["town"].lower())
     if filters.get("county"):
-        query = query.where(func.lower(Facility.county) == filters["county"].lower())
+        query = query.where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(filters["county"])))
 
-    types = split_list(filters.get("facility_type"))
+    types = [t.lower() for t in split_list(filters.get("facility_type"))]
     if types:
         query = query.where(Facility.facility_type.in_(types))
     elif filters.get("exclude_laboratories"):
@@ -108,6 +148,22 @@ def build_facility_query(db: Session, filters: dict):
     if filters.get("hide_demo"):
         query = query.where(Facility.is_demo.is_(False))
 
+    if filters.get("has_patient_reviews"):
+        query = query.where(ratings.c.review_count > 0)
+    if filters.get("has_public_feedback"):
+        query = query.where(has_published_written_activity())
+
+    has_google_rating = filters.get("has_google_rating")
+    minimum_google_rating = filters.get("min_google_rating")
+    google = None
+    if has_google_rating or minimum_google_rating is not None or sort in {"google_rating", "google_count"}:
+        google = latest_google_snapshot()
+        query = query.outerjoin(google, google.c.facility_id == Facility.id)
+        if has_google_rating:
+            query = query.where(google.c.rating.is_not(None))
+        if minimum_google_rating is not None:
+            query = query.where(google.c.rating >= minimum_google_rating)
+
     distance = None
     lat, lng = filters.get("lat"), filters.get("lng")
     if lat is not None and lng is not None:
@@ -116,18 +172,33 @@ def build_facility_query(db: Session, filters: dict):
         if filters.get("radius_km"):
             query = query.where(distance <= filters["radius_km"])
 
-    sort = filters.get("sort") or "relevance"
     if sort == "distance" and distance is not None:
         query = query.order_by(distance.asc(), Facility.name)
     elif sort == "rating":
         query = query.order_by(func.coalesce(ratings.c.avg_rating, 0).desc(), func.coalesce(ratings.c.review_count, 0).desc(), Facility.name)
+    elif sort == "review_count":
+        query = query.order_by(ratings.c.review_count.desc().nulls_last(), Facility.name)
+    elif sort == "google_rating":
+        query = query.order_by(google.c.rating.desc().nulls_last(), google.c.rating_count.desc().nulls_last(), Facility.name)
+    elif sort == "google_count":
+        query = query.order_by(google.c.rating_count.desc().nulls_last(), google.c.rating.desc().nulls_last(), Facility.name)
     elif sort == "name":
-        query = query.order_by(Facility.name)
-    else:  # relevance: real before demo, registry-checked first, then the most complete listings (with contact details)
+        query = query.order_by(func.lower(Facility.name))
+    elif sort == "name_desc":
+        query = query.order_by(func.lower(Facility.name).desc())
+    elif sort == "completeness":
+        entries = (
+            Facility.description, Facility.phone, Facility.website, Facility.address, Facility.weekday_hours,
+        )
+        completeness = sum(case((func.trim(entry) != "", 1), else_=0) for entry in entries)
+        query = query.order_by(completeness.desc(), Facility.is_demo.asc(), Facility.name)
+    else:
+        # Retain the default ranking for links and existing discovery consumers.
         query = query.order_by(
-            Facility.is_demo.asc(), (Facility.registration_status == "matched").desc(), (Facility.phone != "").desc(), Facility.name
+            Facility.is_demo.asc(), (Facility.registration_status == "matched").desc(), (Facility.phone != "").desc(), Facility.name,
         )
 
+    query = query.order_by(Facility.id)
     query = query.options(selectinload(Facility.services), selectinload(Facility.insurers))
     return query, distance
 
@@ -141,6 +212,30 @@ def ratings_for(db: Session, facility_ids: list[int]) -> dict[int, tuple[float, 
         .group_by(Review.facility_id)
     ).all()
     return {fid: (round(float(avg), 1), count) for fid, avg, count in rows}
+
+
+def google_ratings_for(db: Session, facility_ids: list[int]) -> dict[int, dict]:
+    if not facility_ids:
+        return {}
+    profiles = db.scalars(
+        select(FacilityExternalProfile)
+        .where(FacilityExternalProfile.facility_id.in_(facility_ids), FacilityExternalProfile.platform == "google",
+               FacilityExternalProfile.rating.between(1, 5))
+        .order_by(FacilityExternalProfile.fetched_at.desc().nulls_last(), FacilityExternalProfile.id.desc())
+    )
+    results = {}
+    for profile in profiles:
+        link = "https://www.google.com/maps/search/?" + urlencode(
+            {"api": 1, "query": "Google Maps", "query_place_id": profile.external_id}
+        )
+        results.setdefault(profile.facility_id, {
+            "rating": profile.rating,
+            "rating_count": profile.rating_count,
+            "url": link,
+            "fetched_at": profile.fetched_at.isoformat() if profile.fetched_at else None,
+            "attribution": "Rating from Google Maps users. Not a ReproCare rating.",
+        })
+    return results
 
 
 def facility_summary(f: Facility, rating: tuple[float, int] | None = None, distance_km: float | None = None) -> dict:
@@ -158,6 +253,8 @@ def facility_summary(f: Facility, rating: tuple[float, int] | None = None, dista
         "latitude": f.latitude,
         "longitude": f.longitude,
         "phone": f.phone,
+        "email": f.email,
+        "website": f.website,
         "weekday_hours": f.weekday_hours,
         "open_weekends": f.open_weekends,
         "open_24_hours": f.open_24_hours,

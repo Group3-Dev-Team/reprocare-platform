@@ -1,6 +1,10 @@
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from app.database.session import get_db
+from app.models import Facility, FacilityExternalProfile
 from app.services import google_places_service as places
 
 router = APIRouter(prefix="/places", tags=["Google Places"])
@@ -23,3 +27,24 @@ def search_places(
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
     except places.PlacesError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc))
+
+
+@router.get("/facilities/{slug}/reviews")
+def facility_google_reviews(slug: str, response: Response, db: Session = Depends(get_db)):
+    """Live, attributed Google reviews for a facility's stored Place ID. Nothing is cached or stored."""
+    response.headers["Cache-Control"] = "no-store"
+    place_id = db.scalar(
+        select(FacilityExternalProfile.external_id)
+        .join(Facility, Facility.id == FacilityExternalProfile.facility_id)
+        .where(Facility.slug == slug, FacilityExternalProfile.platform == "google")
+        .order_by(FacilityExternalProfile.fetched_at.desc().nulls_last(), FacilityExternalProfile.id.desc())
+        .limit(1)
+    )
+    if not place_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "This facility does not have a linked Google place.")
+    try:
+        return places.written_reviews(place_id)
+    except places.PlacesNotConfigured as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    except places.PlacesError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc

@@ -14,8 +14,9 @@ from app.services.common import split_list
 router = APIRouter(tags=["Reference data"])
 
 
-@router.get("/health")
-def health(db: Session = Depends(get_db)):
+@router.get("/health/ready", tags=["Health"])
+def health_ready(db: Session = Depends(get_db)):
+    """Readiness check: confirms the database answers. /api/health (main.py) is the lightweight liveness check."""
     db.execute(text("SELECT 1"))
     return {"status": "ok"}
 
