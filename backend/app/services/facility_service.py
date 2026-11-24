@@ -86,8 +86,8 @@ def _minute_of_day(hour: str, minute: str, period: str | None) -> int | None:
     return hour * 60 + minute
 
 
-def open_at(hours: str, minute: int) -> bool | None:
-    """Whether stored opening hours say the facility is open at this minute of the day; None when they cannot be read."""
+def _opening_range(hours: str):
+    """(start, end) in minutes for a readable range, True for "Open 24 hours", False for "Closed", None when unreadable."""
     text = " ".join((hours or "").replace("\u202f", " ").replace("\u2009", " ").replace("\xa0", " ").split())
     if text.lower() in ("open 24 hours", "24 hours"):
         return True
@@ -103,7 +103,21 @@ def open_at(hours: str, minute: int) -> bool | None:
     end = _minute_of_day(match.group(4), match.group(5), second_period)
     if start is None or end is None or start == end:
         return None
-    return start <= minute < end if start < end else (minute >= start or minute < end)  # past midnight
+    return start, end
+
+
+def open_at(hours: str, minute: int, previous_hours: str = "") -> bool | None:
+    """Whether stored opening hours say the facility is open at this minute of the day; None when they cannot be read.
+    The early-morning part of an overnight range ("6:00 PM – 2:00 AM") belongs to the next day, so it is taken
+    from the previous day's hours, and today's overnight range counts only from its opening time."""
+    earlier = _opening_range(previous_hours)
+    if isinstance(earlier, tuple) and earlier[1] < earlier[0] and minute < earlier[1]:
+        return True
+    today = _opening_range(hours)
+    if not isinstance(today, tuple):
+        return today
+    start, end = today
+    return start <= minute < end if start < end else minute >= start
 
 
 def _kenya_now() -> datetime:
@@ -114,12 +128,24 @@ def open_now_ids(db: Session) -> list[int]:
     """Facilities whose stored hours for today say they are open now (Kenya time). Facilities without
     readable hours for today are left out rather than guessed, unless they are marked open 24 hours."""
     now = _kenya_now()
-    hours_today = {5: Facility.saturday_hours, 6: Facility.sunday_hours}.get(now.weekday(), Facility.weekday_hours)
+    # (today's hours, the previous day's hours): Monday follows Sunday, Saturday follows Friday's weekday hours
+    hours_today, hours_before = {
+        0: (Facility.weekday_hours, Facility.sunday_hours),
+        5: (Facility.saturday_hours, Facility.weekday_hours),
+        6: (Facility.sunday_hours, Facility.saturday_hours),
+    }.get(now.weekday(), (Facility.weekday_hours, Facility.weekday_hours))
     minute = now.hour * 60 + now.minute
     rows = db.execute(
-        select(Facility.id, hours_today, Facility.open_24_hours).where(or_(func.trim(hours_today) != "", Facility.open_24_hours.is_(True)))
+        select(Facility.id, hours_today.label("today"), hours_before.label("before"), Facility.open_24_hours).where(
+            or_(func.trim(hours_today) != "", func.trim(hours_before) != "", Facility.open_24_hours.is_(True))
+        )
     ).all()
-    return [facility_id for facility_id, hours, always in rows if open_at(hours, minute) or (always and open_at(hours, minute) is None)]
+    open_ids = []
+    for facility_id, today, before, always in rows:
+        state = open_at(today, minute, before)
+        if state or (always and state is None):
+            open_ids.append(facility_id)
+    return open_ids
 
 
 def has_published_written_activity():

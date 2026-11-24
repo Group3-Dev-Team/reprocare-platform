@@ -288,7 +288,8 @@ def test_county_spellings_resolve_to_the_same_results(client):
         ("9:00 AM – 5:00 PM", 8 * 60 + 59, False),
         ("8:00 – 11:30 AM", 11 * 60, True),  # the period applies to both times
         ("08:00-17:00", 16 * 60 + 59, True),  # 24-hour clock
-        ("6:00 PM – 6:00 AM", 2 * 60, True),  # past midnight
+        ("6:00 PM – 6:00 AM", 19 * 60, True),  # an overnight range is open from its opening time...
+        ("6:00 PM – 6:00 AM", 2 * 60, False),  # ...its early hours belong to the next day (see below)
         ("6:00 PM – 6:00 AM", 12 * 60, False),
         ("12:00 AM – 12:00 PM", 0, True),
         ("Open 24 hours", 3, True),
@@ -334,3 +335,33 @@ def test_open_now_leaves_out_unknown_hours_and_combines_with_filters(client, mon
     assert not any(slug.startswith(("dir-filler-", "dir-lab-")) for slug in listing)  # "By appointment" or no hours
     assert {f["slug"] for f in scoped(client, open_now=True, town="Kisumu")["items"]} == {"dir-kipepeo"}
     assert scoped(client, open_now=False)["total"] == DATASET  # the filter is off unless asked for
+
+
+@pytest.mark.parametrize(
+    "hours, previous, minute, expected",
+    [
+        ("8:00 AM – 5:00 PM", "6:00 PM – 4:00 AM", 2 * 60, True),  # still open from the previous evening
+        ("Closed", "10:00 AM – 4:00 AM", 3 * 60 + 59, True),  # closed today, but last night's hours run until 4 AM
+        ("8:00 AM – 5:00 PM", "10:00 AM – 4:00 AM", 4 * 60, False),  # closing time is closed; opens again at 8
+        ("10:00 AM – 4:00 AM", "8:00 AM – 5:00 PM", 60, False),  # today's overnight range starts at 10 AM
+        ("", "6:00 PM – 2:00 AM", 60, True),
+        ("By appointment", "8:00 AM – 5:00 PM", 60, None),
+    ],
+)
+def test_overnight_hours_come_from_the_previous_day(hours, previous, minute, expected):
+    assert facility_service.open_at(hours, minute, previous) is expected
+
+
+def test_open_now_after_midnight_uses_the_previous_days_hours(client, monkeypatch, make_facility):
+    # the same shape as a real listing: Sunday 10:00 AM – 4:00 AM, weekdays 8:00 AM – 5:00 PM
+    make_facility(slug="dir-night", name="Night Clinic", description=f"Overnight test ({TOKEN}).",
+                  weekday_hours="8:00\u202fAM\u2009–\u20095:00\u202fPM", saturday_hours="9:00\u202fAM\u2009–\u20095:00\u202fPM",
+                  sunday_hours="10:00\u202fAM\u2009–\u20094:00\u202fAM")
+    _at(monkeypatch, 2026, 11, 30, 1)  # Monday 01:00: Sunday's hours run until 4 AM
+    assert "dir-night" in _open_now(client)[0]
+    _at(monkeypatch, 2026, 11, 30, 5)  # Monday 05:00: closed until 8 AM
+    assert "dir-night" not in _open_now(client)[0]
+    _at(monkeypatch, 2026, 11, 29, 1)  # Sunday 01:00: Saturday closed at 5 PM, Sunday opens at 10 AM
+    assert "dir-night" not in _open_now(client)[0]
+    _at(monkeypatch, 2026, 11, 29, 23)  # Sunday 23:00
+    assert "dir-night" in _open_now(client)[0]
