@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from fastapi import Depends, Header, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -49,6 +49,17 @@ def create_session(db: Session, user: User) -> str:
 def end_session(db: Session, token: str) -> None:
     db.execute(delete(UserSession).where(UserSession.token_hash == _hash_token(token)))
     db.commit()
+
+
+def purge_expired_sessions(db: Session, dry_run: bool = False) -> int:
+    """Delete every session whose expiry has passed (they can no longer be used).
+    Active sessions are never touched. With dry_run, only count them. Returns the number of sessions."""
+    expired = UserSession.expires_at < datetime.now(timezone.utc)
+    if dry_run:
+        return db.scalar(select(func.count()).select_from(UserSession).where(expired)) or 0
+    result = db.execute(delete(UserSession).where(expired))
+    db.commit()
+    return result.rowcount or 0
 
 
 def end_other_sessions(db: Session, user: User, keep_token: str | None = None) -> int:
