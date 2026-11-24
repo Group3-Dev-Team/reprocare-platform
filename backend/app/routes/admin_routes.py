@@ -3,7 +3,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -11,7 +11,7 @@ from app.database.session import get_db
 from app.models import AppointmentRequest, CommunityProgram, ContactMessage, Facility, ImportBatch, ProgramRegistration, Review, User
 from app.schemas.admin import StaffAccountCreate, UserStatusUpdate
 from app.schemas.contact import ContactStatusUpdate
-from app.services.auth_service import hash_password, require_role, user_to_dict
+from app.services.auth_service import DEMO_EMAIL_DOMAIN, end_other_sessions, hash_password, require_role, user_to_dict
 from app.services.common import paginate
 
 router = APIRouter(prefix="/admin", tags=["Administration"])
@@ -49,14 +49,17 @@ def list_users(
     if role:
         query = query.where(User.role == role)
     if q:
-        like = f"%{q.lower()}%"
-        query = query.where(func.lower(User.email).like(like) | func.lower(User.full_name).like(like))
+        # % and _ in the search are literal characters, not wildcards
+        term = q.lower()
+        query = query.where(or_(func.lower(User.email).contains(term, autoescape=True), func.lower(User.full_name).contains(term, autoescape=True)))
     return paginate(db, query.order_by(User.created_at.desc(), User.id.desc()), page, 20, user_to_dict)
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)
 def create_staff_account(body: StaffAccountCreate, user: User = Depends(admin_only), db: Session = Depends(get_db)):
     email = body.email.lower()
+    if email.endswith(DEMO_EMAIL_DOMAIN):  # the same rule as public registration
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This email domain is reserved for demonstration accounts.")
     if db.scalar(select(User.id).where(func.lower(User.email) == email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
     facility_id = None
@@ -83,7 +86,11 @@ def set_user_status(user_id: int, body: UserStatusUpdate, user: User = Depends(a
     if account.id == user.id and not body.is_active:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot deactivate your own account.")
     account.is_active = body.is_active
-    db.commit()
+    if body.is_active:
+        db.commit()
+    else:
+        # Sign the account out everywhere (same transaction), so reactivating it later does not revive old sessions.
+        end_other_sessions(db, account)
     return user_to_dict(account)
 
 

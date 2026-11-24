@@ -26,8 +26,22 @@ from app.services.auth_service import (
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+def _limit_registration(request: Request) -> None:
+    """Every sign-up attempt counts, as contact messages do: 40 from one address in 15 minutes
+    (the shared-address limit, because offices and campuses share one IP)."""
+    key = f"ip:register:{request.client.host if request.client else 'unknown'}"
+    try:
+        rate_limit.check(key)
+    except HTTPException:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "Too many sign-up attempts from this network. Please wait 15 minutes and try again."
+        ) from None
+    rate_limit.record_failure(key)
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    _limit_registration(request)
     email = body.email.strip().lower()
     if email.endswith("@reprocare.demo"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "This email domain is reserved for demonstration accounts.")
