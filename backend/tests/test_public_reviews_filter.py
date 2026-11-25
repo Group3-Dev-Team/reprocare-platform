@@ -51,3 +51,18 @@ def test_public_reviews_filter(client, make_facility, monkeypatch):
     markers = client.get("/api/facilities/markers", params={"q": "Prfixture", "has_public_reviews": True}).json()
     assert len(markers) == 4
     assert called == []  # computing the filter never calls Google
+
+
+def test_map_markers_cover_more_than_1000_facilities():
+    """Regression: the map endpoint stopped at 1,000 facilities, so with the 2,286-facility directory whole areas were
+    missing from the map while the list showed every match. The map groups nearby pins, so it can show them all."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.models import Facility
+
+    with SessionLocal() as db:
+        db.add_all([Facility(slug=f"mapfixture-{n}", name=f"Mapfixture {n:04d}", facility_type="clinic", town="Kisumu", county="Kisumu",
+                             is_demo=True, latitude=-0.1 + n / 100000, longitude=34.7) for n in range(1105)])
+        db.commit()
+    markers = TestClient(app).get("/api/facilities/markers", params={"q": "Mapfixture"}).json()
+    assert len(markers) == 1105
