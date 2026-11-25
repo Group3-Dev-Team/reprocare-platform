@@ -39,6 +39,7 @@ def facility_filters(
     exclude_laboratories: bool = False,
     has_patient_reviews: bool = False,
     has_public_feedback: bool = False,
+    has_public_reviews: bool = Query(False, description="Public reviews available: published facility-level Facebook/TikTok comments or a Google Maps rating"),
     has_google_rating: bool = False,
     min_google_rating: float | None = Query(None, ge=1, le=5),
     lat: float | None = Query(None, ge=-90, le=90),

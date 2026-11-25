@@ -60,7 +60,8 @@
 .directory-card .facility-foot { align-items: center; }
 .directory-card .google-rating.is-compact { padding: var(--space-2); }
 .directory-card .facility-sources > .rating { font-size: var(--text-xs); }
-.directory-card .directory-compare-toggle[aria-pressed='true'] {
+.directory-card .directory-compare-toggle[aria-pressed='true'],
+.results-toolbar .public-reviews-toggle[aria-pressed='true'] {
   color: var(--blue-700);
   background: var(--blue-50);
   border-color: var(--blue-700);

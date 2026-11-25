@@ -167,6 +167,20 @@ def has_published_written_activity():
     )
 
 
+def has_stored_google_ratings():
+    """A stored Google Maps rating from at least one person. A linked place id alone does not count."""
+    return (
+        select(FacilityExternalProfile.id)
+        .where(
+            FacilityExternalProfile.facility_id == Facility.id,
+            FacilityExternalProfile.platform == "google",
+            FacilityExternalProfile.rating.between(1, 5),
+            FacilityExternalProfile.rating_count > 0,
+        )
+        .exists()
+    )
+
+
 def build_facility_query(db: Session, filters: dict):
     """Return (select statement, distance expression or None) for the given filters."""
     ratings = rating_subquery()
@@ -234,6 +248,8 @@ def build_facility_query(db: Session, filters: dict):
         query = query.where(ratings.c.review_count > 0)
     if filters.get("has_public_feedback"):
         query = query.where(has_published_written_activity())
+    if filters.get("has_public_reviews"):
+        query = query.where(or_(has_published_written_activity(), has_stored_google_ratings()))
 
     has_google_rating = filters.get("has_google_rating")
     minimum_google_rating = filters.get("min_google_rating")

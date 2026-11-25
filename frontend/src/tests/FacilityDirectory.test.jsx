@@ -80,3 +80,36 @@ it('preserves filters and paging across grid, map and list views', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'List' }));
   expect(screen.getByTestId('url')).toHaveTextContent('page=2&min_google_rating=4&sort=google_count&view=list');
 });
+
+it('filters to facilities with public reviews from the toolbar, keeping search, county, paging and view', async () => {
+  const listings = vi.spyOn(api, 'facilities').mockResolvedValue({ total: 30, items: [], page: 2, pages: 2, page_size: 15 });
+  const markers = vi.spyOn(api, 'facilityMarkers').mockResolvedValue([]);
+  vi.spyOn(api, 'services').mockResolvedValue([]);
+  vi.spyOn(api, 'insurers').mockResolvedValue([]);
+  vi.spyOn(api, 'counties').mockResolvedValue([]);
+  const google = vi.spyOn(api, 'facilityGoogleReviews');
+  render(
+    <MemoryRouter initialEntries={['/find-care/facilities?q=hospital&county=Kisumu&view=grid']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <FindCarePage />
+      <CurrentUrl />
+    </MemoryRouter>,
+  );
+  const toggle = await screen.findByRole('button', { name: 'Public reviews' });
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(toggle);
+  await waitFor(() => expect(listings).toHaveBeenLastCalledWith(
+    { q: 'hospital', county: 'Kisumu', has_public_reviews: 'true', sort: 'relevance', page: 1, page_size: 15 },
+    { signal: expect.any(AbortSignal) },
+  ));
+  expect(screen.getByRole('button', { name: 'Public reviews' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByTestId('url')).toHaveTextContent('view=grid');
+  expect(screen.getByText(/Written Google Maps reviews load on each facility page/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Remove filter: Public reviews' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Map/ }));
+  await waitFor(() => expect(markers).toHaveBeenLastCalledWith(
+    expect.objectContaining({ has_public_reviews: 'true', county: 'Kisumu' }), { signal: expect.any(AbortSignal) },
+  ));
+  fireEvent.click(screen.getByRole('button', { name: 'Public reviews' }));
+  await waitFor(() => expect(screen.getByTestId('url')).not.toHaveTextContent('has_public_reviews'));
+  expect(google).not.toHaveBeenCalled();
+});
