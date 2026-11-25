@@ -30,6 +30,8 @@ class Settings:
     # Most live Google requests (written reviews + place search) this server sends per day. Each one is billed by
     # Google. Counted in memory, so it restarts with the server: also set a daily quota in the Google Cloud console.
     google_places_live_daily_limit: int = int(os.getenv("GOOGLE_PLACES_LIVE_DAILY_LIMIT", "200"))
+    # Card and listing photos (Place Photos is billed per image). 0 keeps photos off.
+    google_places_photo_daily_limit: int = int(os.getenv("GOOGLE_PLACES_PHOTO_DAILY_LIMIT", "0"))
 
     google_oauth_enabled: bool = _bool("GOOGLE_OAUTH_ENABLED")
     google_oauth_client_id: str = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()

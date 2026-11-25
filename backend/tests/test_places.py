@@ -109,3 +109,101 @@ def test_live_google_requests_are_limited_per_client_and_per_day(client, make_fa
     # a missing place id is answered without spending anything
     other = make_facility(name="Fixture No Place Id", is_demo=False)
     assert client.get(f"/api/places/facilities/{other.slug}/reviews").status_code == 404 and len(calls) == 5
+
+
+def test_live_search_shows_ratings_and_points_linked_places_to_the_listing(client, make_facility, monkeypatch):
+    from app.database.session import SessionLocal
+    from app.models import FacilityExternalProfile
+
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    places.reset_live_budget()
+    listed = make_facility(name="Livefixture Listed Clinic")
+    with SessionLocal() as db:
+        db.add(FacilityExternalProfile(facility_id=listed.id, platform="google", external_id="ChIJlivefixtureListed01"))
+        db.commit()
+    seen = []
+
+    def fake_search(q, max_results=40, page_token=None, client=None):
+        seen.append(q)
+        return {"results": [
+            {"place_id": "ChIJlivefixtureListed01", "name": "Listed", "rating": 4.1, "rating_count": 30},
+            {"place_id": "ChIJlivefixtureOther001", "name": "Other", "rating": None, "rating_count": None},
+        ], "next_page_token": None, "attribution": "Results from Google Maps"}
+
+    monkeypatch.setattr(places, "text_search", fake_search)
+    reply = client.get("/api/places/search?q=clinic")
+    assert reply.status_code == 200 and reply.headers["cache-control"] == "no-store"
+    by_id = {p["place_id"]: p for p in reply.json()["results"]}
+    assert by_id["ChIJlivefixtureListed01"]["facility_slug"] == listed.slug
+    assert by_id["ChIJlivefixtureOther001"]["facility_slug"] is None
+    # A linked place opens the stored listing without calling Google.
+    monkeypatch.setattr(places, "place_details", lambda *a, **k: pytest.fail("Google should not be called"))
+    assert client.get("/api/places/place/ChIJlivefixtureListed01").json() == {"place_id": "ChIJlivefixtureListed01", "facility_slug": listed.slug}
+
+
+def test_rating_fields_are_requested_and_returned():
+    assert "places.rating" in places.FIELD_MASK and "places.userRatingCount" in places.FIELD_MASK
+    assert places._shape({"id": "x", "rating": 4.5, "userRatingCount": 12})["rating_count"] == 12
+
+
+def test_live_place_details_and_reviews_use_the_place_id(client, monkeypatch):
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    places.reset_live_budget()
+    paths = []
+
+    def handler(request):
+        paths.append((request.url.path, request.headers["X-Goog-FieldMask"]))
+        return httpx.Response(200, json={"id": "ChIJlivefixtureOther001", "displayName": {"text": "Fixture Live Clinic"},
+                                         "rating": 3.9, "userRatingCount": 8, "websiteUri": "javascript:alert(1)"})
+
+    mock = httpx.Client(transport=httpx.MockTransport(handler))
+    details = places.place_details("ChIJlivefixtureOther001", client=mock)
+    assert details["name"] == "Fixture Live Clinic" and details["rating"] == 3.9 and details["website"] == ""
+    assert paths[0][0] == "/v1/places/ChIJlivefixtureOther001" and "reviews" not in paths[0][1]
+    assert client.get("/api/places/place/bad id!").status_code == 422
+    monkeypatch.setattr(places, "written_reviews", lambda pid, client=None: {"reviews": [], "returned_count": 0, "attributions": [], "pid": pid})
+    assert client.get("/api/places/place/ChIJlivefixtureOther001/reviews").json()["pid"] == "ChIJlivefixtureOther001"
+
+
+def test_photos_are_off_by_default_and_never_call_google(client, make_facility, monkeypatch):
+    from app.database.session import SessionLocal
+    from app.models import FacilityExternalProfile
+
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    places.reset_live_budget()
+    monkeypatch.setattr(places, "place_photo", lambda *a, **k: pytest.fail("Google should not be called"))
+    f = make_facility(name="Photofixture Clinic")
+    unlinked = make_facility(name="Photofixture Unlinked")
+    with SessionLocal() as db:
+        db.add(FacilityExternalProfile(facility_id=f.id, platform="google", external_id="ChIJphotofixture0001"))
+        db.commit()
+    assert client.get(f"/api/places/facilities/{f.slug}/photo").status_code == 429
+    assert client.get(f"/api/places/facilities/{unlinked.slug}/photo").status_code == 404
+    listing = client.get("/api/facilities?q=Photofixture").json()["items"]
+    assert {i["name"]: i["has_google_place"] for i in listing} == {"Photofixture Clinic": True, "Photofixture Unlinked": False}
+    assert client.get(f"/api/facilities/{f.slug}").json()["has_google_place"] is True
+
+
+def test_photo_is_returned_with_author_attribution_within_the_daily_cap(client, monkeypatch):
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    monkeypatch.setattr(settings, "google_places_photo_daily_limit", 1)
+    places.reset_live_budget()
+
+    def handler(request):
+        if request.url.path.endswith("/media"):
+            assert request.url.params["skipHttpRedirect"] == "true" and request.url.params["maxWidthPx"] == "480"
+            return httpx.Response(200, json={"photoUri": "https://lh3.googleusercontent.com/fixture"})
+        assert request.headers["X-Goog-FieldMask"] == "photos"
+        return httpx.Response(200, json={"photos": [{"name": "places/ChIJphotofixture0001/photos/abc", "widthPx": 800, "heightPx": 600,
+                                                     "authorAttributions": [{"displayName": "Fixture Photographer", "uri": "https://maps.google.com/contrib/1"}]}]})
+
+    mock = httpx.Client(transport=httpx.MockTransport(handler))
+    photo = places.place_photo("ChIJphotofixture0001", client=mock)
+    assert photo["photo_uri"].startswith("https://lh3.googleusercontent.com/")
+    assert photo["authors"] == [{"name": "Fixture Photographer", "url": "https://maps.google.com/contrib/1"}]
+    # A photo name belonging to another place is rejected.
+    other = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"photos": [{"name": "places/ELSEWHERE/photos/x"}]})))
+    assert places.place_photo("ChIJphotofixture0001", client=other) is None
+    monkeypatch.setattr(places, "place_photo", lambda pid, max_width=480: {"photo_uri": "https://lh3.googleusercontent.com/x", "authors": []})
+    assert client.get("/api/places/place/ChIJphotofixture0001/photo").status_code == 200
+    assert client.get("/api/places/place/ChIJphotofixture0001/photo").status_code == 429  # cap of 1 reached

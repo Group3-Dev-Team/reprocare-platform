@@ -173,6 +173,10 @@ export const api = {
   facilityGoogleReviews: (slug, options) => get(`/places/facilities/${slug}/reviews`, undefined, options),
   placesStatus: () => get('/places/status'),
   placesSearch: (params) => get('/places/search', params),
+  livePlace: (placeId, options) => get(`/places/place/${encodeURIComponent(placeId)}`, undefined, options),
+  livePlaceReviews: (placeId, options) => get(`/places/place/${encodeURIComponent(placeId)}/reviews`, undefined, options),
+  livePlacePhoto: (placeId, params) => get(`/places/place/${encodeURIComponent(placeId)}/photo`, params),
+  facilityGooglePhoto: (slug, params) => get(`/places/facilities/${slug}/photo`, params),
 
   // Patient account
   requestAppointment: (body) => post('/appointments', body),

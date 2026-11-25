@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { facilityDisplayName } from '../data/facilityNames';
@@ -81,7 +81,7 @@ it('preserves filters and paging across grid, map and list views', async () => {
   expect(screen.getByTestId('url')).toHaveTextContent('page=2&min_google_rating=4&sort=google_count&view=list');
 });
 
-it('filters to facilities with public reviews from the toolbar, keeping search, county, paging and view', async () => {
+it('filters to facilities with public reviews from the sort menu, keeping search, county, paging and view', async () => {
   const listings = vi.spyOn(api, 'facilities').mockResolvedValue({ total: 30, items: [], page: 2, pages: 2, page_size: 15 });
   const markers = vi.spyOn(api, 'facilityMarkers').mockResolvedValue([]);
   vi.spyOn(api, 'services').mockResolvedValue([]);
@@ -94,14 +94,19 @@ it('filters to facilities with public reviews from the toolbar, keeping search, 
       <CurrentUrl />
     </MemoryRouter>,
   );
-  const toggle = await screen.findByRole('button', { name: 'Public reviews' });
-  expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  fireEvent.click(toggle);
+  expect(screen.queryByRole('button', { name: 'Public reviews' })).toBeNull();
+  const sortMenu = await screen.findByRole('combobox', { name: 'Sort by' });
+  expect(within(sortMenu).getByRole('option', { name: 'Public reviews' })).toBeInTheDocument();
+  expect(within(sortMenu).getAllByRole('option').map((o) => o.textContent)).toEqual(expect.arrayContaining([
+    'Most relevant', 'Most complete listings', 'Name (A–Z)', 'Name (Z–A)', 'Highest Google Maps rating',
+    'Most Google Maps ratings', 'Highest ReproCare patient rating', 'Most ReproCare patient reviews', 'Public reviews',
+  ]));
+  fireEvent.change(sortMenu, { target: { value: 'public_reviews' } });
   await waitFor(() => expect(listings).toHaveBeenLastCalledWith(
     { q: 'hospital', county: 'Kisumu', has_public_reviews: 'true', sort: 'relevance', page: 1, page_size: 15 },
     { signal: expect.any(AbortSignal) },
   ));
-  expect(screen.getByRole('button', { name: 'Public reviews' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('public_reviews');
   expect(screen.getByTestId('url')).toHaveTextContent('view=grid');
   expect(screen.getByText(/Written Google Maps reviews load on each facility page/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Remove filter: Public reviews' })).toBeInTheDocument();
@@ -109,8 +114,9 @@ it('filters to facilities with public reviews from the toolbar, keeping search, 
   await waitFor(() => expect(markers).toHaveBeenLastCalledWith(
     expect.objectContaining({ has_public_reviews: 'true', county: 'Kisumu' }), { signal: expect.any(AbortSignal) },
   ));
-  fireEvent.click(screen.getByRole('button', { name: 'Public reviews' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'google_count' } });
   await waitFor(() => expect(screen.getByTestId('url')).not.toHaveTextContent('has_public_reviews'));
+  expect(screen.getByTestId('url')).toHaveTextContent('sort=google_count');
   expect(google).not.toHaveBeenCalled();
 });
 

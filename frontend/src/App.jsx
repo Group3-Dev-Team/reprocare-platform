@@ -17,6 +17,7 @@ const PractitionerDetailPage = lazy(() => import("./pages/PractitionerDetailPage
 const LaboratoriesPage = lazy(() => import("./pages/LaboratoriesPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const GooglePlacesPage = lazy(() => import("./pages/GooglePlacesPage"));
+const LivePlacePage = lazy(() => import("./pages/LivePlacePage"));
 const FacebookActivityPage = lazy(() => import("./pages/FacebookActivityPage"));
 const ExperiencesPage = lazy(() => import("./pages/ExperiencesPage"));
 const SavedFacilities = lazy(() => import("./pages/dashboard/SavedFacilities"));
@@ -38,7 +39,7 @@ const AdminPrograms = lazy(() => import("./pages/dashboard/AdminPrograms"));
 const AdminArticles = lazy(() => import("./pages/dashboard/AdminArticles"));
 const AdminImports = lazy(() => import("./pages/dashboard/AdminImports"));
 
-// Appointments, reviews and dashboards (SCRUM-15). Other workstreams register their pages the same way.
+// Appointments, reviews and dashboards (SCRUM-15)
 const PatientOverview = lazy(() => import("./pages/dashboard/PatientOverview"));
 const MyAppointments = lazy(() => import("./pages/dashboard/MyAppointments"));
 const MyRegistrations = lazy(() => import("./pages/dashboard/MyRegistration"));
@@ -83,6 +84,7 @@ export default function App() {
           <Route path="find-care/specialists/:slug" element={<PractitionerDetailPage />} />
           <Route path="find-care/laboratories" element={<LaboratoriesPage />} />
           <Route path="find-care/google" element={<GooglePlacesPage />} />
+          <Route path="find-care/google/place/:placeId" element={<LivePlacePage />} />
           <Route path="facebook-activity" element={<FacebookActivityPage />} />
           <Route path="facilities/:slug" element={<FacilityDetailPage />} />
           <Route path="compare" element={<ComparePage />} />

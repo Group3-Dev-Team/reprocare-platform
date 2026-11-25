@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Crosshair, Grid2X2, List, LoaderCircle, Map as MapIcon, MessagesSquare, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Crosshair, Grid2X2, List, LoaderCircle, Map as MapIcon, Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useFetch } from '../hooks/useFetch';
+import { useAuth } from '../hooks/useAuth';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { facilityTypes } from '../data/labels';
@@ -13,6 +14,7 @@ import { MapView } from '../components/MapView';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, LoadingState, Alert } from '../components/Feedback';
 import { AppointmentModal } from '../components/AppointmentModal';
+import { BookingContactModal } from '../components/BookingContactModal';
 import '../styles/discovery.css';
 
 const PAGE_SIZE = 15;
@@ -42,6 +44,8 @@ const SORTS = [
   ['rating', 'Highest ReproCare patient rating'],
   ['review_count', 'Most ReproCare patient reviews'],
 ];
+// Shown in the sort menu, but applied as the has_public_reviews filter (relevance order).
+const PUBLIC_REVIEWS = 'public_reviews';
 const COVERAGE_LABELS = {
   telehealth: 'Remote consultations',
   accepts_requests: 'ReproCare appointment requests',
@@ -85,6 +89,7 @@ const copy = {
 
 /** Facility discovery. One component serves three entry points: the directory, insurer search and the map. */
 export default function FindCarePage({ variant = 'facilities' }) {
+  const user = useAuth()?.user;
   const text = copy[variant];
   useDocumentTitle(text.title, text.intro);
   const [params, setParams] = useSearchParams();
@@ -426,6 +431,9 @@ export default function FindCarePage({ variant = 'facilities' }) {
     </aside>
   );
 
+  const googleSearch = params.get('q') ? `/find-care/google?q=${encodeURIComponent(params.get('q'))}` : '/find-care/google';
+  // Staff accounts do not book; the facility page applies the same rule.
+  const canBook = !user || user.role === 'patient';
   const selectedInsurer = insurers.data?.find((i) => i.slug === params.get('insurer'));
   const publicReviews = params.get('has_public_reviews') === 'true';
 
@@ -466,14 +474,14 @@ export default function FindCarePage({ variant = 'facilities' }) {
               <button ref={filterTrigger} className="btn btn-secondary btn-sm filters-open" aria-expanded={showFilters} aria-controls="directory-filters" onClick={() => setShowFilters(true)}>
                 <SlidersHorizontal size={16} aria-hidden="true" /> Filters{activeCount ? ` (${activeCount})` : ''}
               </button>
-              <button type="button" className="btn btn-secondary btn-sm public-reviews-toggle" aria-pressed={publicReviews}
-                onClick={() => update({ has_public_reviews: !publicReviews })}>
-                <MessagesSquare size={16} aria-hidden="true" /> Public reviews
-              </button>
               <label className="sort">
                 <span className="sr-only">Sort by</span>
-                <select className="select" aria-label="Sort by" value={sort} onChange={(e) => update({ sort: e.target.value })}>
+                <select className="select" aria-label="Sort by" value={publicReviews ? PUBLIC_REVIEWS : sort}
+                  onChange={(e) => update(e.target.value === PUBLIC_REVIEWS
+                    ? { has_public_reviews: true, sort: '' }
+                    : { sort: e.target.value, has_public_reviews: '' })}>
                   {SORTS.map(([name, label]) => <option key={name} value={name}>{label}</option>)}
+                  <option value={PUBLIC_REVIEWS}>Public reviews</option>
                   {center && <option value="distance">Distance</option>}
                 </select>
               </label>
@@ -511,6 +519,13 @@ export default function FindCarePage({ variant = 'facilities' }) {
             <p className="small muted directory-filter-note">
               Facilities with published comments about the facility itself (Facebook, TikTok) or Google Maps ratings.
               Written Google Maps reviews load on each facility page when you ask for them, so whether a facility has them is only known there.
+            </p>
+          )}
+
+          {params.get('q') && data && (
+            <p className="small muted directory-filter-note">
+              These are ReproCare directory listings. Google Maps may list more places for “{params.get('q')}”:{' '}
+              <Link to={googleSearch}>search Google Maps live</Link>.
             </p>
           )}
 
@@ -568,7 +583,7 @@ export default function FindCarePage({ variant = 'facilities' }) {
             <>
               <div className={view === "grid" ? "result-list directory-results-grid" : "result-list"}>
                 {data.items.map((f) => (
-                  <FacilityCard key={f.slug} facility={f} highlightService={params.get('service')} selected={selected === f.slug} onSelect={view === 'map' ? setSelected : undefined} onRequest={setRequesting} />
+                  <FacilityCard key={f.slug} facility={f} highlightService={params.get('service')} selected={selected === f.slug} onSelect={view === 'map' ? setSelected : undefined} onRequest={canBook ? setRequesting : undefined} />
                 ))}
               </div>
               <Pagination showSummary={false}
@@ -585,11 +600,15 @@ export default function FindCarePage({ variant = 'facilities' }) {
             </>
           )}
           <p className="small muted results-foot">
-            Looking for a place not listed here? <Link to="/find-care/google">Search Google Maps live</Link> or <Link to="/contact?topic=listing_correction">tell us about it</Link>.
+            Looking for a place not listed here? <Link to={googleSearch}>Search Google Maps live</Link> or <Link to="/contact?topic=listing_correction">tell us about it</Link>.
           </p>
         </section>
       </div>
-      {requesting && <AppointmentModal facility={requesting} onClose={() => setRequesting(null)} />}
+      {requesting && (requesting.accepts_appointment_requests
+        ? <AppointmentModal facility={requesting} onClose={() => setRequesting(null)} />
+        : <BookingContactModal facility={requesting} onClose={() => setRequesting(null)}
+            website={/^https?:\/\//i.test(requesting.website || '') ? requesting.website : null}
+            directions={requesting.latitude != null && requesting.longitude != null ? `https://www.google.com/maps/dir/?api=1&destination=${requesting.latitude},${requesting.longitude}` : null} />)}
     </>
   );
 }

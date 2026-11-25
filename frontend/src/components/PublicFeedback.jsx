@@ -361,7 +361,7 @@ function distinctItems(items, keyFor) {
   return [...new Map(items.map((item) => [keyFor(item), item])).values()];
 }
 
-function GoogleWrittenReviews({ requested, onRequest, result, reviews }) {
+export function GoogleWrittenReviews({ requested, onRequest, result, reviews }) {
   if (!requested) return <button type="button" className="btn btn-secondary btn-sm"
     onClick={onRequest}>Load written Google Maps reviews</button>;
   if (result.loading) return <LoadingState rows={2} height={90} label="Loading Google Maps reviews" />;

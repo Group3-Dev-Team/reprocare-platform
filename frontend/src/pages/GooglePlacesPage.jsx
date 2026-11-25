@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ExternalLink, Globe2, MapPin } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ExternalLink, Globe2, MapPin, Star } from 'lucide-react';
 import { api } from '../services/api';
 import { useFetch } from '../hooks/useFetch';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -15,13 +15,15 @@ import { Alert, EmptyState, ErrorState, LoadingState } from '../components/Feedb
 export default function GooglePlacesPage() {
   useDocumentTitle('Search Google Maps', 'Search Google Maps live for healthcare facilities that are not yet listed on ReproCare.');
   const status = useFetch(() => api.placesStatus(), []);
-  const [query, setQuery] = useState('');
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState(params.get('q') || '');
   const [state, setState] = useState({ loading: false, error: null, data: null });
   const [selected, setSelected] = useState(null);
 
   const search = async (e, pageToken) => {
     e?.preventDefault();
     if (query.trim().length < 2) return;
+    if (!pageToken && params.get('q') !== query.trim()) setParams({ q: query.trim() }, { replace: true });
     setState({ loading: true, error: null, data: pageToken ? state.data : null });
     try {
       const data = await api.placesSearch({ q: query.trim(), max_results: 40, page_token: pageToken });
@@ -31,11 +33,17 @@ export default function GooglePlacesPage() {
     }
   };
 
+  // Arriving from a Find Care search link runs that search once.
+  useEffect(() => {
+    if (status.data?.configured && params.get('q') && !state.data && !state.loading) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.data?.configured]);
+
   return (
     <>
       <PageHeader
         title="Search Google Maps"
-        intro="Look up places that are not yet on ReproCare. These results come live from Google, have not been checked by ReproCare, and are not saved to our directory."
+        intro="Look up places that are not yet on ReproCare. These results come live from Google, have not been checked by ReproCare, and are not saved to our directory. Places already listed on ReproCare link to their listing."
         crumbs={[{ label: 'Find care', to: '/find-care/facilities' }, { label: 'Search Google Maps' }]}
       />
       <div className="container section-sm">
@@ -66,7 +74,13 @@ export default function GooglePlacesPage() {
                     {state.data.results.map((p) => (
                       <li key={p.place_id} className={selected === p.place_id ? 'is-selected' : ''} onMouseEnter={() => setSelected(p.place_id)}>
                         <strong>{p.name}</strong>
-                        <span className="small muted">{p.type_label}</span>
+                        <span className="small muted">
+                          {p.type_label}
+                          {p.rating != null && <> · <Star size={12} aria-hidden="true" /> {p.rating.toFixed(1)}{p.rating_count != null && ` (${p.rating_count.toLocaleString()} Google Maps ratings)`}</>}
+                        </span>
+                        {p.facility_slug
+                          ? <span className="small"><span className="badge badge-success">In ReproCare directory</span> <Link to={`/facilities/${p.facility_slug}`}>Open ReproCare listing</Link></span>
+                          : <span className="small"><span className="badge">Live Google Maps result</span> <Link to={`/find-care/google/place/${encodeURIComponent(p.place_id)}`}>View details and reviews</Link></span>}
                         <span className="small">
                           <MapPin size={13} aria-hidden="true" /> {p.address}
                         </span>

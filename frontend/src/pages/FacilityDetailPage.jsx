@@ -13,6 +13,7 @@ import { serviceIcons } from '../data/serviceIcons';
 import { Breadcrumbs } from '../components/PageHeader';
 import { DemoLabel, Rating, RegistrationLabel, SourceLabel, Stars } from '../components/Badges';
 import { FacilityTypePlaceholder } from '../components/FacilityTypePlaceholder';
+import { GooglePhoto } from '../components/GooglePhoto';
 import { PlanFacilityButton } from '../components/PlanFacilityButton';
 import { SaveButton } from '../components/SaveButton';
 import { MapView } from '../components/MapView';
@@ -81,7 +82,9 @@ function FacilityDetails({ slug }) {
           <Breadcrumbs items={[{ label: 'Find care', to: '/find-care/facilities' }, { label: f.facility_type === 'laboratory' ? 'Laboratories' : 'Healthcare facilities', to: f.facility_type === 'laboratory' ? '/find-care/laboratories' : '/find-care/facilities' }, { label: name }]} />
           <div className="detail-hero-grid">
             <div className={`detail-media thumb-${f.facility_type}`}>
-              {image ? <img src={image.src} alt={image.alt} /> : <FacilityTypePlaceholder type={f.facility_type} size={44} />}
+              {image ? <img src={image.src} alt={image.alt} />
+                : f.has_google_place ? <GooglePhoto slug={f.slug} width={800} alt={`Google Maps photo of ${name}`} fallback={<FacilityTypePlaceholder type={f.facility_type} size={44} />} />
+                : <FacilityTypePlaceholder type={f.facility_type} size={44} />}
             </div>
             <div>
               <p className="facility-type">{f.type_label}</p>
@@ -105,7 +108,7 @@ function FacilityDetails({ slug }) {
               </div>
               <div className="row detail-actions">
                 {(!user || user.role === 'patient') && (
-                  <button className="btn btn-primary" onClick={() => setRequesting(true)}>
+                  <button className="btn btn-success" onClick={() => setRequesting(true)}>
                     <CalendarCheck size={17} aria-hidden="true" /> Book appointment
                   </button>
                 )}
