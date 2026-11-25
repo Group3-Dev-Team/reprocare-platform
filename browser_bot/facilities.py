@@ -2,8 +2,13 @@
 
 A facility is matched by Google place id (its Google profile, or facilities.external_id as the legacy importer stored it),
 never by name. Existing values are only filled in when empty, so details a facility's staff edited are kept.
+
+A place with no linked facility is NOT created when a facility with the same name already stands within
+DUPLICATE_RADIUS_M (for example an OpenStreetMap facility that has no Google place id yet). It is reported for review;
+a person links the place id with `reprocare_bot.py link-google` once they have checked it is the same facility.
 """
 
+import math
 import re
 
 import bot_config  # noqa: F401  (adds backend/ to sys.path)
@@ -33,6 +38,39 @@ def find_by_place_id(db, place_id: str) -> Facility | None:
         .where(or_(FacilityExternalProfile.external_id == place_id, Facility.external_id == place_id))
         .limit(1)
     )
+
+
+DUPLICATE_RADIUS_M = 300
+_NAME_NOISE = {"the", "ltd", "limited"}
+
+
+def name_key(name: str) -> tuple[str, ...]:
+    words = re.findall(r"[a-z0-9]+", name.casefold().replace("&", " and "))
+    return tuple(w for w in words if w not in _NAME_NOISE)
+
+
+def _metres(lat1, lng1, lat2, lng2) -> float:
+    p = math.pi / 180
+    h = math.sin((lat2 - lat1) * p / 2) ** 2 + math.cos(lat1 * p) * math.cos(lat2 * p) * math.sin((lng2 - lng1) * p / 2) ** 2
+    return 12_742_000 * math.asin(math.sqrt(h))
+
+
+def possible_duplicate(db, name: str, latitude, longitude) -> Facility | None:
+    """An existing facility with the same name (ignoring case, punctuation and 'Ltd') within DUPLICATE_RADIUS_M."""
+    if latitude is None or longitude is None:
+        return None
+    key = name_key(name)
+    box = 0.01  # about 1.1 km, narrowed by the exact distance below
+    nearby = db.scalars(
+        select(Facility).where(
+            Facility.latitude.between(latitude - box, latitude + box),
+            Facility.longitude.between(longitude - box, longitude + box),
+        ).order_by(Facility.id)
+    )
+    for facility in nearby:
+        if name_key(facility.name) == key and _metres(latitude, longitude, facility.latitude, facility.longitude) <= DUPLICATE_RADIUS_M:
+            return facility
+    return None
 
 
 def google_source(db) -> DataSource:
@@ -74,6 +112,9 @@ def upsert_from_place(db, place: dict, default_town: str = "") -> tuple[Facility
             return None, "skipped:not a recognised health facility type"
         if not town:
             return None, "skipped:no town in Google address"
+        existing = possible_duplicate(db, name, location.get("latitude"), location.get("longitude"))
+        if existing is not None:
+            return None, f"skipped:possible duplicate of {existing.slug}"
         facility = Facility(
             slug=_unique_slug(db, slugify(name)),
             name=name[:160],
