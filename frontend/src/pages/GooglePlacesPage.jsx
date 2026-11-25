@@ -41,8 +41,8 @@ export default function GooglePlacesPage() {
       <div className="container section-sm">
         {status.loading && <LoadingState rows={1} height={80} />}
         {status.data && !status.data.configured && (
-          <EmptyState icon={<Globe2 size={26} />} title="Live Google search is not switched on for this server" action={<Link className="btn btn-primary" to="/find-care/facilities">Search ReproCare listings</Link>}>
-            An administrator needs to add a Google Places API key to the backend configuration. Until then, you can search the facilities already listed on ReproCare.
+          <EmptyState icon={<Globe2 size={26} />} title="Live Google Maps search is not available right now" action={<Link className="btn btn-primary" to="/find-care/facilities">Search ReproCare listings</Link>}>
+            You can still search the facilities already listed on ReproCare, including their Google Maps ratings where available.
           </EmptyState>
         )}
         {status.data?.configured && (
