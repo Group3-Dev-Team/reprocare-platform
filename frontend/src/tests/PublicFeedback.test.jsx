@@ -299,3 +299,23 @@ it('keeps approved Facebook feedback visible when local collection display is un
   expect(screen.queryByRole('heading', { name: 'Collected Facebook feedback' })).not.toBeInTheDocument();
   expect(demo).not.toHaveBeenCalled();
 });
+
+it('explains when written Google reviews are not configured or the request limit is reached', async () => {
+  const { ApiError } = await import('../services/api');
+  const empty = { items: [], total: 0, page: 1, pages: 1, page_size: 4, comment_total: 0, written_total: 0 };
+  vi.spyOn(api, 'facilityPublicPosts').mockResolvedValue(empty);
+  vi.spyOn(api, 'facilityCollectedFacebookPosts').mockResolvedValue(empty);
+  const google = vi.spyOn(api, 'facilityGoogleReviews')
+    .mockRejectedValueOnce(new ApiError('Google Places is not configured on this server.', 503))
+    .mockRejectedValueOnce(new ApiError('Too many Google Maps requests from this device. Please wait a few minutes and try again.', 429));
+  render(
+    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <PublicFeedbackSection slug="fixture" summary={{ data: { platforms: [], google: { rating: 4.2, rating_count: 12 } } }} />
+    </MemoryRouter>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Load written Google Maps reviews' }));
+  expect(await screen.findByText(/Written Google Maps reviews are not available on this server/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+  expect(await screen.findByText(/Too many Google Maps requests from this device/)).toBeInTheDocument();
+  expect(google).toHaveBeenCalledTimes(2);
+});

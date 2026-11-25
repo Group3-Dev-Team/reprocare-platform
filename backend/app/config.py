@@ -27,6 +27,9 @@ class Settings:
 
     # Google Places API (New). Server-side key only; never expose it to the browser.
     google_places_api_key: str = os.getenv("GOOGLE_PLACES_API_KEY", "")
+    # Most live Google requests (written reviews + place search) this server sends per day. Each one is billed by
+    # Google. Counted in memory, so it restarts with the server: also set a daily quota in the Google Cloud console.
+    google_places_live_daily_limit: int = int(os.getenv("GOOGLE_PLACES_LIVE_DAILY_LIMIT", "200"))
 
     google_oauth_enabled: bool = _bool("GOOGLE_OAUTH_ENABLED")
     google_oauth_client_id: str = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()

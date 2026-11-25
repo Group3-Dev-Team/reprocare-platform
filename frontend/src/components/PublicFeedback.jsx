@@ -366,9 +366,11 @@ function GoogleWrittenReviews({ requested, onRequest, result, reviews }) {
     onClick={onRequest}>Load written Google Maps reviews</button>;
   if (result.loading) return <LoadingState rows={2} height={90} label="Loading Google Maps reviews" />;
   if (result.error) {
-    const message = result.error.status === 404
-      ? 'This facility does not have a linked Google Maps listing for written reviews.'
-      : 'Google Maps written reviews are temporarily unavailable. You can still see any ratings already shown here.';
+    const message = {
+      404: 'This facility does not have a linked Google Maps listing for written reviews.',
+      503: 'Written Google Maps reviews are not available on this server. You can still see any ratings already shown here.',
+      429: result.error.message,
+    }[result.error.status] || 'Google Maps written reviews are temporarily unavailable. You can still see any ratings already shown here.';
     return <ErrorState error={{ message }} onRetry={result.reload} />;
   }
   if (!result.data) return null;

@@ -75,3 +75,37 @@ def test_written_reviews_report_quota_without_echoing_provider_message(monkeypat
         with pytest.raises(places.PlacesError, match="HTTP 429.*QUOTA_EXCEEDED") as error:
             places.written_reviews("fixture-place", client)
     assert "private provider" not in str(error.value)
+
+
+def test_live_google_requests_are_limited_per_client_and_per_day(client, make_facility, monkeypatch):
+    """Regression: the public live endpoints had no request limit, so repeated clicks or a script could run up
+    unbounded Google charges. Each client and the server as a whole now have limits; refusals never call Google."""
+    from app.database.session import SessionLocal
+    from app.services.external_feedback_service import upsert_profile
+    from app.models import Facility
+
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    facility = make_facility(name="Fixture Live Reviews Hospital", is_demo=False)
+    with SessionLocal() as db:
+        upsert_profile(db, db.get(Facility, facility.id), "google", "ChIJfixtureLiveReviews01", url="", match_method="google_place_id")
+        db.commit()
+    calls = []
+    monkeypatch.setattr(places, "written_reviews", lambda place_id, client=None: calls.append(place_id) or {"reviews": [], "returned_count": 0, "attributions": []})
+    places.reset_live_budget()
+    monkeypatch.setattr(places, "LIVE_REQUESTS_PER_CLIENT", 3)
+    url = f"/api/places/facilities/{facility.slug}/reviews"
+    assert [client.get(url).status_code for _ in range(4)] == [200, 200, 200, 429]
+    assert calls == ["ChIJfixtureLiveReviews01"] * 3
+    assert "Too many" in client.get(url).json()["detail"]
+
+    places.reset_live_budget()
+    monkeypatch.setattr(settings, "google_places_live_daily_limit", 2)
+    assert [client.get(url).status_code for _ in range(3)] == [200, 200, 429]
+    assert len(calls) == 5
+    searches = []
+    monkeypatch.setattr(places, "text_search", lambda *a, **k: searches.append(a) or {"results": []})
+    assert client.get("/api/places/search?q=clinic").status_code == 429 and searches == []
+    places.reset_live_budget()
+    # a missing place id is answered without spending anything
+    other = make_facility(name="Fixture No Place Id", is_demo=False)
+    assert client.get(f"/api/places/facilities/{other.slug}/reviews").status_code == 404 and len(calls) == 5
