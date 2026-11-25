@@ -19,6 +19,7 @@ import { MapView } from '../components/MapView';
 import { ReviewCard } from '../components/ReviewCard';
 import { ReviewForm } from '../components/ReviewForm';
 import { AppointmentModal } from '../components/AppointmentModal';
+import { BookingContactModal } from '../components/BookingContactModal';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, LoadingState } from '../components/Feedback';
 import { GoogleRatingCard, PublicFeedbackSection } from '../components/PublicFeedback';
@@ -103,7 +104,7 @@ function FacilityDetails({ slug }) {
                 )}
               </div>
               <div className="row detail-actions">
-                {f.accepts_appointment_requests && (!user || user.role === 'patient') && (
+                {(!user || user.role === 'patient') && (
                   <button className="btn btn-primary" onClick={() => setRequesting(true)}>
                     <CalendarCheck size={17} aria-hidden="true" /> Book appointment
                   </button>
@@ -417,7 +418,9 @@ function FacilityDetails({ slug }) {
         </aside>
       </div>
 
-      {requesting && <AppointmentModal facility={f} onClose={() => setRequesting(false)} />}
+      {requesting && (f.accepts_appointment_requests
+        ? <AppointmentModal facility={f} onClose={() => setRequesting(false)} />
+        : <BookingContactModal facility={f} website={website} directions={directions} onClose={() => setRequesting(false)} />)}
       {reviewing && <ReviewForm facility={f} onClose={() => setReviewing(false)} onDone={ownReviews.reload} />}
     </div>
   );
