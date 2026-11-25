@@ -10,7 +10,7 @@ import { SaveButton } from './SaveButton';
 
 /** One search result. Leads with the requested service, then practical access details and sources. */
 export function FacilityCard({ facility, highlightService, selected, onSelect, onRequest }) {
-  // Contact Facility leads to the listing's phone, email or website. Request appointment is shown only to
+  // Contact Facility leads to the listing's phone, email or website. Book appointment is shown only to
   // facilities that take ReproCare requests; there is no instant booking because no facility publishes slots.
   const hasContact = Boolean(facility.phone || facility.email || facility.website);
   const compare = useCompare();
@@ -91,7 +91,7 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
             </button>
             {facility.accepts_appointment_requests && onRequest ? (
               <button className="btn btn-primary btn-sm" onClick={() => onRequest(facility)}>
-                <CalendarCheck size={15} aria-hidden="true" /> Request appointment
+                <CalendarCheck size={15} aria-hidden="true" /> Book appointment
               </button>
             ) : (
               <Link to={`/facilities/${facility.slug}${onRequest && hasContact ? '#location' : ''}`} className="btn btn-secondary btn-sm">
