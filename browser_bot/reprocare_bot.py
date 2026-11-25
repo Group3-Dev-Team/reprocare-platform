@@ -150,14 +150,12 @@ def cmd_discover(args):
 
 
 def cmd_google(args):
-    """Place Details for each facility: Google rating, rating count, photos (references) and Google reviews."""
+    """Place Details for each facility: Google rating, rating count and photo references. Written Google reviews are
+    not stored: the facility page loads them live with attribution."""
     from facilities import upsert_from_place
-    from google_places import PlacesUnavailable, place_details, reviews_batch
-    from importer import import_direct
+    from google_places import PlacesUnavailable, place_details
     from places_cache import DailyLimitReached
-    from staging import write_batch
 
-    batches = []
     with SessionLocal() as db:
         facilities = select_facilities(db, args.facility, args.all, args.limit, need_google=True)
         log(f"Google Places details for {len(facilities)} facilit(y/ies); one billed request each (cached {30} days).")
@@ -175,16 +173,10 @@ def cmd_google(args):
                 db.commit()
                 continue
             upsert_from_place(db, place)
-            batch = reviews_batch(place, facility.slug)
-            n_reviews = len(batch["comments"]) if batch else 0
-            log(f"   {facility.name}: Google rating {place.get('rating')} ({place.get('userRatingCount')} ratings), {n_reviews} reviews returned, {len(place.get('photos') or [])} photo references")
-            record_run(db, "google", "succeeded" if n_reviews else "empty", f"rating={place.get('rating')} count={place.get('userRatingCount')} reviews_returned={n_reviews}", facility, posts_found=1 if batch else 0)
+            has_rating = place.get("rating") is not None
+            log(f"   {facility.name}: Google rating {place.get('rating')} ({place.get('userRatingCount')} ratings), {len(place.get('photos') or [])} photo references; written reviews load live on the facility page")
+            record_run(db, "google", "succeeded" if has_rating else "empty", f"rating={place.get('rating')} count={place.get('userRatingCount')}", facility, posts_found=0)
             db.commit()
-            if batch:
-                write_batch(batch)
-                batches.append(batch)
-    if batches and not args.no_import:
-        report_import(import_direct(batches, "google"))
 
 
 def cmd_facebook(args):

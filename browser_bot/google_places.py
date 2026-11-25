@@ -6,7 +6,9 @@ SKUs. Requests are capped per day (places_cache.DAILY_LIMIT) and details are cac
 
 Google content policy: the place id may be stored indefinitely; other content is refreshed by re-running
 `reprocare_bot.py google`. Photos are stored as REFERENCES (resource names + author attributions), never
-downloaded; reviews are stored with their Google attribution and shown labelled as Google reviews.
+downloaded. Google review TEXT is not requested or stored by the bot: the facility page loads written Google reviews
+live, with attribution, through the backend (/api/places/facilities/{slug}/reviews). reviews_batch() remains only for
+converting review batches that already exist.
 """
 
 import json
@@ -32,7 +34,7 @@ DETAIL_FIELDS = ",".join(
     (
         "id", "displayName", "formattedAddress", "addressComponents", "location", "types", "websiteUri",
         "nationalPhoneNumber", "googleMapsUri", "rating", "userRatingCount", "regularOpeningHours",
-        "reviews", "photos", "businessStatus",
+        "photos", "businessStatus",  # no "reviews": review text is shown live, never stored
     )
 )
 

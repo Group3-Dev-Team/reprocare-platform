@@ -390,3 +390,38 @@ def test_tiktok_collection_keeps_the_stated_billing_bounds(fake_apify):
     assert searches == [{"search": ["Fixture General Hospital"], "maxItems": 10, "endPage": 1, "sortType": "RELEVANCE"}]
     assert len(bundles) == len(comments) == 2  # 5 matching videos found, only 2 collected
     assert all(c["commentsPerPost"] == 10 and c["maxRepliesPerComment"] == 2 for c in comments)
+
+
+def test_google_step_keeps_no_google_review_text(db, monkeypatch, tmp_path):
+    """Google review text is shown live on the facility page (backend /places/.../reviews) and is not stored by the bot:
+    the bot's Place Details request leaves out `reviews`, and nothing from Google reviews is staged or imported."""
+    import places_cache
+    import reprocare_bot
+    import staging
+    from app.models import ExternalComment, Facility, FacilityExternalProfile
+
+    monkeypatch.setattr(places_cache, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(places_cache, "DATABASE", tmp_path / "places.sqlite3")
+    monkeypatch.setattr(places_cache, "DAILY_LIMIT", 5)
+    place_id = "ChIJfixtureNoReviewText1"
+    facility = Facility(slug="fixture-no-review-text", name="Fixture No Review Text Hospital", facility_type="hospital",
+                        town="Nairobi", county="Nairobi", is_demo=False)
+    db.add(facility)
+    db.flush()
+    db.add(FacilityExternalProfile(facility_id=facility.id, platform="google", external_id=place_id, url=""))
+    db.commit()
+    masks = []
+
+    def fake_get(url, field_mask):
+        masks.append(field_mask)
+        return {**PLACE, "id": place_id}  # even if Google sent reviews, the bot must not keep them
+
+    monkeypatch.setattr(gp, "_get", fake_get)
+    before = len(staging.read_batches())
+    reprocare_bot.main(["google", "--facility", "fixture-no-review-text"])
+    assert len(masks) == 1 and "reviews" not in masks[0].split(",")
+    db.expire_all()
+    assert db.query(ExternalComment).filter_by(facility_id=facility.id).count() == 0
+    assert len(staging.read_batches()) == before
+    profile = db.query(FacilityExternalProfile).filter_by(facility_id=facility.id, platform="google").one()
+    assert profile.rating == 4.1 and profile.rating_count == 1234  # the rating summary is still refreshed
