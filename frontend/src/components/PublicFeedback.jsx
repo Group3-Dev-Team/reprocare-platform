@@ -572,9 +572,14 @@ export function PublicFeedbackSection({ slug, summary, onWrittenCount }) {
             <GoogleRatingCard google={google} />
             {platform === 'google' && <GoogleWrittenReviews requested={googleRequested} onRequest={() => setGoogleRequested(true)} result={googleResult} reviews={googleReviews} />}
           </div>
-        ) : platform === 'google' && !summary.loading && !summary.error && (
+        ) : platform === 'google' && !summary.loading && !summary.error && (s?.google_linked ? (
+          <div className="stack">
+            <p className="small muted">No Google Maps rating is stored for this facility yet. Written reviews come straight from its Google Maps listing.</p>
+            <GoogleWrittenReviews requested={googleRequested} onRequest={() => setGoogleRequested(true)} result={googleResult} reviews={googleReviews} />
+          </div>
+        ) : (
           <EmptyState title="No Google rating available for this facility" />
-        ))}
+        )))}
       </div>
 
       <div hidden={!includes('facebook')} className="stack">

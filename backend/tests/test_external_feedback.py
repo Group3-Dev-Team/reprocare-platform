@@ -507,3 +507,20 @@ def test_non_facebook_comments_flagged_by_screening_are_held(client):
     assert post["comment_count"] == 1
     shown = client.get(f"/api/external-posts/{post['id']}/comments").json()["items"]
     assert [c["text"] for c in shown] == ["Test fixture: the maternity nurses at Kipepeo were kind."]
+
+
+def test_summary_reports_a_linked_google_place_without_a_stored_rating(client, make_facility):
+    from app.database.session import SessionLocal
+    from app.models import FacilityExternalProfile
+
+    linked, rated, nothing = (make_facility(name=f"Glinkfixture {n}") for n in ("linked", "rated", "nothing"))
+    with SessionLocal() as db:
+        db.add(FacilityExternalProfile(facility_id=linked.id, platform="google", external_id="TEST_FIXTURE_PLACE_LINKED", url="", display_name="x",
+                                       match_method="manual_review", photos=[], details={}))
+        db.add(FacilityExternalProfile(facility_id=rated.id, platform="google", external_id="TEST_FIXTURE_PLACE_RATED", url="", display_name="x",
+                                       match_method="manual_review", photos=[], details={}, rating=4.1, rating_count=9))
+        db.commit()
+    summary = lambda f: client.get(f"/api/facilities/{f.slug}/public-feedback").json()
+    assert summary(linked)["google"] is None and summary(linked)["google_linked"] is True
+    assert summary(rated)["google"]["rating"] == 4.1 and summary(rated)["google_linked"] is True
+    assert summary(nothing)["google_linked"] is False
