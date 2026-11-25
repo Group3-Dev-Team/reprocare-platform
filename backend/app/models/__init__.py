@@ -1,4 +1,4 @@
-"""Shared domain models. Feature workstreams add their own model modules and export them here."""
+"""Domain models. Each feature module is exported here so table creation and migrations see it."""
 
 from app.models.appointment import AppointmentRequest
 from app.models.content import Article, ContactMessage
