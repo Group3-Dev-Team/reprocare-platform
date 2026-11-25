@@ -2,13 +2,13 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.models import CommunityProgram, Facility, Insurer, Practitioner, Review, Service
-from app.services.county_service import KENYA_COUNTIES, county_key
+from app.services.county_service import KENYA_COUNTIES, county_filter_labels, county_key
 from app.services.common import split_list
 
 router = APIRouter(tags=["Reference data"])
@@ -34,8 +34,23 @@ def list_insurers(db: Session = Depends(get_db)):
 
 
 @router.get("/towns")
-def list_towns(db: Session = Depends(get_db)):
-    """Towns that have at least one facility, with a facility count and an approximate centre for the map."""
+def list_towns(county: str | None = Query(None, max_length=80), db: Session = Depends(get_db)):
+    """Towns that have at least one facility, with a facility count and an approximate centre for the map.
+    With a county: only that county's towns (any imported spelling of the county), with case and spacing
+    variants of one town folded together. A town of the same name in another county is not included."""
+    if county:
+        label = next((c for c in KENYA_COUNTIES if c.lower() == county_key(county)), county.strip())
+        key = func.lower(func.trim(Facility.town))
+        rows = db.execute(
+            select(key, func.mode().within_group(Facility.town), func.count(Facility.id), func.avg(Facility.latitude), func.avg(Facility.longitude))
+            .where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(county)), key != "")
+            .group_by(key)
+            .order_by(func.count(Facility.id).desc(), key)
+        ).all()
+        return [
+            {"town": " ".join(t.split()), "county": label, "facility_count": n, "latitude": round(lat, 4) if lat else None, "longitude": round(lng, 4) if lng else None}
+            for _, t, n, lat, lng in rows
+        ]
     rows = db.execute(
         select(Facility.town, Facility.county, func.count(Facility.id), func.avg(Facility.latitude), func.avg(Facility.longitude))
         .group_by(Facility.town, Facility.county)

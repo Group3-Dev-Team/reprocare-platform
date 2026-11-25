@@ -135,6 +135,9 @@ export default function FindCarePage({ variant = 'facilities' }) {
   const services = useFetch(() => api.services(), []);
   const insurers = useFetch(() => api.insurers(), []);
   const counties = useFetch(() => api.counties(), []);
+  const selectedCounty = params.get('county') || '';
+  const towns = useFetch(() => (selectedCounty ? api.towns(selectedCounty) : Promise.resolve([])), [selectedCounty]);
+  const selectedTown = params.get('town') || '';
   const filterKey = JSON.stringify(filters);
   const resultKey = JSON.stringify([filterKey, page]);
   const results = useFetch(async (signal) => ({
@@ -321,6 +324,20 @@ export default function FindCarePage({ variant = 'facilities' }) {
           ))}
         </select>
       </label>
+      {selectedCounty && (
+        <label className="field">
+          <span className="field-label">Town</span>
+          <select className="select" aria-label="Town" value={selectedTown} onChange={(e) => update({ town: e.target.value })}>
+            <option value="">All towns in {selectedCounty}</option>
+            {selectedTown && !(towns.data || []).some((t) => t.town.toLowerCase() === selectedTown.toLowerCase()) && <option value={selectedTown}>{selectedTown}</option>}
+            {(towns.data || []).map((t) => (
+              <option key={t.town} value={t.town}>
+                {t.town} ({t.facility_count})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="directory-location">
         <button type="button" className="btn btn-secondary btn-block" onClick={useMyLocation} disabled={location.pending}>
           {location.pending ? <LoaderCircle size={16} aria-hidden="true" className="directory-spinner" /> : <Crosshair size={16} aria-hidden="true" />}

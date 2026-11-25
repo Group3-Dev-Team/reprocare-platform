@@ -129,7 +129,7 @@ export const api = {
   stats: () => get('/stats'),
   services: () => reference('/services'),
   insurers: () => reference('/insurers'),
-  towns: () => reference('/towns'),
+  towns: (county) => reference(county ? `/towns?county=${encodeURIComponent(county)}` : '/towns'),
   counties: () => reference('/counties'),
 
   // Authentication

@@ -204,7 +204,7 @@ def build_facility_query(db: Session, filters: dict):
         query = query.where(text_match)
 
     if filters.get("town"):
-        query = query.where(func.lower(Facility.town) == filters["town"].lower())
+        query = query.where(func.lower(func.trim(Facility.town)) == " ".join(filters["town"].split()).lower())
     if filters.get("county"):
         query = query.where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(filters["county"])))
 
