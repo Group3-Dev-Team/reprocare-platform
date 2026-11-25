@@ -97,6 +97,8 @@ def public_feedback_summary(slug: str, db: Session = Depends(get_db)):
         }
         if google and google.rating is not None
         else None,
+        # a linked Google place is enough to load written reviews live, even before any rating is stored
+        "google_linked": any(p.platform == "google" and p.external_id for p in profiles),
         "accounts": [
             {"platform": p.platform, "label": PLATFORM_LABELS[p.platform], "url": p.url, "name": p.display_name, "match_method": p.match_method}
             for p in profiles

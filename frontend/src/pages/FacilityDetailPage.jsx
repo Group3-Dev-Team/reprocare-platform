@@ -105,7 +105,7 @@ function FacilityDetails({ slug }) {
               <div className="row detail-actions">
                 {f.accepts_appointment_requests && (!user || user.role === 'patient') && (
                   <button className="btn btn-primary" onClick={() => setRequesting(true)}>
-                    <CalendarCheck size={17} aria-hidden="true" /> Request appointment
+                    <CalendarCheck size={17} aria-hidden="true" /> Book appointment
                   </button>
                 )}
                 {f.phone && (
@@ -162,7 +162,9 @@ function FacilityDetails({ slug }) {
           <section className="panel" aria-labelledby="services">
             <div className="panel-title">
               <h2 id="services">Services</h2>
-              <SourceLabel layer="provider">Stated by the facility</SourceLabel>
+              {f.source?.code === 'openstreetmap'
+                ? <SourceLabel layer="external">From OpenStreetMap contributors</SourceLabel>
+                : <SourceLabel layer="provider">Stated by the facility</SourceLabel>}
             </div>
             {f.services.length ? (
               <ul className="service-list">

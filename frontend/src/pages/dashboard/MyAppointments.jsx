@@ -71,7 +71,7 @@ function AppointmentRequests() {
       {result.error && <ErrorState error={result.error} onRetry={result.reload} />}
       {!result.loading && result.data?.total === 0 && (
         <EmptyState icon={<CalendarDays size={24} />} title={status ? 'No requests with this status' : 'You have not sent any requests yet'} action={<Link className="btn btn-primary" to="/find-care/facilities">Browse facilities</Link>}>
-          Participating facilities show “Request appointment”. Other listings may provide a phone number to arrange a visit directly.
+          Participating facilities show “Book appointment”. Other listings may provide a phone number to arrange a visit directly.
         </EmptyState>
       )}
       <div className="stack">

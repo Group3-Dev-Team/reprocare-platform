@@ -5,10 +5,13 @@ Feature routers live in app/routes/<feature>_routes.py, expose `router`, and are
 Every router is mounted under /api.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.database.session import require_shared_database
 from app.routes import (
     facility_routes,
     practitioner_routes,
@@ -53,7 +56,14 @@ ROUTERS: list = [
     admin_routes,
 ]
 
+@asynccontextmanager
+async def lifespan(_app):
+    require_shared_database()  # no-op unless REPROCARE_REQUIRE_SHARED_DATABASE is set
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="ReproCare API",
     description="Reproductive healthcare discovery for Kenya.",
     docs_url=None if settings.is_production else "/docs",

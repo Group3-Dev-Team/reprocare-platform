@@ -1,8 +1,9 @@
 """Relevance screening for collected public comments (ported from the integration bot).
 
-Screening never edits, hides or approves anything: it only records reasons alongside each comment
-(e.g. for the bot report). Collected public comments are displayed as collected; phone numbers and
-email addresses inside them are masked on display (see external_feedback_service.mask_contact_details).
+Screening never edits or approves anything: it records reasons alongside each comment (e.g. for the bot
+report). Facebook comments wait for admin moderation; on other platforms a comment that needs_holding() is
+stored as held instead of being shown. Phone numbers and email addresses in displayed comments are masked
+on display (see external_feedback_service.mask_contact_details).
 """
 
 import re
@@ -24,6 +25,19 @@ ABUSIVE_TERMS = {"fuck", "fucking", "bitch", "fuckers"}
 
 PHONE = re.compile(r"(?<!\d)(?:\+?254|0)[17]\d{8}(?!\d)")
 EMAIL = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
+# Personal health disclosures that are not shown without review (also used by the local Facebook collection view).
+SENSITIVE = re.compile(
+    r"\b(?:hiv|stds?|stis?|diagnos(?:ed|is)|(?:lab|test) results?|medical records?|"
+    r"patient (?:id|number)|id number|identity card|my (?:pregnancy|abortion|miscarriage)|"
+    r"i (?:am|was) pregnant)\b", re.I
+)
+SPACED_PHONE = re.compile(r"(?<!\d)(?:\+254|0)[ .-]*[17](?:[ .-]*\d){8}(?!\d)")
+HOLD_REASONS = {"empty_comment", "possible_personal_information", "potentially_abusive_language", "unrelated_context"}
+
+
+def needs_holding(text: str, reasons) -> bool:
+    """True when a comment from a platform without a moderation queue must not be shown until reviewed."""
+    return bool(HOLD_REASONS.intersection(reasons or ())) or bool(SENSITIVE.search(text) or SPACED_PHONE.search(text))
 
 @dataclass
 class ScreeningResult:

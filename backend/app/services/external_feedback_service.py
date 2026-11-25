@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, aliased
 
 from app.models import ExternalCollectionRun, ExternalComment, ExternalPost, Facility, FacilityExternalProfile
 from app.schemas.external import ExternalBatchIn
-from app.services.feedback_screening import EMAIL, PHONE, screen_feedback
+from app.services.feedback_screening import EMAIL, PHONE, needs_holding, screen_feedback
 
 PLATFORM_HOSTS = {
     "facebook": {"facebook.com", "www.facebook.com", "web.facebook.com", "m.facebook.com"},
@@ -188,7 +188,9 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
             collected_at=item.collected_at or batch.post.collected_at or _now(),
             like_count=item.like_count,
             source_rating=item.source_rating if batch.platform == "google" else None,
-            status="held" if batch.platform == "facebook" else "visible",
+            # Facebook waits for admin moderation. Other platforms appear at once unless screening flags the comment
+            # (personal details, abuse, unrelated context or a health disclosure): those are held, never shown unreviewed.
+            status="held" if batch.platform == "facebook" or (not item.author_is_facility and needs_holding(text, reasons)) else "visible",
             screening=screening_status,
             screening_reasons=reasons,
         )

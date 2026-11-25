@@ -168,18 +168,25 @@ def comments_from_dataset(records: list, video_id: str) -> list[dict]:
     return out
 
 
-def collect_for_facility(facility_name: str, town: str = "", max_videos: int | None = None, comments_per_video: int = 500) -> list[dict]:
+# The billed bounds stated above and in `reprocare_bot.py tiktok` (the legacy tiktok_auto.py values).
+SEARCH_RESULTS_PER_TERM = 10
+MAX_VIDEOS = 2
+COMMENTS_PER_VIDEO = 10
+REPLIES_PER_COMMENT = 2
+
+
+def collect_for_facility(facility_name: str, town: str = "", max_videos: int = MAX_VIDEOS, comments_per_video: int = COMMENTS_PER_VIDEO) -> list[dict]:
     """Two-step Apify collection. Returns raw bundles: [{'search_record', 'url', 'comments_raw'}]."""
     terms = [facility_name, f"{facility_name} {town}".strip()] if town and town.casefold() not in facility_name.casefold() else [facility_name]
     candidates: dict[str, dict] = {}
     for term in terms:
-        for record in actor_run(SEARCH_ACTOR, {"search": [term], "maxItems": 500, "endPage": 10, "sortType": "RELEVANCE"}):
+        for record in actor_run(SEARCH_ACTOR, {"search": [term], "maxItems": SEARCH_RESULTS_PER_TERM, "endPage": 1, "sortType": "RELEVANCE"}):
             url = video_url(record)
             if url and relevant(record, facility_name):
                 candidates.setdefault(url, record)
     bundles = []
-    for url, record in list(candidates.items())[:max_videos] if max_videos is not None else list(candidates.items()):
-        raw = actor_run(COMMENTS_ACTOR, {"postURLs": [url], "commentsPerPost": comments_per_video, "maxRepliesPerComment": 100})
+    for url, record in list(candidates.items())[:max_videos]:
+        raw = actor_run(COMMENTS_ACTOR, {"postURLs": [url], "commentsPerPost": comments_per_video, "maxRepliesPerComment": REPLIES_PER_COMMENT})
         bundles.append({"search_record": record, "url": url, "comments_raw": raw})
     return bundles
 

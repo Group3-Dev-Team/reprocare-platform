@@ -13,7 +13,7 @@ from app.models import (
     facility_insurers, facility_services,
 )
 from app.services.common import split_list
-from app.services.county_service import county_filter_labels
+from app.services.county_service import county_filter_labels, county_label
 from app.services.external_feedback_service import published_external_post, viewable_comment
 
 FACILITY_TYPE_LABELS = {
@@ -167,6 +167,20 @@ def has_published_written_activity():
     )
 
 
+def has_stored_google_ratings():
+    """A stored Google Maps rating from at least one person. A linked place id alone does not count."""
+    return (
+        select(FacilityExternalProfile.id)
+        .where(
+            FacilityExternalProfile.facility_id == Facility.id,
+            FacilityExternalProfile.platform == "google",
+            FacilityExternalProfile.rating.between(1, 5),
+            FacilityExternalProfile.rating_count > 0,
+        )
+        .exists()
+    )
+
+
 def build_facility_query(db: Session, filters: dict):
     """Return (select statement, distance expression or None) for the given filters."""
     ratings = rating_subquery()
@@ -190,7 +204,7 @@ def build_facility_query(db: Session, filters: dict):
         query = query.where(text_match)
 
     if filters.get("town"):
-        query = query.where(func.lower(Facility.town) == filters["town"].lower())
+        query = query.where(func.lower(func.trim(Facility.town)) == " ".join(filters["town"].split()).lower())
     if filters.get("county"):
         query = query.where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(filters["county"])))
 
@@ -234,6 +248,8 @@ def build_facility_query(db: Session, filters: dict):
         query = query.where(ratings.c.review_count > 0)
     if filters.get("has_public_feedback"):
         query = query.where(has_published_written_activity())
+    if filters.get("has_public_reviews"):
+        query = query.where(or_(has_published_written_activity(), has_stored_google_ratings()))
 
     has_google_rating = filters.get("has_google_rating")
     minimum_google_rating = filters.get("min_google_rating")
@@ -331,7 +347,7 @@ def facility_summary(f: Facility, rating: tuple[float, int] | None = None, dista
         "description": f.description,
         "area": f.area,
         "town": f.town,
-        "county": f.county,
+        "county": county_label(f.county),
         "latitude": f.latitude,
         "longitude": f.longitude,
         "phone": f.phone,

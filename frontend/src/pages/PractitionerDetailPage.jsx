@@ -99,7 +99,7 @@ export default function PractitionerDetailPage() {
                 <p className="small">Send a request to {facilityDisplayName(p.facility)}, mentioning that you would like to see {p.full_name}.</p>
                 {(!user || user.role === 'patient') && (
                   <button className="btn btn-primary btn-block" onClick={() => setRequesting(true)} disabled={!facility.data}>
-                    <CalendarCheck size={17} aria-hidden="true" /> Request appointment
+                    <CalendarCheck size={17} aria-hidden="true" /> Book appointment
                   </button>
                 )}
               </>

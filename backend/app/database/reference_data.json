@@ -167,7 +167,7 @@
           "publisher": "World Health Organization"
         },
         {
-          "label": "National guidelines on obstetric and perinatal care (placeholder: confirm current edition)",
+          "label": "National guidelines on obstetric and perinatal care (check for the latest edition)",
           "publisher": "Ministry of Health, Kenya"
         }
       ],
@@ -223,7 +223,7 @@
           "publisher": "World Health Organization"
         },
         {
-          "label": "Kenya HIV prevention and treatment guidelines (placeholder: confirm current edition)",
+          "label": "Kenya HIV prevention and treatment guidelines (check for the latest edition)",
           "publisher": "NASCOP, Ministry of Health"
         }
       ],
@@ -532,7 +532,7 @@
       ],
       "references": [
         {
-          "label": "Patient rights charter (placeholder: confirm current edition)",
+          "label": "Patient rights charter (check for the latest edition)",
           "publisher": "Ministry of Health, Kenya"
         }
       ],

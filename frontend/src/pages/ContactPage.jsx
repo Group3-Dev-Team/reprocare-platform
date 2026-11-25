@@ -176,12 +176,20 @@ export default function ContactPage() {
                 hint="Please do not include medical details. We cannot give medical advice by message."
                 required
               />
+              {/* Spam trap: people never see it. A neutral name and the password-manager "ignore" flags stop
+                  browsers from autofilling it, which made genuine messages fail with "could not be sent". */}
               <div className="hp-field" aria-hidden="true">
-                <label htmlFor="website">Website</label>
+                <label htmlFor="contact-extra-field">Leave this field empty</label>
                 <input
-                  id="website"
+                  id="contact-extra-field"
+                  name="contact-extra-field"
+                  type="text"
                   tabIndex={-1}
                   autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   value={form.website}
                   onChange={set("website")}
                 />

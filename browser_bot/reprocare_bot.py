@@ -4,7 +4,8 @@ Run from the repository root with the backend virtual environment (it has Playwr
 
     backend/.venv/bin/python browser_bot/reprocare_bot.py status
     backend/.venv/bin/python browser_bot/reprocare_bot.py discover --query "maternity hospitals in Nairobi" --apply
-    backend/.venv/bin/python browser_bot/reprocare_bot.py google   --all --limit 10
+    backend/.venv/bin/python browser_bot/reprocare_bot.py link-google --facility langata-hospital-nairobi --place-id ChIJ... --apply
+    backend/.venv/bin/python browser_bot/reprocare_bot.py google   --all --limit 10 [--source openstreetmap] [--has-profile google]
     backend/.venv/bin/python browser_bot/reprocare_bot.py facebook-login
     backend/.venv/bin/python browser_bot/reprocare_bot.py facebook --facility aga-khan-university-hospital
     backend/.venv/bin/python browser_bot/reprocare_bot.py tiktok   --facility kenyatta-national-hospital --allow-paid-apify
@@ -26,10 +27,13 @@ import bot_config
 from sqlalchemy import func, select
 
 from app.database.session import SessionLocal
-from app.models import ExternalComment, ExternalPost, Facility, FacilityExternalProfile
+from app.models import DataSource, ExternalComment, ExternalPost, Facility, FacilityExternalProfile
 from app.services.external_feedback_service import record_run, upsert_profile
 
-MAX_FACILITIES_PER_RUN = 630
+# Hard ceiling for one run. `--all` means "eligible facilities, up to --limit (default 5)", never the whole directory:
+# each facility can mean billed Google/Apify requests or Facebook page loads. Run again for the next batch.
+MAX_FACILITIES_PER_RUN = 50
+PROFILE_PLATFORMS = ("google", "facebook", "tiktok")
 
 
 def log(*parts):
@@ -38,8 +42,15 @@ def log(*parts):
 
 # --------------------------------------------------------------------------- facility selection
 
-def select_facilities(db, slugs: list[str] | None, all_: bool, limit: int, need_google: bool = False) -> list[Facility]:
+def _with_profile(platform: str):
+    return Facility.id.in_(select(FacilityExternalProfile.facility_id).where(FacilityExternalProfile.platform == platform))
+
+
+def select_facilities(db, slugs: list[str] | None, all_: bool, limit: int, need_google: bool = False,
+                      source: str | None = None, has_profile: str | None = None, no_profile: str | None = None) -> list[Facility]:
     if slugs:
+        if len(slugs) > MAX_FACILITIES_PER_RUN:
+            raise SystemExit(f"Choose at most {MAX_FACILITIES_PER_RUN} facilities per run")
         found = db.scalars(select(Facility).where(Facility.slug.in_(slugs))).all()
         missing = set(slugs) - {f.slug for f in found}
         for slug in sorted(missing):
@@ -47,11 +58,24 @@ def select_facilities(db, slugs: list[str] | None, all_: bool, limit: int, need_
         return list(found)
     if not all_:
         raise SystemExit("Choose facilities with --facility SLUG (repeatable) or --all")
-    query = select(Facility).where(Facility.is_demo.is_(False)).order_by(Facility.name)
+    if limit > MAX_FACILITIES_PER_RUN:
+        raise SystemExit(f"--limit can be at most {MAX_FACILITIES_PER_RUN} per run; run again for the next facilities")
+    query = select(Facility).where(Facility.is_demo.is_(False)).order_by(Facility.name, Facility.id)
+    if source:
+        query = query.where(Facility.source_id.in_(select(DataSource.id).where(DataSource.code == source)))
+    if has_profile:
+        query = query.where(_with_profile(has_profile))
+    if no_profile:
+        query = query.where(~_with_profile(no_profile))
     if need_google:
-        has_profile = select(FacilityExternalProfile.facility_id).where(FacilityExternalProfile.platform == "google")
-        query = query.where(Facility.id.in_(has_profile) | Facility.external_id.is_not(None))
-    return list(db.scalars(query.limit(min(limit, MAX_FACILITIES_PER_RUN))))
+        # a linked Google profile, or a Google place id in facilities.external_id (legacy importer); not 'osm:…' ids
+        query = query.where(_with_profile("google") | Facility.external_id.like("ChIJ%"))
+    return list(db.scalars(query.limit(limit)))
+
+
+def selected(db, args, need_google: bool = False) -> list[Facility]:
+    return select_facilities(db, args.facility, args.all, args.limit, need_google=need_google, source=args.source,
+                             has_profile=args.has_profile, no_profile=args.no_profile)
 
 
 def google_place_id(db, facility: Facility) -> str | None:
@@ -144,22 +168,51 @@ def cmd_discover(args):
                     updated += 1
                 else:
                     skipped += 1
+                    if outcome.startswith("skipped:possible duplicate"):
+                        log(f"    ? {place.get('displayName', {}).get('text', '')} ({place.get('id')}): {outcome[8:]} — check it, then link with"
+                            f" `link-google --facility SLUG --place-id {place.get('id')} --apply`")
             record_run(db, "discovery", "succeeded" if places else "empty", f"{q}: {len(places)} places")
             db.commit()
     log(f"Facilities created: {created}, updated: {updated}, skipped: {skipped}")
 
 
-def cmd_google(args):
-    """Place Details for each facility: Google rating, rating count, photos (references) and Google reviews."""
-    from facilities import upsert_from_place
-    from google_places import PlacesUnavailable, place_details, reviews_batch
-    from importer import import_direct
-    from places_cache import DailyLimitReached
-    from staging import write_batch
+def cmd_link_google(args):
+    """Link a reviewed Google place id to an existing facility (for example an OpenStreetMap facility). No Google request."""
+    import re
 
-    batches = []
+    if not re.fullmatch(r"[A-Za-z0-9_-]{10,255}", args.place_id or ""):
+        raise SystemExit("That does not look like a Google place id")
     with SessionLocal() as db:
-        facilities = select_facilities(db, args.facility, args.all, args.limit, need_google=True)
+        facility = db.scalar(select(Facility).where(Facility.slug == args.facility))
+        if facility is None:
+            raise SystemExit(f"Unknown facility slug: {args.facility}")
+        owner = db.scalar(
+            select(Facility).outerjoin(FacilityExternalProfile, (FacilityExternalProfile.facility_id == Facility.id) & (FacilityExternalProfile.platform == "google"))
+            .where((FacilityExternalProfile.external_id == args.place_id) | (Facility.external_id == args.place_id)).limit(1)
+        )
+        if owner is not None and owner.id != facility.id:
+            raise SystemExit(f"That place id is already linked to {owner.slug}; nothing changed")
+        log(f"Link Google place id {args.place_id} to {facility.name} ({facility.slug}, id {facility.id})")
+        if owner is not None:
+            log("Already linked; nothing to do.")
+            return
+        if not args.apply:
+            log("PREVIEW ONLY — add --apply to save the link.")
+            return
+        upsert_profile(db, facility, "google", args.place_id, url="", match_method="manual_review")
+        db.commit()
+        log("Linked. `google --facility", facility.slug, "` will now refresh its Google rating.")
+
+
+def cmd_google(args):
+    """Place Details for each facility: Google rating, rating count and photo references. Written Google reviews are
+    not stored: the facility page loads them live with attribution."""
+    from facilities import upsert_from_place
+    from google_places import PlacesUnavailable, place_details
+    from places_cache import DailyLimitReached
+
+    with SessionLocal() as db:
+        facilities = selected(db, args, need_google=True)
         log(f"Google Places details for {len(facilities)} facilit(y/ies); one billed request each (cached {30} days).")
         for facility in facilities:
             place_id = google_place_id(db, facility)
@@ -175,16 +228,10 @@ def cmd_google(args):
                 db.commit()
                 continue
             upsert_from_place(db, place)
-            batch = reviews_batch(place, facility.slug)
-            n_reviews = len(batch["comments"]) if batch else 0
-            log(f"   {facility.name}: Google rating {place.get('rating')} ({place.get('userRatingCount')} ratings), {n_reviews} reviews returned, {len(place.get('photos') or [])} photo references")
-            record_run(db, "google", "succeeded" if n_reviews else "empty", f"rating={place.get('rating')} count={place.get('userRatingCount')} reviews_returned={n_reviews}", facility, posts_found=1 if batch else 0)
+            has_rating = place.get("rating") is not None
+            log(f"   {facility.name}: Google rating {place.get('rating')} ({place.get('userRatingCount')} ratings), {len(place.get('photos') or [])} photo references; written reviews load live on the facility page")
+            record_run(db, "google", "succeeded" if has_rating else "empty", f"rating={place.get('rating')} count={place.get('userRatingCount')}", facility, posts_found=0)
             db.commit()
-            if batch:
-                write_batch(batch)
-                batches.append(batch)
-    if batches and not args.no_import:
-        report_import(import_direct(batches, "google"))
 
 
 def cmd_facebook(args):
@@ -197,7 +244,7 @@ def cmd_facebook(args):
         raise SystemExit("--max-posts must be between 1 and 10")
     batches = []
     with SessionLocal() as db:
-        facilities = select_facilities(db, args.facility, args.all, args.limit)
+        facilities = selected(db, args)
         for facility in facilities:
             log(f"\nFacebook: {facility.name}\n  website: {facility.website or 'Not available'}")
             profile = db.scalar(select(FacilityExternalProfile).where(FacilityExternalProfile.facility_id == facility.id, FacilityExternalProfile.platform == "facebook"))
@@ -297,7 +344,7 @@ def cmd_tiktok(args):
         return
     batches = []
     with SessionLocal() as db:
-        for facility in select_facilities(db, args.facility, args.all, args.limit):
+        for facility in selected(db, args):
             log(f"\nTikTok: {facility.name}")
             try:
                 bundles = collect_for_facility(facility.name, facility.town)
@@ -372,7 +419,7 @@ def cmd_run(args):
     """google → facebook → (tiktok) → report, for the same facilities."""
     args.no_import = False
     with SessionLocal() as db:
-        args.facility = [f.slug for f in select_facilities(db, args.facility, args.all, args.limit)]
+        args.facility = [f.slug for f in selected(db, args)]
     args.all = False
     if bot_config.google_api_key():
         cmd_google(args)
@@ -390,8 +437,11 @@ def main(argv=None):
 
     def facility_args(p):
         p.add_argument("--facility", action="append", help="facility slug (repeatable)")
-        p.add_argument("--all", action="store_true", help="all real (non-demo) facilities, up to --limit")
+        p.add_argument("--all", action="store_true", help=f"eligible real (non-demo) facilities, up to --limit (at most {MAX_FACILITIES_PER_RUN})")
         p.add_argument("--limit", type=int, default=5)
+        p.add_argument("--source", help="with --all: only facilities from this data source, e.g. google_places or openstreetmap")
+        p.add_argument("--has-profile", choices=PROFILE_PLATFORMS, help="with --all: only facilities already linked to this platform")
+        p.add_argument("--no-profile", choices=PROFILE_PLATFORMS, help="with --all: only facilities not yet linked to this platform")
         p.add_argument("--no-import", action="store_true", help="stage files only; import later with `import`")
 
     sub.add_parser("status")
@@ -399,6 +449,10 @@ def main(argv=None):
     p.add_argument("--query", action="append")
     p.add_argument("--max-requests", type=int, default=4)
     p.add_argument("--default-town", default="")
+    p.add_argument("--apply", action="store_true")
+    p = sub.add_parser("link-google", help="link a reviewed Google place id to an existing facility (no Google request)")
+    p.add_argument("--facility", required=True)
+    p.add_argument("--place-id", required=True)
     p.add_argument("--apply", action="store_true")
     p = sub.add_parser("google")
     facility_args(p)
@@ -427,6 +481,7 @@ def main(argv=None):
     {
         "status": cmd_status,
         "discover": cmd_discover,
+        "link-google": cmd_link_google,
         "google": cmd_google,
         "facebook": cmd_facebook,
         "tiktok": cmd_tiktok,

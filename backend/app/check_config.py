@@ -98,6 +98,14 @@ def main() -> int:
         print(f"  Connected: NO ({type(exc).__name__}: {str(exc).splitlines()[0][:160]})")
         problems.append("database unreachable")
 
+    if (os.environ.get("REPROCARE_REQUIRE_SHARED_DATABASE") or "").strip().lower() in {"1", "true", "yes", "on"}:
+        from app.database.session import require_shared_database
+        try:
+            print(f"  Shared database required: yes, connected as {require_shared_database()}")
+        except Exception as exc:  # the guard's messages never contain the address or password
+            print(f"  Shared database required: FAILED ({str(exc).splitlines()[0][:160]})")
+            problems.append("not connected to the shared database")
+
     print("\nIntegrations")
     print(f"  Google Places:  {'ready' if settings.google_places_api_key else 'unavailable — set GOOGLE_PLACES_API_KEY'}")
     print(f"  Apify (TikTok): {'ready' if (os.environ.get('APIFY_API_TOKEN') or '').strip() else 'unavailable — set APIFY_API_TOKEN'}")

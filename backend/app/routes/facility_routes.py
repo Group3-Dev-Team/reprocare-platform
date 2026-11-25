@@ -39,6 +39,7 @@ def facility_filters(
     exclude_laboratories: bool = False,
     has_patient_reviews: bool = False,
     has_public_feedback: bool = False,
+    has_public_reviews: bool = Query(False, description="Public reviews available: published facility-level Facebook/TikTok comments or a Google Maps rating"),
     has_google_rating: bool = False,
     min_google_rating: float | None = Query(None, ge=1, le=5),
     lat: float | None = Query(None, ge=-90, le=90),
@@ -69,11 +70,15 @@ def search_facilities(
     return result
 
 
+# The map groups nearby pins, so it can show the whole directory (2,286 facilities in the combined dataset).
+MAX_MAP_MARKERS = 3000
+
+
 @router.get("/facilities/markers")
 def facility_markers(filters: dict = Depends(facility_filters), db: Session = Depends(get_db)):
-    """Every matching facility that has stored coordinates (up to 1,000), in a light shape for the map."""
+    """Every matching facility that has stored coordinates (up to MAX_MAP_MARKERS), in a light shape for the map."""
     query, _ = build_facility_query(db, filters)
-    rows = db.scalars(query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(1000)).unique().all()
+    rows = db.scalars(query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(MAX_MAP_MARKERS)).unique().all()
     return [
         {"slug": f.slug, "name": f.name, "facility_type": f.facility_type, "town": f.town, "latitude": f.latitude, "longitude": f.longitude, "is_demo": f.is_demo}
         for f in rows

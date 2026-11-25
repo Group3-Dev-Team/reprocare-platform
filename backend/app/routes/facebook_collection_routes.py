@@ -15,7 +15,7 @@ from app.database.session import get_db
 from app.models import ExternalComment, ExternalPost, Facility, FacilityExternalProfile
 from app.routes.facebook_demo_routes import FACILITY_PAGES, ORGANIZATIONS, _loopback, _page
 from app.services.external_feedback_service import comment_to_dict, post_to_dict, published_external_post
-from app.services.feedback_screening import EMAIL, PHONE, UNRELATED_PHRASES, screen_feedback
+from app.services.feedback_screening import EMAIL, PHONE, SENSITIVE, SPACED_PHONE, UNRELATED_PHRASES, screen_feedback
 
 router = APIRouter(prefix="/local-collection/facebook", tags=["Local Facebook collection"])
 Scope = Literal["facility", "organization"]
@@ -36,12 +36,6 @@ LOGISTICS = re.compile(
     r"\b(?:appointments?|book(?:ing)?|branches?|charges?|costs?|hours|locations?|prices?|"
     r"opening hours|how much|where (?:are|is|can|do)|which branch)\b", re.I
 )
-SENSITIVE = re.compile(
-    r"\b(?:hiv|stds?|stis?|diagnos(?:ed|is)|(?:lab|test) results?|medical records?|"
-    r"patient (?:id|number)|id number|identity card|my (?:pregnancy|abortion|miscarriage)|"
-    r"i (?:am|was) pregnant)\b", re.I
-)
-SPACED_PHONE = re.compile(r"(?<!\d)(?:\+254|0)[ .-]*[17](?:[ .-]*\d){8}(?!\d)")
 SAFE_CONTEXT = {"general_comment", "hospital_match_only"}
 ELIGIBLE_REASONS = SAFE_CONTEXT | {"hospital_and_service_match", "service_related"}
 

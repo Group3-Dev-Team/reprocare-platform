@@ -90,7 +90,7 @@ export default function TrustPage() {
             <h2>External platforms</h2>
             <p>
               Public Reviews shows source-labelled activity from Facebook,
-              Google, TikTok and Instagram where available. When a Facebook page
+              Google and TikTok where available. When a Facebook page
               serves an organisation with multiple branches, its activity is
               labelled as organisation-wide. Google Maps ratings and any
               available written reviews retain their own attribution.

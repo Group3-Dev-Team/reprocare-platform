@@ -366,9 +366,11 @@ function GoogleWrittenReviews({ requested, onRequest, result, reviews }) {
     onClick={onRequest}>Load written Google Maps reviews</button>;
   if (result.loading) return <LoadingState rows={2} height={90} label="Loading Google Maps reviews" />;
   if (result.error) {
-    const message = result.error.status === 404
-      ? 'This facility does not have a linked Google Maps listing for written reviews.'
-      : 'Google Maps written reviews are temporarily unavailable. You can still see any ratings already shown here.';
+    const message = {
+      404: 'This facility does not have a linked Google Maps listing for written reviews.',
+      503: 'Written Google Maps reviews are not available on this server. You can still see any ratings already shown here.',
+      429: result.error.message,
+    }[result.error.status] || 'Google Maps written reviews are temporarily unavailable. You can still see any ratings already shown here.';
     return <ErrorState error={{ message }} onRetry={result.reload} />;
   }
   if (!result.data) return null;
@@ -570,9 +572,14 @@ export function PublicFeedbackSection({ slug, summary, onWrittenCount }) {
             <GoogleRatingCard google={google} />
             {platform === 'google' && <GoogleWrittenReviews requested={googleRequested} onRequest={() => setGoogleRequested(true)} result={googleResult} reviews={googleReviews} />}
           </div>
-        ) : platform === 'google' && !summary.loading && !summary.error && (
+        ) : platform === 'google' && !summary.loading && !summary.error && (s?.google_linked ? (
+          <div className="stack">
+            <p className="small muted">No Google Maps rating is stored for this facility yet. Written reviews come straight from its Google Maps listing.</p>
+            <GoogleWrittenReviews requested={googleRequested} onRequest={() => setGoogleRequested(true)} result={googleResult} reviews={googleReviews} />
+          </div>
+        ) : (
           <EmptyState title="No Google rating available for this facility" />
-        ))}
+        )))}
       </div>
 
       <div hidden={!includes('facebook')} className="stack">

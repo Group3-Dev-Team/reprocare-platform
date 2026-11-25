@@ -1,5 +1,10 @@
 
 
+import threading
+import time
+from collections import defaultdict, deque
+from datetime import date
+
 import httpx
 
 from app.config import settings
@@ -25,6 +30,42 @@ class PlacesNotConfigured(Exception):
 
 class PlacesError(Exception):
     pass
+
+
+class PlacesBudgetExceeded(Exception):
+    pass
+
+
+# Live requests are billed by Google. Each visitor (IP address) may make LIVE_REQUESTS_PER_CLIENT of them per
+# LIVE_CLIENT_WINDOW_SECONDS, and the server at most settings.google_places_live_daily_limit per day. Kept in memory.
+LIVE_REQUESTS_PER_CLIENT = 20
+LIVE_CLIENT_WINDOW_SECONDS = 10 * 60
+_budget_lock = threading.Lock()
+_client_requests: dict[str, deque] = defaultdict(deque)
+_day = {"date": None, "count": 0}
+
+
+def reset_live_budget() -> None:
+    with _budget_lock:
+        _client_requests.clear()
+        _day.update(date=None, count=0)
+
+
+def spend_live_requests(client_key: str, requests: int = 1) -> None:
+    """Reserve `requests` billed Google requests for this client, or raise PlacesBudgetExceeded (nothing is sent)."""
+    now, today = time.monotonic(), date.today()
+    with _budget_lock:
+        if _day["date"] != today:
+            _day.update(date=today, count=0)
+        if _day["count"] + requests > settings.google_places_live_daily_limit:
+            raise PlacesBudgetExceeded("Live Google Maps requests have reached today's limit on this server. Please try again tomorrow.")
+        recent = _client_requests[client_key]
+        while recent and now - recent[0] > LIVE_CLIENT_WINDOW_SECONDS:
+            recent.popleft()
+        if len(recent) + requests > LIVE_REQUESTS_PER_CLIENT:
+            raise PlacesBudgetExceeded("Too many Google Maps requests from this device. Please wait a few minutes and try again.")
+        recent.extend([now] * requests)
+        _day["count"] += requests
 
 
 def is_configured() -> bool:

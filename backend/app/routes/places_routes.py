@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,20 +17,31 @@ def places_status():
 
 @router.get("/search")
 def search_places(
+    request: Request,
     q: str = Query(min_length=2, max_length=120, description="e.g. 'maternity hospital in Nakuru'"),
     max_results: int = Query(40, ge=1, le=40),
     page_token: str | None = Query(None, max_length=1000),
 ):
     try:
+        if not places.is_configured():
+            raise places.PlacesNotConfigured("Google Places is not configured on this server.")
+        # one billed request per 20 results
+        places.spend_live_requests(_client_key(request), -(-max_results // places.GOOGLE_PAGE_SIZE))
         return places.text_search(q, max_results=max_results, page_token=page_token)
+    except places.PlacesBudgetExceeded as exc:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, str(exc))
     except places.PlacesNotConfigured as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
     except places.PlacesError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc))
 
 
+def _client_key(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 @router.get("/facilities/{slug}/reviews")
-def facility_google_reviews(slug: str, response: Response, db: Session = Depends(get_db)):
+def facility_google_reviews(slug: str, request: Request, response: Response, db: Session = Depends(get_db)):
     """Live, attributed Google reviews for a facility's stored Place ID. Nothing is cached or stored."""
     response.headers["Cache-Control"] = "no-store"
     place_id = db.scalar(
@@ -43,7 +54,12 @@ def facility_google_reviews(slug: str, response: Response, db: Session = Depends
     if not place_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "This facility does not have a linked Google place.")
     try:
+        if not places.is_configured():
+            raise places.PlacesNotConfigured("Google Places is not configured on this server.")
+        places.spend_live_requests(_client_key(request))
         return places.written_reviews(place_id)
+    except places.PlacesBudgetExceeded as exc:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, str(exc)) from exc
     except places.PlacesNotConfigured as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
     except places.PlacesError as exc:

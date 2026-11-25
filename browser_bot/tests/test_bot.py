@@ -377,3 +377,125 @@ def test_facebook_collection_stages_empty_posts_and_preserves_prior_capture(db, 
     assert comments[1].parent_id == comments[0].id
     run = db.query(ExternalCollectionRun).filter_by(platform="facebook").order_by(ExternalCollectionRun.id.desc()).first()
     assert run.status == "succeeded" and "2 staged" in run.message and "unreachable (1)" in run.message
+
+
+def test_tiktok_collection_keeps_the_stated_billing_bounds(fake_apify):
+    """Regression: the collector requested 500 search results, every matching video, 500 comments and 100 replies,
+    although the command promised at most 10 results, 2 videos, 10 comments and 2 replies (the legacy values)."""
+    video = lambda n: {"url": f"https://www.tiktok.com/@fixturecreator/video/73000000000000000{n:02d}", "desc": f"Fixture General Hospital visit {n}"}  # noqa: E731
+    calls = fake_apify([video(n) for n in range(1, 6)], [], [], [])  # one search term, then one comments run per kept video
+    bundles = tt.collect_for_facility("Fixture General Hospital")
+    searches = [c["body"] for c in calls if "search" in c["body"]]
+    comments = [c["body"] for c in calls if "postURLs" in c["body"]]
+    assert searches == [{"search": ["Fixture General Hospital"], "maxItems": 10, "endPage": 1, "sortType": "RELEVANCE"}]
+    assert len(bundles) == len(comments) == 2  # 5 matching videos found, only 2 collected
+    assert all(c["commentsPerPost"] == 10 and c["maxRepliesPerComment"] == 2 for c in comments)
+
+
+def test_google_step_keeps_no_google_review_text(db, monkeypatch, tmp_path):
+    """Google review text is shown live on the facility page (backend /places/.../reviews) and is not stored by the bot:
+    the bot's Place Details request leaves out `reviews`, and nothing from Google reviews is staged or imported."""
+    import places_cache
+    import reprocare_bot
+    import staging
+    from app.models import ExternalComment, Facility, FacilityExternalProfile
+
+    monkeypatch.setattr(places_cache, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(places_cache, "DATABASE", tmp_path / "places.sqlite3")
+    monkeypatch.setattr(places_cache, "DAILY_LIMIT", 5)
+    place_id = "ChIJfixtureNoReviewText1"
+    facility = Facility(slug="fixture-no-review-text", name="Fixture No Review Text Hospital", facility_type="hospital",
+                        town="Nairobi", county="Nairobi", is_demo=False)
+    db.add(facility)
+    db.flush()
+    db.add(FacilityExternalProfile(facility_id=facility.id, platform="google", external_id=place_id, url=""))
+    db.commit()
+    masks = []
+
+    def fake_get(url, field_mask):
+        masks.append(field_mask)
+        return {**PLACE, "id": place_id}  # even if Google sent reviews, the bot must not keep them
+
+    monkeypatch.setattr(gp, "_get", fake_get)
+    before = len(staging.read_batches())
+    reprocare_bot.main(["google", "--facility", "fixture-no-review-text"])
+    assert len(masks) == 1 and "reviews" not in masks[0].split(",")
+    db.expire_all()
+    assert db.query(ExternalComment).filter_by(facility_id=facility.id).count() == 0
+    assert len(staging.read_batches()) == before
+    profile = db.query(FacilityExternalProfile).filter_by(facility_id=facility.id, platform="google").one()
+    assert profile.rating == 4.1 and profile.rating_count == 1234  # the rating summary is still refreshed
+
+
+def test_facility_selection_targets_sources_profiles_and_stays_bounded(db):
+    """Regression: `--all` took the first 630 facilities by name across every source, and the Google step also picked
+    OpenStreetMap rows (external_id 'osm:…') that have no Google place id. Selection is now bounded and targetable."""
+    import reprocare_bot
+    from app.models import DataSource, Facility, FacilityExternalProfile
+
+    source = DataSource(code="fixture_osm_source", name="Fixture OSM-like source", description="TEST FIXTURE", attribution="")
+    db.add(source)
+    db.flush()
+    rows = {}
+    for key, external_id in (("profile", "osm:node/9000000001"), ("placeholder", "osm:node/9000000002"), ("legacy", "ChIJfixtureLegacyPlaceId")):
+        rows[key] = Facility(slug=f"fixture-select-{key}", name=f"Fixture Select {key.title()}", facility_type="clinic", town="Kisumu",
+                             county="Kisumu", is_demo=False, source_id=source.id, external_id=external_id)
+        db.add(rows[key])
+    db.flush()
+    db.add(FacilityExternalProfile(facility_id=rows["profile"].id, platform="google", external_id="ChIJfixtureSelectProfile1", url=""))
+    db.commit()
+
+    def slugs(**kw):
+        return [f.slug for f in reprocare_bot.select_facilities(db, None, True, 10, source="fixture_osm_source", **kw)]
+
+    assert slugs() == ["fixture-select-legacy", "fixture-select-placeholder", "fixture-select-profile"]
+    assert slugs(need_google=True) == ["fixture-select-legacy", "fixture-select-profile"]  # no 'osm:' placeholder
+    assert slugs(has_profile="google") == ["fixture-select-profile"]
+    assert slugs(no_profile="google") == ["fixture-select-legacy", "fixture-select-placeholder"]
+    with pytest.raises(SystemExit, match="at most"):
+        reprocare_bot.select_facilities(db, None, True, reprocare_bot.MAX_FACILITIES_PER_RUN + 1)
+    with pytest.raises(SystemExit):
+        reprocare_bot.main(["facebook", "--all", "--limit", str(reprocare_bot.MAX_FACILITIES_PER_RUN + 1)])
+
+
+def test_discovery_does_not_duplicate_an_existing_facility_without_a_place_id(db, capsys):
+    """Regression: Google discovery created a second record for an OpenStreetMap facility that had no Google place id.
+    A same-name facility within 300 m is reported for review instead; nothing is merged or linked automatically.
+    Branches (same name far away) and different names next door are still separate facilities."""
+    import reprocare_bot
+    from facilities import upsert_from_place
+    from app.models import Facility, FacilityExternalProfile
+
+    osm = Facility(slug="fixture-langata-osm", name="Fixture Langata Hospital", facility_type="hospital", town="Nairobi",
+                   county="Nairobi", is_demo=False, latitude=-1.3400, longitude=36.7600, external_id="osm:node/9000000010")
+    db.add(osm)
+    db.commit()
+    place = {**PLACE, "id": "ChIJfixtureLangataPlace1", "displayName": {"text": "Fixture Langata Hospital Ltd"},
+             "location": {"latitude": -1.3405, "longitude": 36.7604}, "reviews": []}
+    facility, outcome = upsert_from_place(db, place)
+    assert facility is None and outcome == "skipped:possible duplicate of fixture-langata-osm"
+    assert db.query(Facility).filter(Facility.name.like("Fixture Langata Hospital%")).count() == 1
+    assert db.query(FacilityExternalProfile).filter_by(external_id="ChIJfixtureLangataPlace1").count() == 0
+
+    branch, outcome = upsert_from_place(db, {**place, "id": "ChIJfixtureLangataBranch", "location": {"latitude": -1.30, "longitude": 36.70}})
+    assert outcome == "created" and branch.id != osm.id
+    neighbour, outcome = upsert_from_place(db, {**place, "id": "ChIJfixtureLangataNeighb", "displayName": {"text": "Fixture Langata Dental Clinic"}})
+    assert outcome == "created" and neighbour.id != osm.id
+    db.rollback()
+
+    # The reviewer links the place id explicitly: preview first, then --apply. No Google request is made.
+    reprocare_bot.main(["link-google", "--facility", "fixture-langata-osm", "--place-id", "ChIJfixtureLangataPlace1"])
+    assert "PREVIEW ONLY" in capsys.readouterr().out
+    db.expire_all()
+    assert db.query(FacilityExternalProfile).filter_by(facility_id=osm.id).count() == 0
+    reprocare_bot.main(["link-google", "--facility", "fixture-langata-osm", "--place-id", "ChIJfixtureLangataPlace1", "--apply"])
+    db.expire_all()
+    profile = db.query(FacilityExternalProfile).filter_by(facility_id=osm.id, platform="google").one()
+    assert profile.external_id == "ChIJfixtureLangataPlace1" and profile.match_method == "manual_review"
+    facility, outcome = upsert_from_place(db, place)  # discovery now updates the linked facility instead
+    db.commit()
+    assert outcome == "updated" and facility.id == osm.id and facility.name == "Fixture Langata Hospital"
+    with pytest.raises(SystemExit, match="already linked"):
+        reprocare_bot.main(["link-google", "--facility", "fixture-select-profile", "--place-id", "ChIJfixtureLangataPlace1", "--apply"])
+    with pytest.raises(SystemExit, match="place id"):
+        reprocare_bot.main(["link-google", "--facility", "fixture-langata-osm", "--place-id", "not a place", "--apply"])
