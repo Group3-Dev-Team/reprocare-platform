@@ -26,7 +26,7 @@ export default function GooglePlacesPage() {
     if (!pageToken && params.get('q') !== query.trim()) setParams({ q: query.trim() }, { replace: true });
     setState({ loading: true, error: null, data: pageToken ? state.data : null });
     try {
-      const data = await api.placesSearch({ q: query.trim(), max_results: 40, page_token: pageToken });
+      const data = await api.placesSearch({ q: query.trim(), max_results: 20, page_token: pageToken });
       setState({ loading: false, error: null, data: pageToken ? { ...data, results: [...state.data.results, ...data.results] } : data });
     } catch (error) {
       setState({ loading: false, error, data: null });

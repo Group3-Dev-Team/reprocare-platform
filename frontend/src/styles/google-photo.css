@@ -1,5 +1,5 @@
 /* Google Maps photos replace the facility icon inside the fixed-size thumbnail, so nothing shifts when they load. */
-.google-photo-slot { display: contents; }
+.google-photo-slot { display: grid; place-items: center; width: 100%; height: 100%; }
 .google-photo { position: relative; width: 100%; height: 100%; margin: 0; }
 .google-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .google-photo figcaption {
