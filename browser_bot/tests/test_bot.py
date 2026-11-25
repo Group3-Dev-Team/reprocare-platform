@@ -377,3 +377,16 @@ def test_facebook_collection_stages_empty_posts_and_preserves_prior_capture(db, 
     assert comments[1].parent_id == comments[0].id
     run = db.query(ExternalCollectionRun).filter_by(platform="facebook").order_by(ExternalCollectionRun.id.desc()).first()
     assert run.status == "succeeded" and "2 staged" in run.message and "unreachable (1)" in run.message
+
+
+def test_tiktok_collection_keeps_the_stated_billing_bounds(fake_apify):
+    """Regression: the collector requested 500 search results, every matching video, 500 comments and 100 replies,
+    although the command promised at most 10 results, 2 videos, 10 comments and 2 replies (the legacy values)."""
+    video = lambda n: {"url": f"https://www.tiktok.com/@fixturecreator/video/73000000000000000{n:02d}", "desc": f"Fixture General Hospital visit {n}"}  # noqa: E731
+    calls = fake_apify([video(n) for n in range(1, 6)], [], [], [])  # one search term, then one comments run per kept video
+    bundles = tt.collect_for_facility("Fixture General Hospital")
+    searches = [c["body"] for c in calls if "search" in c["body"]]
+    comments = [c["body"] for c in calls if "postURLs" in c["body"]]
+    assert searches == [{"search": ["Fixture General Hospital"], "maxItems": 10, "endPage": 1, "sortType": "RELEVANCE"}]
+    assert len(bundles) == len(comments) == 2  # 5 matching videos found, only 2 collected
+    assert all(c["commentsPerPost"] == 10 and c["maxRepliesPerComment"] == 2 for c in comments)
