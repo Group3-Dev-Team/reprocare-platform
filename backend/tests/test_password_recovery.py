@@ -131,3 +131,44 @@ def test_validation_does_not_echo_secrets(client, recovery):
     assert response.status_code == 422
     assert token not in response.text and password not in response.text
     assert all("input" not in error for error in response.json()["detail"])
+
+@pytest.mark.parametrize("provider,url", [("brevo", "https://api.brevo.com/v3/smtp/email"), ("resend", "https://api.resend.com/emails")])
+def test_https_email_api_delivers_without_smtp_settings(monkeypatch, provider, url):
+    import httpx
+
+    for name in ("HOST", "USER", "PASSWORD"):
+        monkeypatch.delenv(f"PASSWORD_RESET_SMTP_{name}", raising=False)
+    monkeypatch.setenv("PASSWORD_RESET_ENABLED", "true")
+    monkeypatch.setenv("PASSWORD_RESET_FRONTEND_ORIGIN", "https://reprocare.example.com")
+    monkeypatch.setenv("PASSWORD_RESET_SMTP_FROM", "support@example.com")
+    monkeypatch.setenv("PASSWORD_RESET_DELIVERY", provider)
+    monkeypatch.setenv("PASSWORD_RESET_API_KEY", "")
+    assert password_recovery.recovery_config() is None  # a key is required
+    monkeypatch.setenv("PASSWORD_RESET_API_KEY", "fixture-key-not-real")
+    config = password_recovery.recovery_config()
+    assert config is not None and config.delivery == provider and "fixture-key-not-real" not in repr(config)
+
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(201, json={"id": "fixture"})
+
+    link = "https://reprocare.example.com/reset-password#token=abc"
+    password_recovery.send_via_api(config, "patient@example.com", link, httpx.Client(transport=httpx.MockTransport(handler)))
+    body = seen[0].read().decode()
+    assert str(seen[0].url) == url and "patient@example.com" in body and "reset-password#token=abc" in body
+    auth = seen[0].headers.get("api-key") or seen[0].headers.get("authorization")
+    assert "fixture-key-not-real" in auth
+
+    refused = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(401, json={"message": "patient@example.com"})))
+    with pytest.raises(OSError) as err:
+        password_recovery.send_via_api(config, "patient@example.com", link, refused)
+    assert "patient@example.com" not in str(err.value) and "401" in str(err.value)
+
+
+def test_unknown_delivery_disables_recovery(recovery, monkeypatch):
+    monkeypatch.setenv("PASSWORD_RESET_DELIVERY", "carrier-pigeon")
+    assert password_recovery.recovery_config() is None
+    monkeypatch.setenv("PASSWORD_RESET_DELIVERY", "smtp")
+    assert password_recovery.recovery_config() is not None

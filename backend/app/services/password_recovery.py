@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from urllib.parse import urlsplit
 
+import httpx
 from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import delete, func, inspect, select
 from sqlalchemy.exc import SQLAlchemyError
@@ -36,6 +37,12 @@ class RecoveryConfig:
     # repr=False so the email login is never printed in logs
     smtp_user: str = field(repr=False)
     smtp_password: str = field(repr=False)
+    # "smtp", or an HTTPS email API ("brevo", "resend") for hosts that block SMTP ports, such as free Render services
+    delivery: str = "smtp"
+    api_key: str = field(default="", repr=False)
+
+
+EMAIL_APIS = {"brevo": "https://api.brevo.com/v3/smtp/email", "resend": "https://api.resend.com/emails"}
 
 
 def recovery_config() -> RecoveryConfig | None:
@@ -44,6 +51,10 @@ def recovery_config() -> RecoveryConfig | None:
         return None
 
     origin = os.getenv("PASSWORD_RESET_FRONTEND_ORIGIN", "").strip()
+    delivery = os.getenv("PASSWORD_RESET_DELIVERY", "smtp").strip().lower()
+    api_key = os.getenv("PASSWORD_RESET_API_KEY", "").strip()
+    if delivery not in {"smtp", *EMAIL_APIS}:
+        return None
     host = os.getenv("PASSWORD_RESET_SMTP_HOST", "").strip()
     user = os.getenv("PASSWORD_RESET_SMTP_USER", "").strip()
     password = os.getenv("PASSWORD_RESET_SMTP_PASSWORD", "")
@@ -68,7 +79,14 @@ def recovery_config() -> RecoveryConfig | None:
         or url.query or url.fragment or url.path not in {"", "/"}
         or any(char.isspace() or ord(char) < 32 or char == chr(92) for char in origin)
         or not (url.scheme == "https" or loopback_http)
-        or not (host and user and password and 1 <= port <= 65535)
+    ):
+        return None
+    if delivery != "smtp":
+        if not api_key or any(char.isspace() for char in api_key):
+            return None
+        return RecoveryConfig(origin.rstrip("/"), "", 0, "", sender, "", "", delivery, api_key)
+    if (
+        not (host and user and password and 1 <= port <= 65535)
         or any(char.isspace() for char in host)
         or security not in {"starttls", "implicit-tls"}
     ):
@@ -86,15 +104,47 @@ def digest(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def send_reset_email(config: RecoveryConfig, recipient: str, link: str) -> None:
-    message = EmailMessage()
-    message["From"] = config.smtp_from
-    message["To"] = recipient
-    message["Subject"] = "Reset your ReproCare password"
-    message.set_content(
+RESET_SUBJECT = "Reset your ReproCare password"
+
+
+def reset_text(link: str) -> str:
+    return (
         f"You requested a ReproCare password reset. Open this link within 30 minutes:\n\n{link}\n\n"
         "If you did not request a reset, you can ignore this email. Your password will stay the same."
     )
+
+
+def send_via_api(config: RecoveryConfig, recipient: str, link: str, client: httpx.Client | None = None) -> None:
+    if config.delivery == "brevo":
+        headers = {"api-key": config.api_key}
+        body = {"sender": {"name": "ReproCare", "email": config.smtp_from}, "to": [{"email": recipient}],
+                "subject": RESET_SUBJECT, "textContent": reset_text(link)}
+    else:
+        headers = {"Authorization": f"Bearer {config.api_key}"}
+        body = {"from": f"ReproCare <{config.smtp_from}>", "to": [recipient], "subject": RESET_SUBJECT, "text": reset_text(link)}
+    own_client = client is None
+    client = client or httpx.Client(timeout=8)
+    try:
+        response = client.post(EMAIL_APIS[config.delivery], json=body, headers=headers)
+    except httpx.HTTPError as exc:
+        raise OSError(f"{config.delivery} could not be reached") from None
+    finally:
+        if own_client:
+            client.close()
+    if response.status_code >= 300:
+        # The status alone: the reply body can repeat the recipient or the link.
+        raise OSError(f"{config.delivery} refused the email (HTTP {response.status_code})")
+
+
+def send_reset_email(config: RecoveryConfig, recipient: str, link: str) -> None:
+    if config.delivery != "smtp":
+        send_via_api(config, recipient, link)
+        return
+    message = EmailMessage()
+    message["From"] = config.smtp_from
+    message["To"] = recipient
+    message["Subject"] = RESET_SUBJECT
+    message.set_content(reset_text(link))
     context = ssl.create_default_context()
     if config.smtp_security == "implicit-tls":
         smtp = smtplib.SMTP_SSL(config.smtp_host, config.smtp_port, timeout=8, context=context)
