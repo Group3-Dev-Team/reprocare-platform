@@ -13,7 +13,7 @@ from app.models import (
     facility_insurers, facility_services,
 )
 from app.services.common import split_list
-from app.services.county_service import county_filter_labels
+from app.services.county_service import county_filter_labels, county_label
 from app.services.external_feedback_service import published_external_post, viewable_comment
 
 FACILITY_TYPE_LABELS = {
@@ -347,7 +347,7 @@ def facility_summary(f: Facility, rating: tuple[float, int] | None = None, dista
         "description": f.description,
         "area": f.area,
         "town": f.town,
-        "county": f.county,
+        "county": county_label(f.county),
         "latitude": f.latitude,
         "longitude": f.longitude,
         "phone": f.phone,

@@ -50,3 +50,12 @@ def county_filter_labels(value: str) -> tuple[str, ...]:
             [*names, *(prefix + n for prefix in _COUNTY_PREFIXES for n in names), *(n + suffix for suffix in _COUNTY_SUFFIXES for n in names)]
         )
     )
+
+
+def county_label(value: str | None) -> str | None:
+    """Display name for a stored county: "Wilaya ya Kisumu" -> "Kisumu". Stored values are never changed;
+    text that is not a recognised Kenyan county is shown as stored."""
+    if not value:
+        return value
+    key = county_key(value)
+    return next((name for name in KENYA_COUNTIES if name.lower() == key), value)

@@ -26,3 +26,16 @@ def test_towns_for_one_county_fold_spellings_but_not_other_counties(client, make
     assert "Townfixture Kisumu Busia" in names(county="Busia", town="Kisumu")
     # a town name in the search box still finds facilities by town
     assert "Townfixture Maseno Kisumu" in names(q="Maseno")
+
+
+def test_imported_county_spellings_are_displayed_as_the_county_name_without_changing_the_record(client, make_facility):
+    from app.database.session import SessionLocal
+    from app.models import Facility
+
+    f = make_facility(name="Countyfixture Wilaya", county="Wilaya ya Kisumu")
+    other = make_facility(name="Countyfixture Unknown", county="Somewhere Else")
+    assert client.get(f"/api/facilities/{f.slug}").json()["county"] == "Kisumu"
+    assert client.get(f"/api/facilities/{other.slug}").json()["county"] == "Somewhere Else"
+    assert {i["county"] for i in client.get("/api/facilities", params={"q": "Countyfixture Wilaya"}).json()["items"]} == {"Kisumu"}
+    with SessionLocal() as db:
+        assert db.get(Facility, f.id).county == "Wilaya ya Kisumu"
