@@ -74,6 +74,9 @@ def actor_run(actor: str, payload: dict, max_items: int | None = None) -> list:
             raise ApifyUnavailable(f"Could not reach Apify ({type(exc).__name__})") from None
     if not isinstance(data, list):  # the legacy scripts' result check
         raise ApifyUnavailable("Unexpected Apify result format")
+    if data and all(isinstance(item, dict) and set(item) <= {"demo"} for item in data):
+        # Free Apify plans run some paid Actors in demo mode: placeholder items, no real data.
+        raise ApifyUnavailable(f"{actor} returned demo placeholders only; this Apify plan does not allow API use of this Actor")
     print(f"  Apify: {len(data)} items from /v2/{prefix}/…", flush=True)
     return data[:max_items] if max_items else data
 

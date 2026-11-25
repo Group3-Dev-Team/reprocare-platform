@@ -303,6 +303,12 @@ def test_apify_runs_carry_item_and_spend_ceilings(fake_apify, monkeypatch):
     assert all(len(b["comments_raw"]) == 30 for b in bundles)  # trimmed to 10 comments x (1 + 2 replies)
 
 
+def test_apify_demo_mode_placeholders_are_reported_not_treated_as_results(fake_apify):
+    fake_apify([{"demo": True}] * 10)
+    with pytest.raises(tt.ApifyUnavailable, match="demo placeholders"):
+        tt.actor_run(tt.SEARCH_ACTOR, {"search": ["x"]})
+
+
 def test_apify_falls_back_to_acts_only_on_404(fake_apify, capsys):
     calls = fake_apify(_http_error(404), [{"cid": "1"}])
     assert tt.actor_run(tt.COMMENTS_ACTOR, {"postURLs": ["u"]}) == [{"cid": "1"}]
