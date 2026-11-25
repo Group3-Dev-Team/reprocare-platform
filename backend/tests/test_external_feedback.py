@@ -476,3 +476,34 @@ def test_local_facebook_demo_leaves_public_moderation_intact(client, monkeypatch
     assert client.get(f"/api/external-posts/{post['id']}/comments").status_code == 404
     with SessionLocal() as db:
         assert db.get(ExternalPost, post["id"]).is_visible is False
+
+
+def test_non_facebook_comments_flagged_by_screening_are_held(client):
+    """Regression: TikTok (and Google) comments were published immediately even when screening flagged personal
+    information, abusive language, unrelated context or a sensitive health disclosure. Those are now held (not public);
+    ordinary relevant comments still appear at once, as before."""
+    video = "https://www.tiktok.com/@testfixture/video/7300000000000000555"
+    batch = {
+        "platform": "tiktok", "facility_slug": "kipepeo",
+        "post": {"external_id": "7300000000000000555", "url": video, "caption": "Test fixture visit to Kipepeo Women's Hospital", "match_method": "caption_exact_name"},
+        "comments": [
+            {"external_id": "7300000000000000561", "author_name": "@fixture_one", "text": "Test fixture: the maternity nurses at Kipepeo were kind."},
+            {"external_id": "7300000000000000562", "author_name": "@fixture_two", "text": "Test fixture: call me on 0712345678 about the clinic."},
+            {"external_id": "7300000000000000563", "author_name": "@fixture_three", "text": "Test fixture: I was pregnant and they told me my HIV test results at the desk."},
+            {"external_id": "7300000000000000564", "author_name": "@fixture_four", "text": "Test fixture: I drove past it on my way to a political rally."},
+            {"external_id": "7300000000000000565", "author_name": "@fixture_five", "text": "Test fixture: fuck this place."},
+        ],
+    }
+    r = client.post("/api/import/external-feedback", json={"batches": [batch]}, headers=KEY)
+    assert r.status_code == 200 and r.json()["comments_created"] == 5, r.text
+
+    from app.models import ExternalComment
+
+    with _SessionLocal() as db:
+        status = {c.external_id[-3:]: c.status for c in db.query(ExternalComment).filter(ExternalComment.external_id.like("7300000000000000%"))}
+    assert status == {"561": "visible", "562": "held", "563": "held", "564": "held", "565": "held"}
+    posts = client.get("/api/facilities/kipepeo/public-feedback/posts", params={"platform": "tiktok"}).json()
+    post = next(p for p in posts["items"] if p["url"] == video)
+    assert post["comment_count"] == 1
+    shown = client.get(f"/api/external-posts/{post['id']}/comments").json()["items"]
+    assert [c["text"] for c in shown] == ["Test fixture: the maternity nurses at Kipepeo were kind."]
