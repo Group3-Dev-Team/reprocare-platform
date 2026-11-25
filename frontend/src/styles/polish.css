@@ -222,6 +222,7 @@ html {
   border-bottom: 1px solid var(--border);
 }
 .detail-nav .container {
+  position: relative; /* keeps screen-reader-only text inside the scrolling row, so it cannot widen the page on phones */
   display: flex;
   gap: 4px;
   overflow-x: auto;
