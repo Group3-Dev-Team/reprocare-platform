@@ -46,3 +46,13 @@ def test_guard_refuses_non_test_database():
     with pytest.raises(RuntimeError):
         assert_disposable_database("postgresql+psycopg://u:p@localhost:5432/reprocare")
     assert_disposable_database("postgresql+psycopg://u:p@localhost:5432/reprocare_test")
+
+
+def test_large_replies_are_compressed_when_the_browser_accepts_it(client, make_facility):
+    for n in range(40):
+        make_facility(name=f"Gzipfixture {n}", latitude=-1.2 - n / 1000, longitude=36.8)
+    zipped = client.get("/api/facilities/markers", headers={"Accept-Encoding": "gzip"})
+    assert zipped.status_code == 200 and zipped.headers.get("content-encoding") == "gzip"
+    assert len(zipped.json()) >= 40  # the client decompresses transparently: same content
+    small = client.get("/api/health", headers={"Accept-Encoding": "gzip"})
+    assert small.headers.get("content-encoding") is None

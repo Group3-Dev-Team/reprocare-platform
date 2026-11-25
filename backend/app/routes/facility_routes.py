@@ -77,12 +77,11 @@ MAX_MAP_MARKERS = 3000
 @router.get("/facilities/markers")
 def facility_markers(filters: dict = Depends(facility_filters), db: Session = Depends(get_db)):
     """Every matching facility that has stored coordinates (up to MAX_MAP_MARKERS), in a light shape for the map."""
-    query, _ = build_facility_query(db, filters)
-    rows = db.scalars(query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(MAX_MAP_MARKERS)).unique().all()
-    return [
-        {"slug": f.slug, "name": f.name, "facility_type": f.facility_type, "town": f.town, "latitude": f.latitude, "longitude": f.longitude, "is_demo": f.is_demo}
-        for f in rows
-    ]
+    # Only the marker fields, without the services and insurers the list view loads: far fewer database round trips.
+    query, _ = build_facility_query(db, filters, load_relations=False)
+    fields = (Facility.slug, Facility.name, Facility.facility_type, Facility.town, Facility.latitude, Facility.longitude, Facility.is_demo)
+    query = query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(MAX_MAP_MARKERS)
+    return [dict(row._mapping) for row in db.execute(query.with_only_columns(*fields, maintain_column_froms=True))]
 
 
 def _get_facility(db: Session, slug: str) -> Facility:

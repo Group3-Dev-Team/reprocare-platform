@@ -181,7 +181,7 @@ def has_stored_google_ratings():
     )
 
 
-def build_facility_query(db: Session, filters: dict):
+def build_facility_query(db: Session, filters: dict, load_relations: bool = True):
     """Return (select statement, distance expression or None) for the given filters."""
     ratings = rating_subquery()
     query = select(Facility).outerjoin(ratings, ratings.c.facility_id == Facility.id)
@@ -297,7 +297,8 @@ def build_facility_query(db: Session, filters: dict):
         )
 
     query = query.order_by(Facility.id)
-    query = query.options(selectinload(Facility.services), selectinload(Facility.insurers))
+    if load_relations:
+        query = query.options(selectinload(Facility.services), selectinload(Facility.insurers))
     return query, distance
 
 
