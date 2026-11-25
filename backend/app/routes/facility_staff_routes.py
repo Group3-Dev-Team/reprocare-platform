@@ -44,7 +44,8 @@ def facility_overview(user: User = Depends(require_role("facility_staff")), db: 
 @router.patch("/profile")
 def update_facility_profile(body: FacilityProfileUpdate, user: User = Depends(require_role("facility_staff")), db: Session = Depends(get_db)):
     facility = _own_facility(db, user)
-    for field, value in body.model_dump().items():
+    # Only the fields sent are changed: a partial update must not blank the phone, website or hours (the profile form sends every field).
+    for field, value in body.model_dump(exclude_unset=True).items():
         setattr(facility, field, value.strip() if isinstance(value, str) else value)
     facility.open_weekends = bool(facility.saturday_hours.strip() and facility.saturday_hours.lower() != "closed") or bool(
         facility.sunday_hours.strip() and facility.sunday_hours.lower() != "closed"

@@ -58,3 +58,23 @@ def test_workspace_is_for_facility_staff_only(client, make_user):
     assert client.get("/api/facility/overview", headers=patient).status_code == 403
     assert client.get("/api/facility/overview", headers=admin).status_code == 403
     assert client.patch("/api/facility/profile", headers=patient, json={}).status_code == 403
+
+
+def test_partial_profile_update_keeps_fields_it_does_not_send(client, make_facility, make_user):
+    """Regression: sending only some fields blanked the phone, website and opening hours that were not sent."""
+    from app.database.session import SessionLocal
+    from app.models import Facility
+
+    facility = make_facility(phone="+254700333444", website="https://clinic.example", weekday_hours="8:00 AM – 5:00 PM", saturday_hours="9:00 AM – 1:00 PM")
+    _, staff = make_user(role="facility_staff", facility=facility)
+    response = client.patch("/api/facility/profile", headers=staff, json={"description": "Family planning and antenatal care.", "accepts_appointment_requests": True})
+    assert response.status_code == 200, response.text
+    with SessionLocal() as db:
+        saved = db.get(Facility, facility.id)
+        assert (saved.description, saved.accepts_appointment_requests) == ("Family planning and antenatal care.", True)
+        assert (saved.phone, saved.website, saved.weekday_hours, saved.saturday_hours) == ("+254700333444", "https://clinic.example", "8:00 AM – 5:00 PM", "9:00 AM – 1:00 PM")
+        assert saved.open_weekends is True  # still derived from the kept Saturday hours
+    # an explicit empty value still clears a field, as the profile form does
+    assert client.patch("/api/facility/profile", headers=staff, json={"website": ""}).status_code == 200
+    with SessionLocal() as db:
+        assert db.get(Facility, facility.id).website == "" and db.get(Facility, facility.id).phone == "+254700333444"
