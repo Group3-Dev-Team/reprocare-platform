@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { facilityDisplayName } from '../data/facilityNames';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, CalendarCheck, Clock, Columns3, MapPin, Video } from 'lucide-react';
@@ -6,7 +7,7 @@ import { useCompare, MAX_COMPARE } from '../hooks/useCompare';
 import { DemoLabel, Rating, RegistrationLabel } from './Badges';
 import { GoogleRatingCard } from './PublicFeedback';
 import { FacilityTypePlaceholder } from './FacilityTypePlaceholder';
-import { GooglePhoto } from './GooglePhoto';
+import { GooglePhotoFigure, liveRating, useGoogleSummary } from './GooglePhoto';
 import { SaveButton } from './SaveButton';
 
 /** One search result. Leads with the requested service, then practical access details and sources. */
@@ -16,6 +17,9 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
   const hasContact = Boolean(facility.phone || facility.email || facility.website);
   const compare = useCompare();
   const image = images[facility.image_key];
+  const cardRef = useRef(null);
+  const live = useGoogleSummary(facility.slug, cardRef, Boolean(facility.has_google_place) && !facility.google_rating);
+  const googleRating = facility.google_rating || liveRating(live);
   const facilityServices = Array.isArray(facility.services) ? facility.services : [];
   const facilityInsurers = Array.isArray(facility.insurers) ? facility.insurers : [];
   const services = highlightService
@@ -25,10 +29,10 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
   const canCompare = inCompare || compare.items.length < MAX_COMPARE;
 
   return (
-    <article className={`facility-card directory-card ${selected ? 'is-selected' : ''}`} onMouseEnter={() => onSelect?.(facility.slug)}>
+    <article ref={cardRef} className={`facility-card directory-card ${selected ? 'is-selected' : ''}`} onMouseEnter={() => onSelect?.(facility.slug)}>
       <div className={`facility-thumb thumb-${facility.facility_type}`}>
         {image ? <img src={image.src} alt="" loading="lazy" />
-          : facility.has_google_place ? <GooglePhoto slug={facility.slug} width={320} fallback={<FacilityTypePlaceholder type={facility.facility_type} size={28} />} />
+          : live?.photo ? <GooglePhotoFigure photo={live.photo} />
           : <FacilityTypePlaceholder type={facility.facility_type} size={28} />}
       </div>
       <div className="facility-body">
@@ -78,9 +82,9 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
             {facility.is_demo && <DemoLabel />}
             <Rating rating={facility.rating} isDemo={facility.is_demo} demoSeed={facility.slug} />
           </div>
-          {facility.google_rating && (
+          {googleRating && (
             <Link to={`/facilities/${facility.slug}#google-feedback`} aria-label="Open Google Maps ratings for this facility">
-              <GoogleRatingCard google={facility.google_rating} compact />
+              <GoogleRatingCard google={googleRating} compact />
             </Link>
           )}
           <div className="row directory-card-actions">

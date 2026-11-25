@@ -94,6 +94,30 @@ def _photo(place_id: str | None, max_width: int):
 PlaceId = Path(pattern=places.PLACE_ID_PATTERN)
 
 
+# Cards ask for a summary when they scroll into view, so a visitor gets a larger allowance for these than for searches.
+SUMMARIES_PER_CLIENT = 40
+
+
+@router.get("/facilities/{slug}/summary")
+def facility_google_summary(slug: str, request: Request, response: Response, max_width: int = Query(480, ge=120, le=1200),
+                            db: Session = Depends(get_db)):
+    """Live Google rating (and photo, within the photo cap) for a facility's linked place."""
+    response.headers["Cache-Control"] = "no-store"
+    place_id = _stored_place_id(db, slug)
+    if not place_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "This facility does not have a linked Google place.")
+
+    def fetch():
+        places.spend_live_requests(_client_key(request), bucket="summary", per_client=SUMMARIES_PER_CLIENT)
+        try:
+            places.spend_photo_request()
+            with_photo = True
+        except places.PlacesBudgetExceeded:
+            with_photo = False
+        return places.place_summary(place_id, with_photo, max_width=max_width)
+    return _live(fetch)
+
+
 @router.get("/facilities/{slug}/photo")
 def facility_google_photo(slug: str, response: Response, max_width: int = Query(480, ge=120, le=1200), db: Session = Depends(get_db)):
     response.headers["Cache-Control"] = "no-store"

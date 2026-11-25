@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Accessibility, ClipboardList, CalendarCheck, Clock, Columns3, CreditCard, Languages, Mail, MapPin, Navigation, Phone, Video } from 'lucide-react';
 import { api } from '../services/api';
@@ -13,7 +13,7 @@ import { serviceIcons } from '../data/serviceIcons';
 import { Breadcrumbs } from '../components/PageHeader';
 import { DemoLabel, Rating, RegistrationLabel, SourceLabel, Stars } from '../components/Badges';
 import { FacilityTypePlaceholder } from '../components/FacilityTypePlaceholder';
-import { GooglePhoto } from '../components/GooglePhoto';
+import { GooglePhotoFigure, liveRating, useGoogleSummary } from '../components/GooglePhoto';
 import { PlanFacilityButton } from '../components/PlanFacilityButton';
 import { SaveButton } from '../components/SaveButton';
 import { MapView } from '../components/MapView';
@@ -46,6 +46,9 @@ function FacilityDetails({ slug }) {
   const [reviewing, setReviewing] = useState(false);
   const f = facility.data;
   const name = facilityDisplayName(f);
+  const heroRef = useRef(null);
+  const live = useGoogleSummary(slug, heroRef, Boolean(f?.has_google_place) && publicSummary.data != null && !publicSummary.data.google);
+  const googleRating = publicSummary.data?.google || liveRating(live);
   const { hash, key: locationKey } = useLocation();
   useEffect(() => {
     if (f && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
@@ -77,13 +80,13 @@ function FacilityDetails({ slug }) {
 
   return (
     <div className="facility-profile">
-      <header className="detail-hero">
+      <header ref={heroRef} className="detail-hero">
         <div className="container">
           <Breadcrumbs items={[{ label: 'Find care', to: '/find-care/facilities' }, { label: f.facility_type === 'laboratory' ? 'Laboratories' : 'Healthcare facilities', to: f.facility_type === 'laboratory' ? '/find-care/laboratories' : '/find-care/facilities' }, { label: name }]} />
           <div className="detail-hero-grid">
             <div className={`detail-media thumb-${f.facility_type}`}>
               {image ? <img src={image.src} alt={image.alt} />
-                : f.has_google_place ? <GooglePhoto slug={f.slug} width={800} alt={`Google Maps photo of ${name}`} fallback={<FacilityTypePlaceholder type={f.facility_type} size={44} />} />
+                : live?.photo ? <GooglePhotoFigure photo={live.photo} alt={`Google Maps photo of ${name}`} />
                 : <FacilityTypePlaceholder type={f.facility_type} size={44} />}
             </div>
             <div>
@@ -99,10 +102,10 @@ function FacilityDetails({ slug }) {
                   <span className="detail-score-label">ReproCare rating</span>
                   <Rating rating={f.rating} />
                 </a>
-                {publicSummary.data?.google && (
+                {googleRating && (
                   <Link to="#google-feedback" className="detail-score detail-score-google" title="Google's own rating. Not a ReproCare rating.">
                     <span className="detail-score-label">On Google</span>
-                    <GoogleRatingCard google={publicSummary.data.google} compact />
+                    <GoogleRatingCard google={googleRating} compact />
                   </Link>
                 )}
               </div>

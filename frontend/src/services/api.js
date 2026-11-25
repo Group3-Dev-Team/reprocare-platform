@@ -176,6 +176,7 @@ export const api = {
   livePlace: (placeId, options) => get(`/places/place/${encodeURIComponent(placeId)}`, undefined, options),
   livePlaceReviews: (placeId, options) => get(`/places/place/${encodeURIComponent(placeId)}/reviews`, undefined, options),
   livePlacePhoto: (placeId, params) => get(`/places/place/${encodeURIComponent(placeId)}/photo`, params),
+  facilityGoogleSummary: (slug, params) => get(`/places/facilities/${slug}/summary`, params),
   facilityGooglePhoto: (slug, params) => get(`/places/facilities/${slug}/photo`, params),
 
   // Patient account

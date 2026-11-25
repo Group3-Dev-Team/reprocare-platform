@@ -207,3 +207,49 @@ def test_photo_is_returned_with_author_attribution_within_the_daily_cap(client, 
     monkeypatch.setattr(places, "place_photo", lambda pid, max_width=480: {"photo_uri": "https://lh3.googleusercontent.com/x", "authors": []})
     assert client.get("/api/places/place/ChIJphotofixture0001/photo").status_code == 200
     assert client.get("/api/places/place/ChIJphotofixture0001/photo").status_code == 429  # cap of 1 reached
+
+
+def test_facility_summary_gives_live_rating_and_photo_only_within_caps(client, make_facility, monkeypatch):
+    from app.database.session import SessionLocal
+    from app.models import FacilityExternalProfile
+
+    monkeypatch.setattr(settings, "google_places_api_key", "fake-key")
+    monkeypatch.setattr(settings, "google_places_photo_daily_limit", 1)
+    monkeypatch.setattr(settings, "google_places_live_daily_limit", 2)
+    places.reset_live_budget()
+    f = make_facility(name="Summaryfixture Clinic")
+    with SessionLocal() as db:
+        db.add(FacilityExternalProfile(facility_id=f.id, platform="google", external_id="ChIJsummaryfixture01"))
+        db.commit()
+    calls = []
+
+    def fake_summary(place_id, with_photo, max_width=480, client=None):
+        calls.append((place_id, with_photo))
+        return {"rating": 4.2, "rating_count": 9, "google_maps_uri": "", "photo": None, "attribution": "Google Maps"}
+
+    monkeypatch.setattr(places, "place_summary", fake_summary)
+    first = client.get(f"/api/places/facilities/{f.slug}/summary")
+    assert first.status_code == 200 and first.json()["rating"] == 4.2 and first.headers["cache-control"] == "no-store"
+    client.get(f"/api/places/facilities/{f.slug}/summary")
+    assert calls == [("ChIJsummaryfixture01", True), ("ChIJsummaryfixture01", False)]  # photo cap of 1 reached
+    assert client.get(f"/api/places/facilities/{f.slug}/summary").status_code == 429  # daily cap of 2 reached
+    assert len(calls) == 2
+
+
+def test_place_summary_requests_rating_and_photo_fields():
+    masks = []
+
+    def handler(request):
+        if request.url.path.endswith("/media"):
+            return httpx.Response(200, json={"photoUri": "https://lh3.googleusercontent.com/s"})
+        masks.append(request.headers["X-Goog-FieldMask"])
+        return httpx.Response(200, json={"rating": 4.0, "userRatingCount": 3, "photos": [{"name": "places/ChIJsummaryfixture01/photos/a"}]})
+
+    settings_key = settings.google_places_api_key
+    settings.google_places_api_key = "fake-key"
+    try:
+        out = places.place_summary("ChIJsummaryfixture01", True, client=httpx.Client(transport=httpx.MockTransport(handler)))
+    finally:
+        settings.google_places_api_key = settings_key
+    assert masks == ["rating,userRatingCount,googleMapsUri,photos"] and "reviews" not in masks[0]
+    assert out["rating"] == 4.0 and out["photo"]["photo_uri"].startswith("https://lh3.googleusercontent.com/")

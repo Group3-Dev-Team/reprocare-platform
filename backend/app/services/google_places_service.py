@@ -68,7 +68,7 @@ def spend_photo_request() -> None:
         _photo_day["count"] += 1
 
 
-def spend_live_requests(client_key: str, requests: int = 1) -> None:
+def spend_live_requests(client_key: str, requests: int = 1, bucket: str = "live", per_client: int | None = None) -> None:
     """Reserve `requests` billed Google requests for this client, or raise PlacesBudgetExceeded (nothing is sent)."""
     now, today = time.monotonic(), date.today()
     with _budget_lock:
@@ -76,10 +76,10 @@ def spend_live_requests(client_key: str, requests: int = 1) -> None:
             _day.update(date=today, count=0)
         if _day["count"] + requests > settings.google_places_live_daily_limit:
             raise PlacesBudgetExceeded("Live Google Maps requests have reached today's limit on this server. Please try again tomorrow.")
-        recent = _client_requests[client_key]
+        recent = _client_requests[(bucket, client_key)]
         while recent and now - recent[0] > LIVE_CLIENT_WINDOW_SECONDS:
             recent.popleft()
-        if len(recent) + requests > LIVE_REQUESTS_PER_CLIENT:
+        if len(recent) + requests > (per_client or LIVE_REQUESTS_PER_CLIENT):
             raise PlacesBudgetExceeded("Too many Google Maps requests from this device. Please wait a few minutes and try again.")
         recent.extend([now] * requests)
         _day["count"] += requests
@@ -250,9 +250,20 @@ def place_details(place_id: str, client: httpx.Client | None = None) -> dict:
     }
 
 
+def place_summary(place_id: str, with_photo: bool, max_width: int = 480, client: httpx.Client | None = None) -> dict:
+    """Live rating for a listing card or page, plus its first photo when photos are allowed. Nothing is stored."""
+    data = _get_place(place_id, "rating,userRatingCount,googleMapsUri,photos", client)
+    photo = _photo_media(place_id, data, max_width, client) if with_photo else None
+    return {"rating": data.get("rating"), "rating_count": data.get("userRatingCount"),
+            "google_maps_uri": data.get("googleMapsUri", ""), "photo": photo, "attribution": "Google Maps"}
+
+
 def place_photo(place_id: str, max_width: int = 480, client: httpx.Client | None = None) -> dict | None:
     """The place's first Google photo as a short-lived Google URL with its author attributions, or None."""
-    data = _get_place(place_id, "photos", client)  # IDs-only field set
+    return _photo_media(place_id, _get_place(place_id, "photos", client), max_width, client)  # IDs-only field set
+
+
+def _photo_media(place_id: str, data: dict, max_width: int, client: httpx.Client | None) -> dict | None:
     photo = next(iter(data.get("photos") or []), None)
     if not photo or not photo.get("name", "").startswith(f"places/{place_id}/photos/"):
         return None
