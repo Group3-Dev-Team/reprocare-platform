@@ -18,6 +18,8 @@ FIELD_MASK = ",".join(
         "places.location",
         "places.primaryTypeDisplayName",
         "places.googleMapsUri",
+        "places.rating",
+        "places.userRatingCount",
         "nextPageToken",
     ]
 )
@@ -49,9 +51,24 @@ def reset_live_budget() -> None:
     with _budget_lock:
         _client_requests.clear()
         _day.update(date=None, count=0)
+        _photo_day.update(date=None, count=0)
 
 
-def spend_live_requests(client_key: str, requests: int = 1) -> None:
+_photo_day = {"date": None, "count": 0}
+
+
+def spend_photo_request() -> None:
+    """Photos have their own daily cap (default 0: off) so card images never use up the review and search budget."""
+    today = date.today()
+    with _budget_lock:
+        if _photo_day["date"] != today:
+            _photo_day.update(date=today, count=0)
+        if _photo_day["count"] + 1 > settings.google_places_photo_daily_limit:
+            raise PlacesBudgetExceeded("Google Maps photos are not available right now.")
+        _photo_day["count"] += 1
+
+
+def spend_live_requests(client_key: str, requests: int = 1, bucket: str = "live", per_client: int | None = None) -> None:
     """Reserve `requests` billed Google requests for this client, or raise PlacesBudgetExceeded (nothing is sent)."""
     now, today = time.monotonic(), date.today()
     with _budget_lock:
@@ -59,10 +76,10 @@ def spend_live_requests(client_key: str, requests: int = 1) -> None:
             _day.update(date=today, count=0)
         if _day["count"] + requests > settings.google_places_live_daily_limit:
             raise PlacesBudgetExceeded("Live Google Maps requests have reached today's limit on this server. Please try again tomorrow.")
-        recent = _client_requests[client_key]
+        recent = _client_requests[(bucket, client_key)]
         while recent and now - recent[0] > LIVE_CLIENT_WINDOW_SECONDS:
             recent.popleft()
-        if len(recent) + requests > LIVE_REQUESTS_PER_CLIENT:
+        if len(recent) + requests > (per_client or LIVE_REQUESTS_PER_CLIENT):
             raise PlacesBudgetExceeded("Too many Google Maps requests from this device. Please wait a few minutes and try again.")
         recent.extend([now] * requests)
         _day["count"] += requests
@@ -82,6 +99,8 @@ def _shape(place: dict) -> dict:
         "longitude": location.get("longitude"),
         "type_label": (place.get("primaryTypeDisplayName") or {}).get("text", ""),
         "google_maps_uri": place.get("googleMapsUri", ""),
+        "rating": place.get("rating"),
+        "rating_count": place.get("userRatingCount"),
     }
 
 
@@ -191,3 +210,83 @@ def written_reviews(place_id: str, client: httpx.Client | None = None) -> dict:
         "attributions": [{"provider": item["provider"], "url": google_link(item.get("providerUri"))}
                          for item in (data.get("attributions") or []) if item.get("provider")],
     }
+
+
+PLACE_ID_PATTERN = r"^[A-Za-z0-9_-]{10,300}$"
+DETAILS_FIELDS = "id,displayName,formattedAddress,location,primaryTypeDisplayName,googleMapsUri,rating,userRatingCount,nationalPhoneNumber,websiteUri"
+
+
+def _get_place(place_id: str, fields: str, client: httpx.Client | None = None) -> dict:
+    from urllib.parse import quote
+
+    if not is_configured():
+        raise PlacesNotConfigured("Google Places is not configured on this server.")
+    headers = {"X-Goog-Api-Key": settings.google_places_api_key, "X-Goog-FieldMask": fields}
+    own_client = client is None
+    client = client or httpx.Client(timeout=10)
+    try:
+        response = client.get("https://places.googleapis.com/v1/places/" + quote(place_id, safe=""), headers=headers)
+        if response.status_code == 404:
+            raise PlacesError("Google no longer recognises this place.")
+        if response.status_code != 200:
+            raise PlacesError(f"Google Place Details returned HTTP {response.status_code}.")
+        return response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise PlacesError(f"Google Place Details could not be read ({type(exc).__name__}).") from exc
+    finally:
+        if own_client:
+            client.close()
+
+
+def place_details(place_id: str, client: httpx.Client | None = None) -> dict:
+    """Live details for one place. Shown with Google attribution; nothing is stored."""
+    data = _get_place(place_id, DETAILS_FIELDS, client)
+    website = data.get("websiteUri") or ""
+    return {
+        **_shape(data),
+        "phone": data.get("nationalPhoneNumber") or "",
+        "website": website if website.startswith(("https://", "http://")) else "",
+        "attribution": "Details from Google Maps",
+    }
+
+
+def place_summary(place_id: str, with_photo: bool, max_width: int = 480, client: httpx.Client | None = None) -> dict:
+    """Live rating for a listing card or page, plus its first photo when photos are allowed. Nothing is stored."""
+    data = _get_place(place_id, "rating,userRatingCount,googleMapsUri,photos", client)
+    photo = _photo_media(place_id, data, max_width, client) if with_photo else None
+    return {"rating": data.get("rating"), "rating_count": data.get("userRatingCount"),
+            "google_maps_uri": data.get("googleMapsUri", ""), "photo": photo, "attribution": "Google Maps"}
+
+
+def place_photo(place_id: str, max_width: int = 480, client: httpx.Client | None = None) -> dict | None:
+    """The place's first Google photo as a short-lived Google URL with its author attributions, or None."""
+    return _photo_media(place_id, _get_place(place_id, "photos", client), max_width, client)  # IDs-only field set
+
+
+def _photo_media(place_id: str, data: dict, max_width: int, client: httpx.Client | None) -> dict | None:
+    photo = next(iter(data.get("photos") or []), None)
+    if not photo or not photo.get("name", "").startswith(f"places/{place_id}/photos/"):
+        return None
+    own_client = client is None
+    client = client or httpx.Client(timeout=10)
+    try:
+        response = client.get(
+            f"https://places.googleapis.com/v1/{photo['name']}/media",
+            params={"maxWidthPx": max_width, "skipHttpRedirect": "true"},
+            headers={"X-Goog-Api-Key": settings.google_places_api_key},
+        )
+        if response.status_code != 200:
+            raise PlacesError(f"Google Place Photos returned HTTP {response.status_code}.")
+        uri = response.json().get("photoUri") or ""
+    except (httpx.HTTPError, ValueError) as exc:
+        raise PlacesError(f"Google Place Photos could not be read ({type(exc).__name__}).") from exc
+    finally:
+        if own_client:
+            client.close()
+    if not uri.startswith("https://"):
+        return None
+    authors = [
+        {"name": a["displayName"], "url": a.get("uri") if str(a.get("uri", "")).startswith("https://") else None}
+        for a in photo.get("authorAttributions") or [] if a.get("displayName")
+    ]
+    return {"photo_uri": uri, "width": photo.get("widthPx"), "height": photo.get("heightPx"), "authors": authors}

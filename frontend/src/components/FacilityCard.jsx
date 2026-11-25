@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { facilityDisplayName } from '../data/facilityNames';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, CalendarCheck, Clock, Columns3, MapPin, Video } from 'lucide-react';
@@ -6,15 +7,19 @@ import { useCompare, MAX_COMPARE } from '../hooks/useCompare';
 import { DemoLabel, Rating, RegistrationLabel } from './Badges';
 import { GoogleRatingCard } from './PublicFeedback';
 import { FacilityTypePlaceholder } from './FacilityTypePlaceholder';
+import { GooglePhotoFigure, liveRating, useGoogleSummary } from './GooglePhoto';
 import { SaveButton } from './SaveButton';
 
 /** One search result. Leads with the requested service, then practical access details and sources. */
 export function FacilityCard({ facility, highlightService, selected, onSelect, onRequest }) {
-  // Contact Facility leads to the listing's phone, email or website. Book appointment is shown only to
-  // facilities that take ReproCare requests; there is no instant booking because no facility publishes slots.
+  // Book appointment opens the request form for facilities that take ReproCare requests, and the facility's own
+  // contact options for the others; there is no instant booking because no facility publishes slots.
   const hasContact = Boolean(facility.phone || facility.email || facility.website);
   const compare = useCompare();
   const image = images[facility.image_key];
+  const cardRef = useRef(null);
+  const live = useGoogleSummary(facility.slug, cardRef, Boolean(facility.has_google_place) && !facility.google_rating);
+  const googleRating = facility.google_rating || liveRating(live);
   const facilityServices = Array.isArray(facility.services) ? facility.services : [];
   const facilityInsurers = Array.isArray(facility.insurers) ? facility.insurers : [];
   const services = highlightService
@@ -24,9 +29,11 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
   const canCompare = inCompare || compare.items.length < MAX_COMPARE;
 
   return (
-    <article className={`facility-card directory-card ${selected ? 'is-selected' : ''}`} onMouseEnter={() => onSelect?.(facility.slug)}>
+    <article ref={cardRef} className={`facility-card directory-card ${selected ? 'is-selected' : ''}`} onMouseEnter={() => onSelect?.(facility.slug)}>
       <div className={`facility-thumb thumb-${facility.facility_type}`}>
-        {image ? <img src={image.src} alt="" loading="lazy" /> : <FacilityTypePlaceholder type={facility.facility_type} size={28} />}
+        {image ? <img src={image.src} alt="" loading="lazy" />
+          : live?.photo ? <GooglePhotoFigure photo={live.photo} />
+          : <FacilityTypePlaceholder type={facility.facility_type} size={28} />}
       </div>
       <div className="facility-body">
         <div className="facility-head">
@@ -75,9 +82,9 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
             {facility.is_demo && <DemoLabel />}
             <Rating rating={facility.rating} isDemo={facility.is_demo} demoSeed={facility.slug} />
           </div>
-          {facility.google_rating && (
+          {googleRating && (
             <Link to={`/facilities/${facility.slug}#google-feedback`} aria-label="Open Google Maps ratings for this facility">
-              <GoogleRatingCard google={facility.google_rating} compact />
+              <GoogleRatingCard google={googleRating} compact />
             </Link>
           )}
           <div className="row directory-card-actions">
@@ -89,8 +96,8 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
               onClick={() => compare.toggle(facility)}>
               <Columns3 size={15} aria-hidden="true" /> {inCompare ? 'Added to compare' : 'Compare'}
             </button>
-            {facility.accepts_appointment_requests && onRequest ? (
-              <button className="btn btn-primary btn-sm" onClick={() => onRequest(facility)}>
+            {onRequest ? (
+              <button type="button" className="btn btn-success btn-sm" onClick={() => onRequest(facility)}>
                 <CalendarCheck size={15} aria-hidden="true" /> Book appointment
               </button>
             ) : (
@@ -100,7 +107,7 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
             )}
           </div>
           {onRequest && !facility.accepts_appointment_requests && (
-            <p className="facility-request-note">Online requests are not offered by this facility.{hasContact ? ' Contact it directly to arrange a visit.' : ''}</p>
+            <p className="facility-request-note">Not yet taking requests through ReproCare.{hasContact ? ' Book appointment shows how to contact it.' : ''}</p>
           )}
         </div>
       </div>

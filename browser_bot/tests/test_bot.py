@@ -285,10 +285,28 @@ def fake_apify(monkeypatch):
 def test_apify_uses_file_b_endpoint_first(fake_apify, capsys):
     calls = fake_apify([{"id": 1}])
     assert tt.actor_run(tt.SEARCH_ACTOR, {"search": ["x"]}) == [{"id": 1}]
-    assert calls[0]["url"] == "https://api.apify.com/v2/actors/epctex~tiktok-search-scraper/run-sync-get-dataset-items?timeout=120"
+    assert calls[0]["url"] == "https://api.apify.com/v2/actors/epctex~tiktok-search-scraper/run-sync-get-dataset-items?timeout=120&maxTotalChargeUsd=0.10"
     assert calls[0]["timeout"] == 135 and calls[0]["body"] == {"search": ["x"]}
     out = capsys.readouterr().out
     assert "/v2/actors/epctex~tiktok-search-scraper/run-sync-get-dataset-items" in out and "fixture-token-not-real" not in out
+
+
+def test_apify_runs_carry_item_and_spend_ceilings(fake_apify, monkeypatch):
+    calls = fake_apify(*[[{"id": n} for n in range(30)]] * 4)
+    monkeypatch.setattr(tt, "relevant", lambda record, name: True)
+    monkeypatch.setattr(tt, "video_url", lambda record: f"https://www.tiktok.com/@fixture/video/{record['id']}")
+    bundles = tt.collect_for_facility("Fixture Clinic")
+    search, *comments = calls
+    assert "maxItems=10" in search["url"] and "maxTotalChargeUsd=0.10" in search["url"] and search["body"]["maxItems"] == 10
+    assert len(bundles) == 2 and len(comments) == 2  # 2 videos
+    assert all("maxItems=30" in c["url"] and c["body"]["commentsPerPost"] == 10 and c["body"]["maxRepliesPerComment"] == 2 for c in comments)
+    assert all(len(b["comments_raw"]) == 30 for b in bundles)  # trimmed to 10 comments x (1 + 2 replies)
+
+
+def test_apify_demo_mode_placeholders_are_reported_not_treated_as_results(fake_apify):
+    fake_apify([{"demo": True}] * 10)
+    with pytest.raises(tt.ApifyUnavailable, match="demo placeholders"):
+        tt.actor_run(tt.SEARCH_ACTOR, {"search": ["x"]})
 
 
 def test_apify_falls_back_to_acts_only_on_404(fake_apify, capsys):

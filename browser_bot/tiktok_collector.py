@@ -10,6 +10,7 @@ Facility association: the bot runs for ONE facility and keeps a video only when 
 facility's full name (the legacy scripts' `relevant()` rule). Short aliases are not used unless configured explicitly.
 """
 
+import os
 import json
 import re
 from datetime import datetime, timezone
@@ -37,18 +38,26 @@ HTTP_REASONS = {
 }
 
 
-def actor_endpoint(prefix: str, actor: str) -> str:
-    # Same path, query and synchronous run as the legacy scripts: run-sync-get-dataset-items with a 120 s Actor timeout.
-    return f"{APIFY_BASE}/{prefix}/{actor}/run-sync-get-dataset-items?timeout=120"
+# Spend ceiling per Actor run, enforced by Apify itself (maxTotalChargeUsd), on top of the input limits below.
+MAX_CHARGE_USD_PER_RUN = float(os.getenv("APIFY_MAX_CHARGE_USD_PER_RUN", "0.10"))
 
 
-def actor_run(actor: str, payload: dict) -> list:
+def actor_endpoint(prefix: str, actor: str, max_items: int | None = None) -> str:
+    # Synchronous run with a 120 s Actor timeout. maxItems and maxTotalChargeUsd make Apify stop billing at the bound
+    # even if an Actor ignores its own input limits.
+    query = f"timeout=120&maxTotalChargeUsd={MAX_CHARGE_USD_PER_RUN:.2f}"
+    if max_items:
+        query += f"&maxItems={int(max_items)}"
+    return f"{APIFY_BASE}/{prefix}/{actor}/run-sync-get-dataset-items?{query}"
+
+
+def actor_run(actor: str, payload: dict, max_items: int | None = None) -> list:
     token = apify_token()
     if not token:
         raise ApifyUnavailable("APIFY_API_TOKEN is not set in backend/.env")
     body = json.dumps(payload).encode("utf-8")
     for prefix in ENDPOINT_PREFIXES:
-        endpoint = actor_endpoint(prefix, actor)
+        endpoint = actor_endpoint(prefix, actor, max_items)
         print(f"  Apify: POST {endpoint.split('?')[0]}", flush=True)  # the token travels in a header and is never logged
         request = Request(endpoint, data=body, headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, method="POST")
         try:
@@ -65,8 +74,11 @@ def actor_run(actor: str, payload: dict) -> list:
             raise ApifyUnavailable(f"Could not reach Apify ({type(exc).__name__})") from None
     if not isinstance(data, list):  # the legacy scripts' result check
         raise ApifyUnavailable("Unexpected Apify result format")
+    if data and all(isinstance(item, dict) and set(item) <= {"demo"} for item in data):
+        # Free Apify plans run some paid Actors in demo mode: placeholder items, no real data.
+        raise ApifyUnavailable(f"{actor} returned demo placeholders only; this Apify plan does not allow API use of this Actor")
     print(f"  Apify: {len(data)} items from /v2/{prefix}/…", flush=True)
-    return data
+    return data[:max_items] if max_items else data
 
 
 def _norm(text: str) -> str:
@@ -180,13 +192,15 @@ def collect_for_facility(facility_name: str, town: str = "", max_videos: int = M
     terms = [facility_name, f"{facility_name} {town}".strip()] if town and town.casefold() not in facility_name.casefold() else [facility_name]
     candidates: dict[str, dict] = {}
     for term in terms:
-        for record in actor_run(SEARCH_ACTOR, {"search": [term], "maxItems": SEARCH_RESULTS_PER_TERM, "endPage": 1, "sortType": "RELEVANCE"}):
+        for record in actor_run(SEARCH_ACTOR, {"search": [term], "maxItems": SEARCH_RESULTS_PER_TERM, "endPage": 1, "sortType": "RELEVANCE"},
+                                max_items=SEARCH_RESULTS_PER_TERM):
             url = video_url(record)
             if url and relevant(record, facility_name):
                 candidates.setdefault(url, record)
     bundles = []
     for url, record in list(candidates.items())[:max_videos]:
-        raw = actor_run(COMMENTS_ACTOR, {"postURLs": [url], "commentsPerPost": comments_per_video, "maxRepliesPerComment": REPLIES_PER_COMMENT})
+        raw = actor_run(COMMENTS_ACTOR, {"postURLs": [url], "commentsPerPost": comments_per_video, "maxRepliesPerComment": REPLIES_PER_COMMENT},
+                        max_items=comments_per_video * (1 + REPLIES_PER_COMMENT))
         bundles.append({"search_record": record, "url": url, "comments_raw": raw})
     return bundles
 

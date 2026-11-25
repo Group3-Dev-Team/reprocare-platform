@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database.session import get_db
-from app.models import Facility, LabTest, Practitioner
+from app.models import Facility, FacilityExternalProfile, LabTest, Practitioner
 from app.services.common import MAX_PAGE_SIZE, paginate
 from app.services.facility_service import build_facility_query, facility_detail, facility_summary, google_ratings_for, ratings_for
 
@@ -62,9 +62,13 @@ def search_facilities(
     ids = [f.id for f in result["items"]]
     ratings = ratings_for(db, ids)
     google = google_ratings_for(db, ids)
+    linked = set(db.scalars(
+        select(FacilityExternalProfile.facility_id)
+        .where(FacilityExternalProfile.facility_id.in_(ids), FacilityExternalProfile.platform == "google")
+    )) if ids else set()
     result["items"] = [
         {**facility_summary(f, ratings.get(f.id), _haversine(filters["lat"], filters["lng"], f.latitude, f.longitude)),
-         "google_rating": google.get(f.id)}
+         "google_rating": google.get(f.id), "has_google_place": f.id in linked}
         for f in result["items"]
     ]
     return result
@@ -77,12 +81,11 @@ MAX_MAP_MARKERS = 3000
 @router.get("/facilities/markers")
 def facility_markers(filters: dict = Depends(facility_filters), db: Session = Depends(get_db)):
     """Every matching facility that has stored coordinates (up to MAX_MAP_MARKERS), in a light shape for the map."""
-    query, _ = build_facility_query(db, filters)
-    rows = db.scalars(query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(MAX_MAP_MARKERS)).unique().all()
-    return [
-        {"slug": f.slug, "name": f.name, "facility_type": f.facility_type, "town": f.town, "latitude": f.latitude, "longitude": f.longitude, "is_demo": f.is_demo}
-        for f in rows
-    ]
+    # Only the marker fields, without the services and insurers the list view loads: far fewer database round trips.
+    query, _ = build_facility_query(db, filters, load_relations=False)
+    fields = (Facility.slug, Facility.name, Facility.facility_type, Facility.town, Facility.latitude, Facility.longitude, Facility.is_demo)
+    query = query.where(Facility.latitude.is_not(None), Facility.longitude.is_not(None)).limit(MAX_MAP_MARKERS)
+    return [dict(row._mapping) for row in db.execute(query.with_only_columns(*fields, maintain_column_froms=True))]
 
 
 def _get_facility(db: Session, slug: str) -> Facility:
@@ -104,6 +107,10 @@ def get_facility(slug: str, db: Session = Depends(get_db)):
         {"slug": p.slug, "full_name": p.full_name, "title": p.title, "specialty": p.specialty, "is_demo": p.is_demo}
         for p in db.scalars(select(Practitioner).where(Practitioner.facility_id == facility.id).order_by(Practitioner.full_name))
     ]
+    data["has_google_place"] = db.scalar(
+        select(func.count()).select_from(FacilityExternalProfile)
+        .where(FacilityExternalProfile.facility_id == facility.id, FacilityExternalProfile.platform == "google")
+    ) > 0
     return data
 
 
