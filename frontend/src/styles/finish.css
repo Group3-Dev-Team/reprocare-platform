@@ -1,69 +1,147 @@
-/* Final visual refinement: tokens and surface treatment only. No layout, spacing or behaviour changes.
-   Light theme only; the dark theme keeps its own values. Remove this file and its import to revert. */
+/* Visual refinement layer, loaded last. Light theme only; colours, borders, shadows, radii and gradients.
+   No layout, spacing, content or behaviour changes. Remove this file and its import in main.jsx to revert. */
 :root:not([data-theme="dark"]) {
-  /* Five coordinated families: brand blue, teal, care green, cool neutrals, warm accent */
-  --teal-50: #ecf8f7; --teal-100: #cdeeea; --teal-500: #1f9a8f; --teal-600: #157a72;
-  --green-50: #eef8f1; --green-100: #d3eedb;
-  --sand-50: #fbf7f1; --sand-100: #f3e8d8; --amber-500: #c9852b;
-  --border: #d6dfec; --border-soft: #e4eaf3; --border-strong: #b7c4d9;
-  --text-muted: #44566f;
-  --radius-md: 10px; --radius-lg: 14px;
-  --shadow-card: 0 1px 2px rgba(19, 33, 58, .05), 0 6px 18px -10px rgba(34, 58, 101, .22);
-  --shadow-card-hover: 0 2px 4px rgba(19, 33, 58, .06), 0 14px 30px -14px rgba(34, 58, 101, .32);
-  --focus-ring: 0 0 0 3px rgba(31, 154, 143, .32);
+  /* Coordinated families: brand blue, teal, care green, cool neutrals, warm amber accent */
+  --teal-50: #e8f7f5; --teal-100: #c6ece6; --teal-300: #7fd1c5; --teal-500: #179487; --teal-600: #0f766e;
+  --green-50: #ebf7ef; --green-100: #cdeed8; --green-500: #2f9e5b;
+  --amber-50: #fdf5e9; --amber-500: #c9852b;
+  --page: #edf3fb;
+  --surface-muted: #eaf1fa;
+  --border: #cfdbec; --border-soft: #dde6f2; --border-strong: #aebfd8;
+  --text-muted: #42556f;
+  --radius-md: 12px; --radius-lg: 16px;
+  --accent-line: linear-gradient(90deg, #2b59d9 0%, #179487 55%, #2f9e5b 100%);
+  --shadow-card: 0 1px 2px rgba(19, 33, 58, .06), 0 10px 28px -16px rgba(34, 58, 101, .38);
+  --shadow-card-hover: 0 2px 6px rgba(19, 33, 58, .08), 0 18px 38px -18px rgba(23, 148, 135, .45);
+  --focus-ring: 0 0 0 3px rgba(23, 148, 135, .35);
+}
+:root:not([data-theme="dark"]) body { background: linear-gradient(180deg, #eaf1fb 0%, #eef5f6 55%, #edf3fb 100%) fixed; }
+
+/* Header: brand accent line under the navigation, refined links */
+:root:not([data-theme="dark"]) .site-header {
+  background: var(--accent-line) bottom / 100% 3px no-repeat, rgba(255, 255, 255, .96);
+  box-shadow: 0 6px 22px -14px rgba(34, 58, 101, .35);
+}
+:root:not([data-theme="dark"]) .nav-link:hover { background: linear-gradient(180deg, var(--blue-50), var(--teal-50)); }
+:root:not([data-theme="dark"]) .nav-link[aria-current="page"],
+:root:not([data-theme="dark"]) .nav-link.active { color: var(--blue-700); }
+
+/* Hero: the original blue gradient, with a faint teal glow layered on top */
+:root:not([data-theme="dark"]) .home-hero {
+  background:
+    radial-gradient(55% 75% at 100% 0%, rgba(23, 148, 135, .14), transparent 70%),
+    linear-gradient(116deg, var(--brand-blue-hero), var(--brand-hero-mid) 64%, var(--brand-hero-edge));
+  border-bottom: 1px solid var(--brand-blue-line);
+}
+:root:not([data-theme="dark"]) .home-hero-art img {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 22px 46px -22px rgba(23, 43, 86, .55);
 }
 
-/* Surfaces: crisp hairline border, soft layered shadow, gentle hover lift without movement */
-:root:not([data-theme="dark"]) .panel,
-:root:not([data-theme="dark"]) .facility-card {
+/* Page headers: tinted blue-teal band with the accent line */
+:root:not([data-theme="dark"]) .page-header {
+  background:
+    radial-gradient(45% 120% at 100% 0%, rgba(23, 148, 135, .12), transparent 70%),
+    linear-gradient(135deg, #dce9fc 0%, #e4f1f6 60%, var(--page) 100%);
+  border-bottom: 1px solid var(--brand-blue-line);
+}
+:root:not([data-theme="dark"]) .page-header-green {
+  background:
+    linear-gradient(135deg, #dcf1e5 0%, #e3f3ef 60%, var(--page) 100%);
+}
+
+/* Panels and facility cards: tinted border, accent top line, layered shadow */
+:root:not([data-theme="dark"]) .panel {
+  background: var(--accent-line) top / 100% 3px no-repeat, linear-gradient(180deg, #fff 0%, #fbfdff 100%);
   border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: box-shadow .18s ease, border-color .18s ease;
 }
-:root:not([data-theme="dark"]) .facility-card:hover {
-  border-color: var(--border);
-  box-shadow: var(--shadow-card-hover);
+:root:not([data-theme="dark"]) .facility-card {
+  background: linear-gradient(180deg, #fff 0%, #f9fbfe 100%);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .2s ease, border-color .2s ease;
 }
-/* Section headings in panels get a thin teal rule for hierarchy */
+:root:not([data-theme="dark"]) .facility-card:hover { border-color: var(--teal-300); box-shadow: var(--shadow-card-hover); }
 :root:not([data-theme="dark"]) .panel > h2:first-child,
-:root:not([data-theme="dark"]) .panel-title h2 {
-  text-decoration: underline 2px var(--teal-100);
-  text-underline-offset: 7px;
+:root:not([data-theme="dark"]) .panel-title h2 { color: var(--ink-blue); }
+
+/* Filters and chips */
+:root:not([data-theme="dark"]) .filters {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f6fc 100%);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+:root:not([data-theme="dark"]) .chip { background: #fff; border-color: var(--border); }
+:root:not([data-theme="dark"]) .chip:hover { border-color: var(--teal-500); background: var(--teal-50); }
+:root:not([data-theme="dark"]) .chip.is-active,
+:root:not([data-theme="dark"]) .chip[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--teal-600), #2b59d9); border-color: transparent; color: #fff;
 }
 
-/* Buttons: same shapes and colours, refined depth and focus */
+/* Buttons: same shapes and colours family, richer depth */
 :root:not([data-theme="dark"]) .btn-primary {
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 6px 14px -8px rgba(34, 58, 101, .55);
+  background: linear-gradient(135deg, #3b63e6 0%, #2a4fcf 55%, #1f3fae 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 8px 18px -10px rgba(31, 63, 174, .7);
 }
-:root:not([data-theme="dark"]) .btn-secondary:hover { border-color: var(--teal-500); }
+:root:not([data-theme="dark"]) .btn-primary:hover { background: linear-gradient(135deg, #2f57dc 0%, #2246c2 55%, #1a3699 100%); }
+:root:not([data-theme="dark"]) .btn-success {
+  background: linear-gradient(135deg, #2f9e5b 0%, #1f8a6d 100%);
+  box-shadow: 0 8px 18px -10px rgba(31, 138, 109, .7);
+}
+:root:not([data-theme="dark"]) .btn-secondary {
+  background: linear-gradient(180deg, #fff, var(--blue-50)); border-color: var(--brand-blue-line);
+}
+:root:not([data-theme="dark"]) .btn-secondary:hover { border-color: var(--teal-500); background: linear-gradient(180deg, #fff, var(--teal-50)); }
 :root:not([data-theme="dark"]) .btn:focus-visible { box-shadow: var(--focus-ring); outline: none; }
 
-/* Form fields and filters: calmer border, teal focus */
+/* Form fields */
 :root:not([data-theme="dark"]) .input,
 :root:not([data-theme="dark"]) .select,
-:root:not([data-theme="dark"]) textarea { border-color: var(--border); }
+:root:not([data-theme="dark"]) textarea { background-color: #fbfdff; border-color: var(--border); }
 :root:not([data-theme="dark"]) .input:hover,
 :root:not([data-theme="dark"]) .select:hover { border-color: var(--border-strong); }
 :root:not([data-theme="dark"]) .input:focus,
 :root:not([data-theme="dark"]) .select:focus,
-:root:not([data-theme="dark"]) textarea:focus { border-color: var(--teal-500); box-shadow: var(--focus-ring); }
+:root:not([data-theme="dark"]) textarea:focus { border-color: var(--teal-500); box-shadow: var(--focus-ring); background-color: #fff; }
 
-/* Hero: same image, text and positions; a softer coordinated backdrop and a framed image */
-:root:not([data-theme="dark"]) .home-hero {
-  background-image: radial-gradient(60% 80% at 100% 0%, rgba(31, 154, 143, .10), transparent 70%),
-                    radial-gradient(50% 70% at 0% 100%, rgba(201, 133, 43, .06), transparent 70%);
-  border-bottom: 1px solid var(--border-soft);
+/* Dashboard sidebar and tables */
+:root:not([data-theme="dark"]) .sidebar {
+  background: linear-gradient(180deg, #f7faff 0%, #e8f1fb 60%, #e6f4f1 100%);
+  border-right: 1px solid var(--border-soft);
 }
-:root:not([data-theme="dark"]) .home-hero-art img {
-  border-radius: var(--radius-lg);
-  box-shadow: 0 18px 40px -22px rgba(34, 58, 101, .45);
-  outline: 1px solid rgba(255, 255, 255, .6);
-  outline-offset: -1px;
+:root:not([data-theme="dark"]) .sidebar a[aria-current="page"] {
+  background: linear-gradient(90deg, rgba(43, 89, 217, .14), rgba(23, 148, 135, .10));
+  box-shadow: inset 3px 0 0 #2b59d9;
 }
+:root:not([data-theme="dark"]) table th { background: linear-gradient(180deg, #eef4fc, #e7eff9); color: var(--ink-blue); }
 
-/* Badges and callouts: coordinated tints */
+/* Badges and callouts */
 :root:not([data-theme="dark"]) .badge-success { background: var(--green-50); border-color: var(--green-100); }
-:root:not([data-theme="dark"]) .callout-neutral { background: linear-gradient(180deg, #f6f9fd, var(--surface)); border-color: var(--border-soft); }
+:root:not([data-theme="dark"]) .callout-neutral { background: linear-gradient(135deg, #f2f7fe, #eef8f6); border-color: var(--border-soft); }
 
-/* Guard against stray horizontal overflow from long words in cards */
+/* Keep long words inside cards and panels */
 .facility-card, .panel { overflow-wrap: anywhere; }
+
+/* Home content below the hero: soft blue-to-teal tint instead of plain white */
+:root:not([data-theme="dark"]) .home-v2 { background: linear-gradient(180deg, #f3f7fd 0%, #eef6f6 50%, #f1f5fc 100%); }
+
+/* Page headers keep each page's brand colour (blue, mint, violet), enriched with a gradient and the accent line */
+:root:not([data-theme="dark"]) #main .page-header,
+:root:not([data-theme="dark"]) #main .facility-profile .detail-hero {
+  background:
+    radial-gradient(45% 140% at 100% 0%, rgba(23, 148, 135, .16), transparent 70%),
+    linear-gradient(120deg, var(--brand-blue-surface) 0%, #cfe0fb 55%, #d6ecef 100%);
+}
+:root:not([data-theme="dark"]) #main .page-header-green {
+  background:
+    linear-gradient(120deg, var(--brand-mint-surface) 0%, #c4e8d6 55%, #d3ecf0 100%);
+}
+:root:not([data-theme="dark"]) #main .resource-library .page-header,
+:root:not([data-theme="dark"]) #main .resource-reader .reader-header {
+  background:
+    linear-gradient(120deg, var(--brand-violet-surface) 0%, #e2d8f7 55%, #dce7fb 100%);
+}
