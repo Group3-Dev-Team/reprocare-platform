@@ -113,10 +113,12 @@
   background: linear-gradient(180deg, #f7faff 0%, #e8f1fb 60%, #e6f4f1 100%);
   border-right: 1px solid var(--border-soft);
 }
-:root:not([data-theme="dark"]) .sidebar a[aria-current="page"] {
-  background: linear-gradient(90deg, rgba(43, 89, 217, .14), rgba(23, 148, 135, .10));
-  box-shadow: inset 3px 0 0 #2b59d9;
+:root:not([data-theme="dark"]) .sidebar .sidebar-link.active {
+  background: linear-gradient(135deg, #2b59d9 0%, #1d3fa8 100%);
+  color: #fff;
+  box-shadow: 0 8px 18px -10px rgba(29, 63, 168, .7);
 }
+:root:not([data-theme="dark"]) .sidebar .sidebar-link.active :is(svg, .sidebar-count) { color: #fff; }
 :root:not([data-theme="dark"]) table th { background: linear-gradient(180deg, #eef4fc, #e7eff9); color: var(--ink-blue); }
 
 /* Badges and callouts */
@@ -289,3 +291,92 @@
 :root:not([data-theme="dark"]) .filters {
   background-image: linear-gradient(180deg, #e6efff 0, #eaf6f3 64px, #ffffff 64px, #f8fbff 100%);
 }
+
+/* ===================== Contrast restorations (context buttons) ===================== */
+/* Buttons on the blue call-to-action band and in the dark footer keep their contextual colours. */
+:root:not([data-theme="dark"]) .cta-band .btn-primary {
+  background: #fff; color: var(--blue-700); border-color: #fff;
+  box-shadow: 0 10px 22px -12px rgba(8, 20, 60, .6);
+}
+:root:not([data-theme="dark"]) .cta-band .btn-primary:hover { background: #eef3ff; color: var(--pf-blue-deep); }
+:root:not([data-theme="dark"]) .cta-band .btn-secondary {
+  background: transparent; color: #fff; border-color: rgba(255, 255, 255, .65);
+}
+:root:not([data-theme="dark"]) .cta-band .btn-secondary:hover { background: rgba(255, 255, 255, .14); border-color: #fff; color: #fff; }
+:root:not([data-theme="dark"]) .site-footer .back-to-top {
+  background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .40); color: #fff;
+}
+:root:not([data-theme="dark"]) .site-footer .back-to-top:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+
+/* ===================== Art direction: complementary accents ===================== */
+:root:not([data-theme="dark"]) {
+  --pf-violet: #6a58c9; --pf-violet-soft: #eeeafc; --pf-violet-line: #d6cdf6;
+  --pf-amber-soft: #fbf1df; --pf-amber-line: #efd5a6; --pf-amber-ink: #8a5a12;
+  --pf-rose: #c25a7c; --pf-rose-soft: #fbeaf0; --pf-rose-line: #f0c8d6;
+}
+/* Page light: blue and teal lead; a faint violet and rose glow adds warmth */
+:root:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(1100px 620px at -5% -10%, rgba(43, 89, 217, .13), transparent 62%),
+    radial-gradient(900px 600px at 105% 25%, rgba(15, 143, 134, .11), transparent 60%),
+    radial-gradient(900px 640px at 85% 95%, rgba(106, 88, 201, .09), transparent 62%),
+    radial-gradient(700px 480px at 10% 85%, rgba(194, 90, 124, .06), transparent 60%),
+    linear-gradient(180deg, #e7eefb 0%, #ebf3f4 48%, #eeedf9 100%) fixed;
+}
+
+/* Health education (guides and assistant): violet family */
+:root:not([data-theme="dark"]) .home-guides .section-head h2::after { background: linear-gradient(90deg, var(--pf-violet), var(--pf-rose)); }
+:root:not([data-theme="dark"]) .home-guide-assistant {
+  background: linear-gradient(140deg, #f3f0fd 0%, #ebe5fb 55%, #f7e9f0 100%);
+  border: 1px solid var(--pf-violet-line); border-radius: var(--radius-lg);
+  box-shadow: 0 14px 34px -18px rgba(106, 88, 201, .45);
+}
+:root:not([data-theme="dark"]) .home-guide-list a:hover { color: var(--pf-violet); }
+
+/* Community programmes band: warm amber-to-rose over the brand blue */
+:root:not([data-theme="dark"]) .home-community {
+  background: linear-gradient(120deg, #dde7fd 0%, #ece6fb 45%, #fbeee4 100%);
+  border-top: 1px solid var(--pf-violet-line); border-bottom: 1px solid var(--pf-amber-line);
+}
+:root:not([data-theme="dark"]) .home-community .section-head h2::after,
+:root:not([data-theme="dark"]) .home-community h2::after { background: linear-gradient(90deg, var(--pf-amber), var(--pf-rose)); }
+
+/* Footer: add a quiet violet glow to the navy-teal field */
+:root:not([data-theme="dark"]) .site-footer {
+  background:
+    linear-gradient(90deg, var(--pf-blue), var(--pf-teal) 55%, var(--pf-green)) top / 100% 3px no-repeat,
+    radial-gradient(45% 120% at 0% 0%, rgba(79, 125, 255, .28), transparent 70%),
+    radial-gradient(35% 110% at 55% 120%, rgba(106, 88, 201, .30), transparent 70%),
+    radial-gradient(40% 110% at 100% 100%, rgba(15, 143, 134, .40), transparent 70%),
+    linear-gradient(135deg, var(--pf-navy) 0%, var(--pf-navy-2) 50%, #0b4f57 100%);
+}
+
+/* Dashboards: stat cards carry one family each, in a fixed order (blue, teal, violet, amber) */
+:root:not([data-theme="dark"]) .stat-card { position: relative; overflow: hidden; }
+:root:not([data-theme="dark"]) .stat-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--pf-blue); }
+:root:not([data-theme="dark"]) :nth-child(4n+2 of .stat-card)::before { background: var(--pf-teal); }
+:root:not([data-theme="dark"]) :nth-child(4n+3 of .stat-card)::before { background: var(--pf-violet); }
+:root:not([data-theme="dark"]) :nth-child(4n+4 of .stat-card)::before { background: var(--pf-amber); }
+
+/* Headings inside panels: deep ink; links: brand blue with violet hover in reading areas */
+:root:not([data-theme="dark"]) .resource-library a:hover,
+:root:not([data-theme="dark"]) .resource-reader a:hover { color: var(--pf-violet); }
+
+/* ===================== WCAG AA corrections ===================== */
+/* Lighter page tint keeps brand-blue links above 4.5:1 */
+:root:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(1100px 620px at -5% -10%, rgba(43, 89, 217, .10), transparent 62%),
+    radial-gradient(900px 600px at 105% 25%, rgba(15, 143, 134, .09), transparent 60%),
+    radial-gradient(900px 640px at 85% 95%, rgba(106, 88, 201, .07), transparent 62%),
+    radial-gradient(700px 480px at 10% 85%, rgba(194, 90, 124, .05), transparent 60%),
+    linear-gradient(180deg, #eef3fc 0%, #eff6f6 48%, #f2f1fb 100%) fixed;
+}
+:root:not([data-theme="dark"]) { --text-subtle: #4a5d78; }
+/* Book appointment: deeper care green so white text passes AA */
+:root:not([data-theme="dark"]) .btn-success { background: linear-gradient(135deg, #1f7a4d 0%, #176b52 100%); color: #fff; }
+:root:not([data-theme="dark"]) .btn-success:hover { background: linear-gradient(135deg, #1a6b43 0%, #135c46 100%); }
+/* Links on tinted page headers and the facility hero use the deep brand blue */
+:root:not([data-theme="dark"]) #main :is(.page-header, .detail-hero, .reader-header) a:not(.btn) { color: var(--pf-blue-deep); }
+:root:not([data-theme="dark"]) .sidebar .sidebar-link.active .sidebar-count { background: rgba(255, 255, 255, .22); color: #fff; }
+:root:not([data-theme="dark"]) .sidebar-count { background: var(--pf-blue-deep); color: #fff; }
