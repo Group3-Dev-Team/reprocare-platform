@@ -145,3 +145,147 @@
   background:
     linear-gradient(120deg, var(--brand-violet-surface) 0%, #e2d8f7 55%, #dce7fb 100%);
 }
+
+/* ===================== Premium finish (light theme) ===================== */
+:root:not([data-theme="dark"]) {
+  /* Five families: brand blue, deep navy, teal, care green, warm amber */
+  --pf-blue: #2b59d9; --pf-blue-deep: #1d3fa8; --pf-navy: #0d1b3e; --pf-navy-2: #13305c;
+  --pf-teal: #0f8f86; --pf-teal-soft: #d4efeb; --pf-green: #2f9e5b; --pf-amber: #d39a3b;
+  --radius-lg: 18px; --radius-md: 12px;
+  --pf-line: rgba(43, 89, 217, .16);
+  --pf-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 1px 2px rgba(13, 27, 62, .06), 0 14px 34px -16px rgba(13, 27, 62, .32);
+  --pf-shadow-hover: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 2px 6px rgba(13, 27, 62, .08), 0 22px 44px -18px rgba(15, 143, 134, .42);
+}
+
+/* Page background: layered blue and teal light, never flat white */
+:root:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(1100px 620px at -5% -10%, rgba(43, 89, 217, .13), transparent 62%),
+    radial-gradient(900px 600px at 105% 25%, rgba(15, 143, 134, .12), transparent 60%),
+    radial-gradient(800px 500px at 30% 110%, rgba(211, 154, 59, .07), transparent 60%),
+    linear-gradient(180deg, #e7eefb 0%, #e9f4f2 48%, #ecf0fa 100%) fixed;
+}
+:root:not([data-theme="dark"]) .home-v2 { background: transparent; }
+:root:not([data-theme="dark"]) .home-community {
+  background: linear-gradient(120deg, #d9e6fd 0%, #d5ecf0 60%, #d8efe2 100%);
+  border-top: 1px solid var(--pf-line); border-bottom: 1px solid var(--pf-line);
+}
+:root:not([data-theme="dark"]) .home-source-band {
+  background: linear-gradient(120deg, #cfeadd 0%, #d1ece8 55%, #dce9fb 100%);
+  border-top: 1px solid rgba(47, 158, 91, .25); border-bottom: 1px solid rgba(47, 158, 91, .25);
+}
+
+/* Header: frosted white over a soft gradient, accent line, deeper shadow, clear active state */
+:root:not([data-theme="dark"]) .site-header {
+  background:
+    linear-gradient(90deg, var(--pf-blue), var(--pf-teal) 55%, var(--pf-green)) bottom / 100% 3px no-repeat,
+    linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(244, 248, 255, .95));
+  box-shadow: 0 10px 30px -18px rgba(13, 27, 62, .45);
+  backdrop-filter: saturate(140%) blur(8px);
+}
+:root:not([data-theme="dark"]) .nav-link { border-radius: 10px; transition: background .15s ease, color .15s ease; }
+:root:not([data-theme="dark"]) .nav-link:hover { background: linear-gradient(180deg, #edf3ff, #e4f5f2); color: var(--pf-blue-deep); }
+:root:not([data-theme="dark"]) .nav-link[aria-current="page"],
+:root:not([data-theme="dark"]) .nav-link.active {
+  color: var(--pf-blue-deep);
+  background: linear-gradient(180deg, #eaf1ff, #e2f3f0);
+  box-shadow: inset 0 -2px 0 var(--pf-blue);
+}
+
+/* Footer: rich navy-to-teal gradient with coordinated text and an accent line */
+:root:not([data-theme="dark"]) .site-footer {
+  color: #c9d6ee;
+  background:
+    linear-gradient(90deg, var(--pf-blue), var(--pf-teal) 55%, var(--pf-green)) top / 100% 3px no-repeat,
+    radial-gradient(45% 120% at 0% 0%, rgba(79, 125, 255, .28), transparent 70%),
+    radial-gradient(40% 110% at 100% 100%, rgba(15, 143, 134, .40), transparent 70%),
+    linear-gradient(135deg, var(--pf-navy) 0%, var(--pf-navy-2) 50%, #0b4f57 100%);
+  border-top: 0;
+}
+:root:not([data-theme="dark"]) .site-footer a:not(.support-contact):not(.btn) { color: #dbe7ff; }
+:root:not([data-theme="dark"]) .site-footer a:not(.support-contact):not(.btn):hover { color: #8fe3d6; text-decoration: underline; }
+:root:not([data-theme="dark"]) .site-footer .footer-col h2,
+:root:not([data-theme="dark"]) .site-footer .logo-word { color: #fff; }
+:root:not([data-theme="dark"]) .site-footer .footer-brand p,
+:root:not([data-theme="dark"]) .site-footer .footer-base { color: #a8badb; }
+:root:not([data-theme="dark"]) .site-footer .footer-base { border-top: 1px solid rgba(255, 255, 255, .12); }
+:root:not([data-theme="dark"]) .site-footer .footer-emergency {
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); border-radius: var(--radius-md); color: #e8eefc;
+}
+
+/* Cards and panels: one consistent premium surface */
+:root:not([data-theme="dark"]) :is(.panel, .facility-card, .stat-card, .review-card, .program-card, .practitioner-card,
+  .appointment-card, .timeline-card, .about-story-card, .care-decision-card, .auth-card, .filters) {
+  background-color: #fff;
+  background-image: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pf-shadow);
+}
+:root:not([data-theme="dark"]) .panel {
+  background-image: linear-gradient(90deg, var(--pf-blue), var(--pf-teal) 55%, var(--pf-green)), linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background-size: 100% 3px, 100% 100%; background-repeat: no-repeat; background-position: top, center;
+}
+:root:not([data-theme="dark"]) :is(.facility-card, .program-card, .practitioner-card, .review-card, .stat-card) {
+  transition: box-shadow .2s ease, border-color .2s ease;
+}
+:root:not([data-theme="dark"]) :is(.facility-card, .program-card, .practitioner-card, .stat-card):hover {
+  border-color: rgba(15, 143, 134, .45); box-shadow: var(--pf-shadow-hover);
+}
+/* Home tiles keep their own colours; refine shape and depth only */
+:root:not([data-theme="dark"]) :is(.home-actions, .home-services) a {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(13, 27, 62, .05), 0 10px 26px -16px rgba(13, 27, 62, .30);
+  transition: box-shadow .2s ease, border-color .2s ease;
+}
+:root:not([data-theme="dark"]) :is(.home-actions, .home-services) a:hover { box-shadow: var(--pf-shadow-hover); }
+:root:not([data-theme="dark"]) .home-services a { border-color: var(--pf-line); background-image: linear-gradient(180deg, #fff, #f7fbff); }
+
+/* Section headings: coordinated short accent bar */
+:root:not([data-theme="dark"]) .section-head h2::after {
+  content: ""; display: block; width: 56px; height: 4px; margin-top: 10px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--pf-blue), var(--pf-teal), var(--pf-green));
+}
+
+/* Dashboard shell */
+:root:not([data-theme="dark"]) .sidebar {
+  background: linear-gradient(180deg, #f6f9ff 0%, #e6effc 55%, #e3f3ef 100%);
+  border-right: 1px solid var(--pf-line);
+  box-shadow: 6px 0 24px -20px rgba(13, 27, 62, .5);
+}
+
+/* Badges: warm amber accent family for highlights */
+:root:not([data-theme="dark"]) .badge-warning,
+:root:not([data-theme="dark"]) .badge-amber { background: #fbf0dc; border-color: #f0d6a8; color: #8a5a12; }
+
+/* Stronger page-header band: deeper blue-to-teal with highlights (keeps each page's colour family) */
+:root:not([data-theme="dark"]) #main .page-header,
+:root:not([data-theme="dark"]) #main .facility-profile .detail-hero {
+  background:
+    radial-gradient(40% 140% at 0% 0%, rgba(255, 255, 255, .55), transparent 70%),
+    radial-gradient(45% 160% at 100% 100%, rgba(15, 143, 134, .28), transparent 70%),
+    linear-gradient(120deg, #d3e3ff 0%, #bed4fb 48%, #c3e6e0 100%);
+  border-bottom: 1px solid rgba(43, 89, 217, .25);
+}
+:root:not([data-theme="dark"]) #main .page-header-green {
+  background:
+    radial-gradient(40% 140% at 0% 0%, rgba(255, 255, 255, .55), transparent 70%),
+    linear-gradient(120deg, #cdeedd 0%, #b9e4cf 50%, #c6e5ee 100%);
+}
+:root:not([data-theme="dark"]) #main .resource-library .page-header,
+:root:not([data-theme="dark"]) #main .resource-reader .reader-header {
+  background:
+    radial-gradient(40% 140% at 0% 0%, rgba(255, 255, 255, .55), transparent 70%),
+    linear-gradient(120deg, #e6dcfb 0%, #d8cbf5 50%, #d3e2fb 100%);
+}
+
+/* Facility cards: brand accent strip on the leading edge */
+:root:not([data-theme="dark"]) .facility-card {
+  background-image: linear-gradient(180deg, var(--pf-blue), var(--pf-teal) 60%, var(--pf-green)), linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background-size: 4px 100%, 100% 100%; background-repeat: no-repeat; background-position: left top, center;
+}
+
+/* Filter panel: tinted heading band */
+:root:not([data-theme="dark"]) .filters {
+  background-image: linear-gradient(180deg, #e6efff 0, #eaf6f3 64px, #ffffff 64px, #f8fbff 100%);
+}
