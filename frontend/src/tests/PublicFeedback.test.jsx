@@ -140,7 +140,7 @@ it('opens withheld Facebook feedback and its hidden replies for inspection witho
   });
   const moderate = vi.spyOn(api, 'moderateFacebookPost');
   render(
-    <MemoryRouter initialEntries={['/dashboard/admin/facebook-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/dashboard/admin/facebook-feedback']}>
       <AdminFacebookFeedback />
     </MemoryRouter>,
   );
@@ -177,7 +177,7 @@ it('requires explicit attribution and comment selection before submitting a Face
   });
   const save = vi.spyOn(api, 'moderateFacebookPost').mockResolvedValue({ published: true });
   render(
-    <MemoryRouter initialEntries={['/dashboard/admin/facebook-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/dashboard/admin/facebook-feedback']}>
       <AdminFacebookFeedback />
     </MemoryRouter>,
   );
@@ -228,7 +228,7 @@ it('separates approved and collected Facebook activity by attribution and keeps 
   const onWrittenCount = vi.fn();
   const summary = { data: { platforms: [], google: { rating: 4.9, rating_count: 30 } } };
   render(
-    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']}>
       <PublicFeedbackSection slug="fixture" summary={summary} onWrittenCount={onWrittenCount} />
     </MemoryRouter>,
   );
@@ -265,7 +265,7 @@ it('shows organization-only comment totals and keeps them stable across post pag
       comment_count: 3, preview: [comment({ id: page, text: `Fixture organization comment page ${page}` })],
     }] });
   render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <PublicFeedbackSection slug="fixture" summary={{ data: { platforms: [] } }} />
     </MemoryRouter>,
   );
@@ -288,7 +288,7 @@ it('keeps approved Facebook feedback visible when local collection display is un
   vi.spyOn(api, 'facilityCollectedFacebookPosts').mockRejectedValue(Object.assign(new Error('Unavailable'), { status: 404 }));
   const demo = vi.spyOn(api, 'facebookDemoPosts');
   render(
-    <MemoryRouter initialEntries={['/facilities/fixture']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/facilities/fixture']}>
       <PublicFeedbackSection slug="fixture" summary={{ data: { platforms: [] } }} />
     </MemoryRouter>,
   );
@@ -309,7 +309,7 @@ it('explains when written Google reviews are not configured or the request limit
     .mockRejectedValueOnce(new ApiError('Google Places is not configured on this server.', 503))
     .mockRejectedValueOnce(new ApiError('Too many Google Maps requests from this device. Please wait a few minutes and try again.', 429));
   render(
-    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']}>
       <PublicFeedbackSection slug="fixture" summary={{ data: { platforms: [], google: { rating: 4.2, rating_count: 12 } } }} />
     </MemoryRouter>,
   );
@@ -327,7 +327,7 @@ it('lets people load written Google reviews for a linked place that has no store
   const written = { author: 'Fixture Reviewer', rating: 5, text: 'Test fixture: kind midwives.', relative_time: 'a month ago', source: 'https://maps.google.com/?cid=1' };
   const google = vi.spyOn(api, 'facilityGoogleReviews').mockResolvedValue({ reviews: [written], attributions: [] });
   const view = (summary) => render(
-    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/facilities/fixture#google-feedback']}>
       <PublicFeedbackSection slug="fixture" summary={{ data: { platforms: [], ...summary } }} />
     </MemoryRouter>,
   );

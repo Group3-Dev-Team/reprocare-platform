@@ -20,7 +20,6 @@ function renderCareGuide() {
   render(
     <MemoryRouter
       initialEntries={["/compare"]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <CompareProvider>
         <Routes>
@@ -114,7 +113,6 @@ function renderAssistant(url) {
   render(
     <MemoryRouter
       initialEntries={[url]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <CompareProvider>
         <Routes>

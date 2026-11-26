@@ -23,7 +23,7 @@ it('keeps explicit sorting and precise browser location private while applying a
 
   try {
     render(
-      <MemoryRouter initialEntries={['/find-care/facilities?sort=name']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/find-care/facilities?sort=name']}>
         <FindCarePage />
         <CurrentUrl />
       </MemoryRouter>,
@@ -61,7 +61,7 @@ it('preserves filters and paging across grid, map and list views', async () => {
   vi.spyOn(api, 'counties').mockResolvedValue([{ county: 'Nairobi', facility_count: 30 }]);
   render(
     <MemoryRouter initialEntries={['/find-care/facilities?county=Nairobi&page=2&min_google_rating=4&sort=google_count']}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+     >
       <FindCarePage />
       <CurrentUrl />
     </MemoryRouter>,
@@ -89,7 +89,7 @@ it('filters to facilities with public reviews from the sort menu, keeping search
   vi.spyOn(api, 'counties').mockResolvedValue([]);
   const google = vi.spyOn(api, 'facilityGoogleReviews');
   render(
-    <MemoryRouter initialEntries={['/find-care/facilities?q=hospital&county=Kisumu&view=grid']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/find-care/facilities?q=hospital&county=Kisumu&view=grid']}>
       <FindCarePage />
       <CurrentUrl />
     </MemoryRouter>,
@@ -130,7 +130,7 @@ it('offers the towns of the chosen county and filters by county and town togethe
     : [{ town: 'Naivasha', county: 'Nakuru', facility_count: 9 }]));
 
   render(
-    <MemoryRouter initialEntries={['/find-care/facilities']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/find-care/facilities']}>
       <FindCarePage />
       <CurrentUrl />
     </MemoryRouter>,
@@ -159,7 +159,7 @@ it('shows county counts for the active search and offers labelled facilities wit
   const counties = vi.spyOn(api, 'counties').mockResolvedValue([{ county: 'Machakos', facility_count: 1, total_count: 28, contextual: true }]);
   vi.spyOn(api, 'towns').mockResolvedValue([]);
   render(
-    <MemoryRouter initialEntries={['/find-care/facilities?service=hiv&county=Machakos']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/find-care/facilities?service=hiv&county=Machakos']}>
       <FindCarePage />
       <CurrentUrl />
     </MemoryRouter>,

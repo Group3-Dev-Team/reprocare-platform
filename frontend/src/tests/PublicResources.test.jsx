@@ -37,7 +37,6 @@ describe("care planner", () => {
     ]);
     render(
       <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <CarePlannerPage />
       </MemoryRouter>,
@@ -69,7 +68,6 @@ it("adds a facility to the tab plan and removes it without touching account save
   render(
     <MemoryRouter
       initialEntries={["/fixtures"]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <Routes>
         <Route
@@ -106,7 +104,6 @@ it("shows reviewed questions in Kiswahili from the library", async () => {
   vi.spyOn(api, "articles").mockResolvedValue([]);
   render(
     <MemoryRouter
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <LibraryPage />
     </MemoryRouter>,

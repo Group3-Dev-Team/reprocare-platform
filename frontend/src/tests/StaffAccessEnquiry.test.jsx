@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks());
 it('explains that staff access is verified and carries facility and role to the contact form as the last step', async () => {
   vi.spyOn(api, 'facilities').mockResolvedValue({ total: 0, items: [], page: 1, pages: 0 });
   render(
-    <MemoryRouter initialEntries={['/register']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/register']}>
       <AuthProvider>
         <Routes>
           <Route path="/register" element={<StaffAccessEnquiry />} />

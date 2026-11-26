@@ -14,7 +14,7 @@ vi.mock('../hooks/useSaved', () => ({ useSaved: () => ({ isSaved: () => false, t
 vi.mock('../components/Toast', () => ({ useToast: () => vi.fn() }));
 
 const facility = (fields) => ({ slug: 'test-clinic', name: 'Test Clinic', facility_type: 'clinic', town: 'Nairobi', county: 'Nairobi', services: [], insurers: [], ...fields });
-const wrap = (ui) => render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>);
+const wrap = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 it('shows Book appointment only for facilities that take ReproCare requests', () => {
   const onRequest = vi.fn();
@@ -74,7 +74,7 @@ it('opens the request form or the contact panel from a directory card, depending
   vi.spyOn(api, 'insurers').mockResolvedValue([]);
   vi.spyOn(api, 'counties').mockResolvedValue([]);
   render(
-    <MemoryRouter initialEntries={['/find-care/facilities']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/find-care/facilities']}>
       <FindCarePage />
     </MemoryRouter>,
   );

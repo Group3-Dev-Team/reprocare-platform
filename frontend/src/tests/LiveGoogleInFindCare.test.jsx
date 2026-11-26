@@ -4,7 +4,6 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { api } from '../services/api';
 import { LiveGoogleResults } from '../components/LiveGoogleResults';
 
-const future = { v7_startTransition: true, v7_relativeSplatPath: true };
 afterEach(() => vi.restoreAllMocks());
 
 it('searches Google Maps from Find Care only when asked, and marks places not yet in the directory', async () => {
@@ -12,7 +11,7 @@ it('searches Google Maps from Find Care only when asked, and marks places not ye
     { place_id: 'ChIJfixtureListed', name: 'Fixture Listed Clinic', rating: 4.1, rating_count: 20, facility_slug: 'fixture-listed' },
     { place_id: 'ChIJfixtureExtra1', name: 'Fixture Extra Clinic', rating: 4.6, rating_count: 9, facility_slug: null },
   ] });
-  render(<MemoryRouter future={future}><LiveGoogleResults query="maternity in Nakuru" /></MemoryRouter>);
+  render(<MemoryRouter><LiveGoogleResults query="maternity in Nakuru" /></MemoryRouter>);
   expect(search).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Search Google Maps for “maternity in Nakuru”' }));
   await screen.findByText('Fixture Extra Clinic');

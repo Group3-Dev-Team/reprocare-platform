@@ -32,7 +32,7 @@ describe('Appointment requests page', () => {
       preferred_date: future(5), preferred_time: 'morning', notes: '', facility_note: 'See you', created_at: '2026-11-01T08:00:00Z' };
     vi.spyOn(api, 'myAppointments').mockResolvedValue({ items: [request], total: 1, page: 1, pages: 1, page_size: 20 });
     const reschedule = vi.spyOn(api, 'rescheduleAppointment').mockResolvedValue({ ...request, status: 'requested' });
-    render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ToastProvider><MyAppointments /></ToastProvider></MemoryRouter>);
+    render(<MemoryRouter><ToastProvider><MyAppointments /></ToastProvider></MemoryRouter>);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Request a different date' }));
     fireEvent.change(screen.getByLabelText(/New preferred date/), { target: { value: future(9) } });

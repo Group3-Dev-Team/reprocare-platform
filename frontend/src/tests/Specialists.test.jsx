@@ -8,7 +8,7 @@ const empty = { items: [], total: 0, page: 1, pages: 1, page_size: 15 };
 
 function renderAt(url) {
   return render(
-    <MemoryRouter initialEntries={[url]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[url]}>
       <SpecialistsPage />
     </MemoryRouter>,
   );

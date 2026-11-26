@@ -16,7 +16,7 @@ const page = (items) => ({ items, total: items.length, page: 1, pages: 1, page_s
 
 function renderPage(element) {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <AuthProvider>
         <ToastProvider>{element}</ToastProvider>
       </AuthProvider>

@@ -20,7 +20,7 @@ it('filters laboratories county first, then by a town of that county, and resets
   const labs = vi.spyOn(api, 'facilities').mockResolvedValue({ total: 0, items: [], page: 1, pages: 0, page_size: 15 });
   const tests = vi.spyOn(api, 'labTests').mockResolvedValue({ total: 0, items: [], page: 1, pages: 0, page_size: 15 });
   render(
-    <MemoryRouter initialEntries={['/find-care/laboratories']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/find-care/laboratories']}>
       <LaboratoriesPage />
       <CurrentUrl />
     </MemoryRouter>,

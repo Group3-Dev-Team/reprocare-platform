@@ -9,7 +9,7 @@ import { ToastProvider } from '../components/Toast';
 
 function renderAt(url) {
   render(
-    <MemoryRouter initialEntries={[url]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[url]}>
       <AuthProvider><SavedProvider><CompareProvider><ToastProvider><App /></ToastProvider></CompareProvider></SavedProvider></AuthProvider>
     </MemoryRouter>,
   );

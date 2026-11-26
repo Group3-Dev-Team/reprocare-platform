@@ -6,7 +6,6 @@ import GooglePlacesPage from '../pages/GooglePlacesPage';
 import LivePlacePage from '../pages/LivePlacePage';
 import { GooglePhoto, resetGooglePhotos } from '../components/GooglePhoto';
 
-const future = { v7_startTransition: true, v7_relativeSplatPath: true };
 afterEach(() => { vi.restoreAllMocks(); resetGooglePhotos(); });
 
 it('runs a search passed from Find Care and separates listed places from live Google results', async () => {
@@ -15,7 +14,7 @@ it('runs a search passed from Find Care and separates listed places from live Go
     { place_id: 'ChIJfixtureListed', name: 'Fixture Listed Clinic', rating: 4.2, rating_count: 31, facility_slug: 'fixture-listed' },
     { place_id: 'ChIJfixtureLive01', name: 'Fixture Live Clinic', rating: null, rating_count: null, facility_slug: null },
   ] });
-  render(<MemoryRouter initialEntries={['/find-care/google?q=Marie%20Stopes']} future={future}><GooglePlacesPage /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/find-care/google?q=Marie%20Stopes']}><GooglePlacesPage /></MemoryRouter>);
   await screen.findByText('Fixture Live Clinic');
   expect(search).toHaveBeenCalledTimes(1);
   expect(search).toHaveBeenCalledWith(expect.objectContaining({ q: 'Marie Stopes' }));
@@ -32,7 +31,7 @@ it('shows a live listing as unstored, with its rating, and loads written reviews
   const reviews = vi.spyOn(api, 'livePlaceReviews').mockResolvedValue({ returned_count: 1, attributions: [], reviews: [
     { text: 'Fixture review text', rating: 4, source: 'https://maps.google.com/r/1', author: 'Fixture Author' },
   ] });
-  render(<MemoryRouter initialEntries={['/find-care/google/place/ChIJfixtureLive01']} future={future}>
+  render(<MemoryRouter initialEntries={['/find-care/google/place/ChIJfixtureLive01']}>
     <Routes><Route path="/find-care/google/place/:placeId" element={<LivePlacePage />} /></Routes>
   </MemoryRouter>);
   await screen.findByText('Live Google Maps result');

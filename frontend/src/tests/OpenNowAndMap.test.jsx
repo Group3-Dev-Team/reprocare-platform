@@ -7,7 +7,6 @@ import { api } from '../services/api';
 
 afterEach(() => vi.restoreAllMocks());
 
-const router = { v7_startTransition: true, v7_relativeSplatPath: true };
 
 function CurrentUrl() {
   return <output data-testid="url">{useLocation().search}</output>;
@@ -28,7 +27,7 @@ describe('map pin grouping', () => {
   const sameBuilding = [point('a', -1.2864, 36.8172), point('b', -1.2864, 36.8172), point('c', -1.2864, 36.8172)];
 
   function renderMap(props) {
-    return render(<MemoryRouter future={router}><LeafletMap fitToPoints={false} {...props} /></MemoryRouter>);
+    return render(<MemoryRouter><LeafletMap fitToPoints={false} {...props} /></MemoryRouter>);
   }
 
   it('shows a numbered group for nearby pins at country zoom and every pin at street level', () => {
@@ -58,7 +57,7 @@ describe('Open now filter', () => {
     vi.spyOn(api, 'insurers').mockResolvedValue([]);
     vi.spyOn(api, 'counties').mockResolvedValue([]);
     render(
-      <MemoryRouter initialEntries={['/find-care/facilities?town=Kisumu']} future={router}>
+      <MemoryRouter initialEntries={['/find-care/facilities?town=Kisumu']}>
         <FindCarePage />
         <CurrentUrl />
       </MemoryRouter>,
