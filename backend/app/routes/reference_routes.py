@@ -60,7 +60,7 @@ def list_towns(
         ).all()
         return [
             {"town": " ".join(t.split()), "county": label, "facility_count": matching, "total_count": n, "contextual": context,
-             "latitude": round(lat, 4) if lat else None, "longitude": round(lng, 4) if lng else None}
+             "latitude": round(lat, 4) if lat is not None else None, "longitude": round(lng, 4) if lng is not None else None}
             for _, t, n, lat, lng, matching in rows
         ]
     rows = db.execute(
@@ -69,7 +69,7 @@ def list_towns(
         .order_by(func.count(Facility.id).desc(), Facility.town)
     ).all()
     return [
-        {"town": t, "county": c, "facility_count": n, "latitude": round(lat, 4) if lat else None, "longitude": round(lng, 4) if lng else None}
+        {"town": t, "county": c, "facility_count": n, "latitude": round(lat, 4) if lat is not None else None, "longitude": round(lng, 4) if lng is not None else None}
         for t, c, n, lat, lng in rows
     ]
 

@@ -39,3 +39,17 @@ def test_imported_county_spellings_are_displayed_as_the_county_name_without_chan
     assert {i["county"] for i in client.get("/api/facilities", params={"q": "Countyfixture Wilaya"}).json()["items"]} == {"Kisumu"}
     with SessionLocal() as db:
         assert db.get(Facility, f.id).county == "Wilaya ya Kisumu"
+
+
+def test_towns_keep_zero_coordinates_and_report_missing_data(client, make_facility):
+    make_facility(town="Equator Fixture", county="Laikipia", latitude=0, longitude=36.5)
+    make_facility(town="Unmapped Fixture", county="Laikipia", latitude=None, longitude=None)
+
+    for params in ({}, {"county": "Laikipia"}):
+        response = client.get("/api/towns", params=params)
+        assert response.status_code == 200
+        towns = {item["town"]: item for item in response.json()}
+        assert towns["Equator Fixture"]["latitude"] == 0
+        assert towns["Equator Fixture"]["longitude"] == 36.5
+        assert towns["Unmapped Fixture"]["latitude"] is None
+        assert towns["Unmapped Fixture"]["longitude"] is None
