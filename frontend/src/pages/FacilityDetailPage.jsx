@@ -100,7 +100,7 @@ function FacilityDetails({ slug }) {
                 {f.is_demo && <DemoLabel />}
                 <a href="#experiences" className="detail-score detail-score-reprocare" title="Average of moderated reviews submitted on ReproCare">
                   <span className="detail-score-label">ReproCare rating</span>
-                  <Rating rating={f.rating} />
+                  <Rating rating={f.rating} hasPublicFeedback={publicSummary.data?.total_comments > 0 || Boolean(googleRating)} />
                 </a>
                 {googleRating && (
                   <Link to="#google-feedback" className="detail-score detail-score-google" title="Google's own rating. Not a ReproCare rating.">

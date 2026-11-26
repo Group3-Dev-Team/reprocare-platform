@@ -108,7 +108,7 @@ it('filters to facilities with public reviews from the sort menu, keeping search
   ));
   expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('public_reviews');
   expect(screen.getByTestId('url')).toHaveTextContent('view=grid');
-  expect(screen.getByText(/Written Google Maps reviews load on each facility page/)).toBeInTheDocument();
+  expect(screen.queryByText(/Written Google Maps reviews load on each facility page/)).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Remove filter: Public reviews' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /^Map$/ }));
   await waitFor(() => expect(markers).toHaveBeenLastCalledWith(

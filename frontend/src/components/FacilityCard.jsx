@@ -11,7 +11,7 @@ import { GooglePhotoFigure, liveRating, useGoogleSummary } from './GooglePhoto';
 import { SaveButton } from './SaveButton';
 
 /** One search result. Leads with the requested service, then practical access details and sources. */
-export function FacilityCard({ facility, highlightService, selected, onSelect, onRequest }) {
+export function FacilityCard({ facility, highlightService, selected, onSelect, onRequest, hasPublicFeedback = false }) {
   // Book appointment opens the request form for facilities that take ReproCare requests, and the facility's own
   // contact options for the others; there is no instant booking because no facility publishes slots.
   const hasContact = Boolean(facility.phone || facility.email || facility.website);
@@ -80,7 +80,7 @@ export function FacilityCard({ facility, highlightService, selected, onSelect, o
           <div className="facility-sources">
             {facility.registration_status === 'matched' && <RegistrationLabel status={facility.registration_status} />}
             {facility.is_demo && <DemoLabel />}
-            <Rating rating={facility.rating} isDemo={facility.is_demo} demoSeed={facility.slug} />
+            <Rating rating={facility.rating} isDemo={facility.is_demo} demoSeed={facility.slug} hasPublicFeedback={hasPublicFeedback} />
           </div>
           {googleRating && (
             <Link to={`/facilities/${facility.slug}#google-feedback`} aria-label="Open Google Maps ratings for this facility">
