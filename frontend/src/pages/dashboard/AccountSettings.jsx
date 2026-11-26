@@ -16,6 +16,7 @@ import { useSignOut } from "../../components/UserMenu";
 import { setToken } from "../../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, ShieldCheck } from "lucide-react";
+import { isKenyanPhone, PHONE_MESSAGE } from "../../data/phone";
 
 export default function AccountSettings() {
   useDocumentTitle("Account settings");
@@ -45,6 +46,8 @@ export default function AccountSettings() {
     e.preventDefault();
     if (profile.full_name.trim().length < 2)
       return setErrors({ full_name: "Enter your full name." });
+    if (profile.phone.trim() && !isKenyanPhone(profile.phone))
+      return setErrors({ phone: PHONE_MESSAGE });
     setErrors({});
     setBusy("profile");
     try {
@@ -139,6 +142,7 @@ export default function AccountSettings() {
             type="tel"
             value={profile.phone}
             onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            error={errors.phone}
             hint="Used to pre-fill appointment and registration forms."
           />
           <p className="small muted">
