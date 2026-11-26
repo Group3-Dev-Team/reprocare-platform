@@ -1832,3 +1832,7 @@ code,
 /* Live Google Maps results inside Find Care */
 .live-google-results { margin-top: 20px; display: grid; gap: 12px; }
 .live-google-results h2 { display: flex; align-items: center; gap: 8px; margin: 0; }
+
+/* Booking preview: facility contact routes below the read-only form */
+.booking-contact { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border, #d8e1ef); }
+.booking-contact h3 { margin: 0 0 6px; }

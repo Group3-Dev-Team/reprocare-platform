@@ -1,20 +1,29 @@
 import { Link } from 'react-router-dom';
 import { Globe, Mail, Navigation, Phone } from 'lucide-react';
 import { facilityDisplayName } from '../data/facilityNames';
-import { Modal } from './Modal';
+import { AppointmentModal } from './AppointmentModal';
 
 /**
- * "Book appointment" for a facility that does not take requests through ReproCare: says so plainly and offers
- * only the contact routes the listing actually has. Nothing here suggests ReproCare availability.
+ * "Book appointment" for a facility that does not take requests through ReproCare: the request form is shown as a
+ * clearly labelled preview that cannot be sent, followed by the contact routes the listing actually has.
+ * Nothing here suggests ReproCare availability or creates a booking.
  */
 export function BookingContactModal({ facility, website, directions, onClose }) {
+  return (
+    <AppointmentModal facility={facility} preview onClose={onClose}
+      contact={<BookingContactOptions facility={facility} website={website} directions={directions} onClose={onClose} />} />
+  );
+}
+
+/** The facility's own booking routes (phone, email, website, directions). */
+export function BookingContactOptions({ facility, website, directions, onClose }) {
   const name = facilityDisplayName(facility);
   const phone = facility.phone?.trim();
   const email = facility.email?.trim();
   const hasContact = Boolean(phone || email || website);
   return (
-    <Modal title="Book an appointment" description={name} onClose={onClose}
-      footer={<button className="btn btn-secondary" onClick={onClose}>Close</button>}>
+    <section className="booking-contact" aria-label="Contact the facility">
+      <h3 className="h5">Contact the facility</h3>
       <p>
         {name} does not take appointment requests through ReproCare yet.{' '}
         {hasContact ? 'Contact the facility directly to book a visit:' : 'No booking contact details are listed for this facility yet.'}
@@ -45,6 +54,6 @@ export function BookingContactModal({ facility, website, directions, onClose }) 
         Facilities marked “Accepts ReproCare requests” take booking requests online.{' '}
         <Link to="/find-care/facilities?accepts_requests=true" onClick={onClose}>Find participating facilities</Link>
       </p>
-    </Modal>
+    </section>
   );
 }

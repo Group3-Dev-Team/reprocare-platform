@@ -2,7 +2,7 @@
  * Public feedback collected from Facebook, TikTok and Google (SYSTEM 2).
  * Informational only: shown separately from ReproCare patient reviews and never used for ratings or ranking.
  */
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Facebook, Heart, Info, Instagram, MapPin, MessagesSquare, Music2, Reply } from 'lucide-react';
 import { api } from '../services/api';
@@ -522,7 +522,8 @@ export function PublicFeedbackSection({ slug, summary, onWrittenCount, liveGoogl
         <Info size={17} aria-hidden="true" />
         <p>
           {s?.notice || 'These public comments are for information only and do not affect any ReproCare rating or ranking.'}
-          {' '}Names are shortened to protect privacy; each card links to the original source.
+          {' '}Names are shortened to protect privacy; each card links to the original source.{' '}
+          Comment authors and facilities can ask for a comment to be removed: <Link to="/contact?topic=privacy">send a privacy request</Link>.
         </p>
       </div>
 
