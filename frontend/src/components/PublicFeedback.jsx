@@ -430,7 +430,7 @@ const RUN_MESSAGES = {
   succeeded: 'collected',
 };
 
-export function PublicFeedbackSection({ slug, summary, onWrittenCount }) {
+export function PublicFeedbackSection({ slug, summary, onWrittenCount, liveGoogle = null }) {
   const { hash, key: locationKey } = useLocation();
   const [platform, setPlatform] = useState(hash === '#google-feedback' ? 'google' : '');
   const [publishedPage, setPublishedPage] = useState(1);
@@ -473,7 +473,8 @@ export function PublicFeedbackSection({ slug, summary, onWrittenCount }) {
   })), [instagramResult.data]);
 
   const s = summary.data;
-  const google = s?.google;
+  // a stored rating, or the live one the facility page already loaded (not stored, so no extra request here)
+  const google = s?.google || liveGoogle;
   const sourceStats = Object.fromEntries(SOURCES.map((key) => [
     key, s?.platforms.find((entry) => entry.platform === key) || { posts: 0, comments: 0 },
   ]));

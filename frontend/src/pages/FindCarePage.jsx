@@ -12,6 +12,7 @@ import { PageHeader } from '../components/PageHeader';
 import { FacilityCard } from '../components/FacilityCard';
 import { MapView } from '../components/MapView';
 import { Pagination } from '../components/Pagination';
+import { LiveGoogleResults } from '../components/LiveGoogleResults';
 import { EmptyState, ErrorState, LoadingState, Alert } from '../components/Feedback';
 import { AppointmentModal } from '../components/AppointmentModal';
 import { BookingContactModal } from '../components/BookingContactModal';
@@ -517,15 +518,15 @@ export default function FindCarePage({ variant = 'facilities' }) {
 
           {publicReviews && (
             <p className="small muted directory-filter-note">
-              Facilities with published comments about the facility itself (Facebook, TikTok) or Google Maps ratings.
+              Facilities with published Facebook or TikTok comments (organisation-wide ones are labelled). Google Maps ratings appear live on each card and page; Google does not allow storing them, so they do not select facilities here.
               Written Google Maps reviews load on each facility page when you ask for them, so whether a facility has them is only known there.
             </p>
           )}
 
           {params.get('q') && data && (
             <p className="small muted directory-filter-note">
-              These are ReproCare directory listings. Google Maps may list more places for “{params.get('q')}”:{' '}
-              <Link to={googleSearch}>search Google Maps live</Link>.
+              These are ReproCare directory listings. Google Maps may list more places for “{params.get('q')}”: see{' '}
+              <a href="#live-google-title">More places from Google Maps</a> below.
             </p>
           )}
 
@@ -598,6 +599,9 @@ export default function FindCarePage({ variant = 'facilities' }) {
                 }}
               />
             </>
+          )}
+          {params.get('q') && !resultsPending && (
+            <LiveGoogleResults query={[params.get('q'), params.get('town') || params.get('county')].filter(Boolean).join(' in ')} />
           )}
           <p className="small muted results-foot">
             Looking for a place not listed here? <Link to={googleSearch}>Search Google Maps live</Link> or <Link to="/contact?topic=listing_correction">tell us about it</Link>.

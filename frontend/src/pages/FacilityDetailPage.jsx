@@ -301,7 +301,7 @@ function FacilityDetails({ slug }) {
             )}
           </section>
 
-          <PublicFeedbackSection slug={f.slug} summary={publicSummary} onWrittenCount={setPublicWritten} />
+          <PublicFeedbackSection slug={f.slug} summary={publicSummary} onWrittenCount={setPublicWritten} liveGoogle={googleRating} />
         </div>
 
         <aside className="detail-side">

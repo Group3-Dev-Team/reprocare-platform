@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ExternalLink, Globe2, MapPin, Star } from 'lucide-react';
+import { Globe2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useFetch } from '../hooks/useFetch';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import { GooglePlacesMap, googleMapsAvailable } from '../components/GooglePlacesMap';
 import { Alert, EmptyState, ErrorState, LoadingState } from '../components/Feedback';
+import { LiveGoogleList } from '../components/LiveGoogleResults';
 
 /**
  * Live search of Google Places for places not yet in ReproCare.
@@ -70,28 +71,7 @@ export default function GooglePlacesPage() {
                   <p className="small muted">
                     {state.data.results.length} places · <strong>{state.data.attribution}</strong>
                   </p>
-                  <ul className="places-list">
-                    {state.data.results.map((p) => (
-                      <li key={p.place_id} className={selected === p.place_id ? 'is-selected' : ''} onMouseEnter={() => setSelected(p.place_id)}>
-                        <strong>{p.name}</strong>
-                        <span className="small muted">
-                          {p.type_label}
-                          {p.rating != null && <> · <Star size={12} aria-hidden="true" /> {p.rating.toFixed(1)}{p.rating_count != null && ` (${p.rating_count.toLocaleString()} Google Maps ratings)`}</>}
-                        </span>
-                        {p.facility_slug
-                          ? <span className="small"><span className="badge badge-success">In ReproCare directory</span> <Link to={`/facilities/${p.facility_slug}`}>Open ReproCare listing</Link></span>
-                          : <span className="small"><span className="badge">Live Google Maps result</span> <Link to={`/find-care/google/place/${encodeURIComponent(p.place_id)}`}>View details and reviews</Link></span>}
-                        <span className="small">
-                          <MapPin size={13} aria-hidden="true" /> {p.address}
-                        </span>
-                        {p.google_maps_uri && (
-                          <a href={p.google_maps_uri} target="_blank" rel="noreferrer" className="small">
-                            Open in Google Maps <ExternalLink size={12} aria-hidden="true" />
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  <LiveGoogleList results={state.data.results} selected={selected} onSelect={setSelected} />
                   {state.data.next_page_token && (
                     <button className="btn btn-secondary" onClick={(e) => search(e, state.data.next_page_token)} disabled={state.loading}>
                       {state.loading ? 'Loading…' : 'Load more from Google'}
