@@ -1,9 +1,11 @@
 """Find Care "Public reviews" filter (has_public_reviews). TEST FIXTURES only, in the disposable test database.
 
 Counts a facility when public reviews are actually available for it, without asking any external service:
-  * published, facility-level written comments (approved Facebook posts, visible TikTok comments), or
-  * a stored Google Maps rating with at least one rating (written Google reviews load live on the page).
-A linked profile alone, organisation-wide Facebook activity, unapproved or held comments do not count.
+  * published written comments (approved Facebook posts, including organisation-wide ones, which the page labels;
+    visible TikTok comments),
+  * a stored Google Maps rating with at least one rating.
+A linked Google place alone (its rating is shown live, never stored), a Facebook page link alone, unapproved or held
+comments do not count.
 """
 
 from app.database.session import SessionLocal
@@ -44,12 +46,12 @@ def test_public_reviews_filter(client, make_facility, monkeypatch):
         body = client.get("/api/facilities", params={"q": "Prfixture", "page_size": 40, "sort": "name", **params}).json()
         return [item["name"].removeprefix("Prfixture ") for item in body["items"]], body["total"]
 
-    assert names(has_public_reviews=True) == (["fb_facility", "google_rated", "tiktok", "tiktok_nairobi"], 4)
+    assert names(has_public_reviews=True) == (["fb_facility", "fb_org", "google_rated", "tiktok", "tiktok_nairobi"], 5)
     assert names(has_public_reviews=False)[1] == 10
-    assert names(has_public_reviews=True, county="Kisumu") == (["fb_facility", "google_rated", "tiktok"], 3)
-    assert names(has_public_reviews=True, page_size=2, page=2) == (["tiktok", "tiktok_nairobi"], 4)
+    assert names(has_public_reviews=True, county="Kisumu") == (["fb_facility", "fb_org", "google_rated", "tiktok"], 4)
+    assert names(has_public_reviews=True, page_size=2, page=2) == (["google_rated", "tiktok"], 5)
     markers = client.get("/api/facilities/markers", params={"q": "Prfixture", "has_public_reviews": True}).json()
-    assert len(markers) == 4
+    assert len(markers) == 5
     assert called == []  # computing the filter never calls Google
 
 

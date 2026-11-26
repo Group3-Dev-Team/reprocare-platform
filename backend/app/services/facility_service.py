@@ -167,6 +167,22 @@ def has_published_written_activity():
     )
 
 
+def has_published_feedback_any_scope():
+    """Visible written Facebook or TikTok activity, including organisation-wide posts (labelled as such on the page)."""
+    return (
+        select(ExternalPost.id)
+        .join(ExternalComment, ExternalComment.post_id == ExternalPost.id)
+        .where(
+            ExternalPost.facility_id == Facility.id,
+            published_external_post(),
+            ExternalPost.platform.in_(("facebook", "tiktok")),
+            viewable_comment(),
+            func.length(func.trim(ExternalComment.text)) > 0,
+        )
+        .exists()
+    )
+
+
 def has_stored_google_ratings():
     """A stored Google Maps rating from at least one person. A linked place id alone does not count."""
     return (
@@ -249,7 +265,9 @@ def build_facility_query(db: Session, filters: dict, load_relations: bool = True
     if filters.get("has_public_feedback"):
         query = query.where(has_published_written_activity())
     if filters.get("has_public_reviews"):
-        query = query.where(or_(has_published_written_activity(), has_stored_google_ratings()))
+        # A linked Google place alone is not evidence of ratings or reviews: Google ratings cannot be stored, so they
+        # are shown live on each card and page but do not select facilities here.
+        query = query.where(or_(has_published_feedback_any_scope(), has_stored_google_ratings()))
 
     has_google_rating = filters.get("has_google_rating")
     minimum_google_rating = filters.get("min_google_rating")

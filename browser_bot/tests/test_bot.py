@@ -285,10 +285,10 @@ def fake_apify(monkeypatch):
 def test_apify_uses_file_b_endpoint_first(fake_apify, capsys):
     calls = fake_apify([{"id": 1}])
     assert tt.actor_run(tt.SEARCH_ACTOR, {"search": ["x"]}) == [{"id": 1}]
-    assert calls[0]["url"] == "https://api.apify.com/v2/actors/epctex~tiktok-search-scraper/run-sync-get-dataset-items?timeout=120&maxTotalChargeUsd=0.10"
+    assert calls[0]["url"] == "https://api.apify.com/v2/actors/apidojo~tiktok-scraper/run-sync-get-dataset-items?timeout=120&maxTotalChargeUsd=0.10"
     assert calls[0]["timeout"] == 135 and calls[0]["body"] == {"search": ["x"]}
     out = capsys.readouterr().out
-    assert "/v2/actors/epctex~tiktok-search-scraper/run-sync-get-dataset-items" in out and "fixture-token-not-real" not in out
+    assert "/v2/actors/apidojo~tiktok-scraper/run-sync-get-dataset-items" in out and "fixture-token-not-real" not in out
 
 
 def test_apify_runs_carry_item_and_spend_ceilings(fake_apify, monkeypatch):
@@ -403,9 +403,10 @@ def test_tiktok_collection_keeps_the_stated_billing_bounds(fake_apify):
     video = lambda n: {"url": f"https://www.tiktok.com/@fixturecreator/video/73000000000000000{n:02d}", "desc": f"Fixture General Hospital visit {n}"}  # noqa: E731
     calls = fake_apify([video(n) for n in range(1, 6)], [], [], [])  # one search term, then one comments run per kept video
     bundles = tt.collect_for_facility("Fixture General Hospital")
-    searches = [c["body"] for c in calls if "search" in c["body"]]
+    searches = [c["body"] for c in calls if "keywords" in c["body"]]
     comments = [c["body"] for c in calls if "postURLs" in c["body"]]
-    assert searches == [{"search": ["Fixture General Hospital"], "maxItems": 10, "endPage": 1, "sortType": "RELEVANCE"}]
+    assert searches == [{"keywords": ["Fixture General Hospital"], "maxItems": 10, "sortType": "RELEVANCE", "location": "KE"}]
+    assert all("maxTotalChargeUsd=0.10" in c["url"] for c in calls)  # Apify-enforced ceiling on every run
     assert len(bundles) == len(comments) == 2  # 5 matching videos found, only 2 collected
     assert all(c["commentsPerPost"] == 10 and c["maxRepliesPerComment"] == 2 for c in comments)
 
@@ -517,3 +518,12 @@ def test_discovery_does_not_duplicate_an_existing_facility_without_a_place_id(db
         reprocare_bot.main(["link-google", "--facility", "fixture-select-profile", "--place-id", "ChIJfixtureLangataPlace1", "--apply"])
     with pytest.raises(SystemExit, match="place id"):
         reprocare_bot.main(["link-google", "--facility", "fixture-langata-osm", "--place-id", "not a place", "--apply"])
+
+
+def test_reply_labels_keep_only_the_replying_author():
+    from facebook_collector import parse_aria_label
+
+    meta = parse_aria_label("Reply by Marie Stopes Kenya to Mercy Hope's comment 3 weeks ago")
+    assert meta["author"] == "Marie Stopes Kenya" and meta["is_reply"]
+    assert parse_aria_label("Comment by Jane Doe 2 days ago")["author"] == "Jane Doe"
+    assert parse_aria_label("Comment by Ann Kim to Bob Lee's reply")["author"] == "Ann Kim"

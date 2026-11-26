@@ -1,8 +1,10 @@
 """TikTok video discovery and comment collection through Apify (the legacy scripts' tiktok_auto.py, preserved).
 
-Actors (unchanged from the legacy scripts):
-  search   : epctex~tiktok-search-scraper
-  comments : socialdataapi~tiktok-comments-scraper
+Actors (pay per result, real data on Apify's free plan, no minimum spend ceiling, so the per-run cap below holds):
+  search   : apidojo~tiktok-scraper            ($0.0003 per video found)
+  comments : clockworks~tiktok-comments-scraper ($0.00125 per comment)
+The earlier epctex search actor returned demo placeholders on the free plan; clockworks~tiktok-scraper needs a
+$0.50 minimum run ceiling, above the per-run cap, so it is not used.
 Bounds (unchanged): ≤10 search results per term, ≤2 videos per facility, ≤10 top-level comments per video,
 ≤2 replies per comment. Apify bills per run; live runs require --allow-paid-apify.
 
@@ -19,8 +21,8 @@ from urllib.request import Request, urlopen
 
 from bot_config import apify_token
 
-SEARCH_ACTOR = "epctex~tiktok-search-scraper"
-COMMENTS_ACTOR = "socialdataapi~tiktok-comments-scraper"
+SEARCH_ACTOR = "apidojo~tiktok-scraper"
+COMMENTS_ACTOR = "clockworks~tiktok-comments-scraper"
 VIDEO_URL = re.compile(r"https://(?:www\.)?tiktok\.com/@[\w.-]+/video/(\d+)")
 
 
@@ -88,12 +90,16 @@ def _norm(text: str) -> str:
 def video_url(record: dict) -> str | None:
     if not isinstance(record, dict):
         return None
-    for key in ("url", "videoWebUrl", "webVideoUrl", "shareUrl"):
+    for key in ("url", "videoWebUrl", "webVideoUrl", "shareUrl", "postPage"):
         value = record.get(key)
         if isinstance(value, str):
             match = VIDEO_URL.search(value)
             if match:
                 return match.group(0)
+    author = _first(record, "channel.username", "author.uniqueId", "authorMeta.name")
+    vid = record.get("id")
+    if isinstance(author, str) and author and str(vid or "").isdecimal():
+        return f"https://www.tiktok.com/@{author.lstrip('@')}/video/{vid}"
     return None
 
 
@@ -176,7 +182,9 @@ def comments_from_dataset(records: list, video_id: str) -> list[dict]:
             add(reply, cid)
 
     for record in records:
-        add(record, None)
+        # clockworks returns replies as separate items pointing at their comment (repliesToId)
+        parent = str(record.get("repliesToId") or "") if isinstance(record, dict) else ""
+        add(record, parent if parent.isdecimal() else None)
     return out
 
 
@@ -192,7 +200,7 @@ def collect_for_facility(facility_name: str, town: str = "", max_videos: int = M
     terms = [facility_name, f"{facility_name} {town}".strip()] if town and town.casefold() not in facility_name.casefold() else [facility_name]
     candidates: dict[str, dict] = {}
     for term in terms:
-        for record in actor_run(SEARCH_ACTOR, {"search": [term], "maxItems": SEARCH_RESULTS_PER_TERM, "endPage": 1, "sortType": "RELEVANCE"},
+        for record in actor_run(SEARCH_ACTOR, {"keywords": [term], "maxItems": SEARCH_RESULTS_PER_TERM, "sortType": "RELEVANCE", "location": "KE"},
                                 max_items=SEARCH_RESULTS_PER_TERM):
             url = video_url(record)
             if url and relevant(record, facility_name):
