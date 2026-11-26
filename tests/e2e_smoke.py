@@ -1,9 +1,11 @@
 """Browser smoke test of the main journeys against a running stack.
 
-Prerequisites: backend on http://localhost:8000 with the demo seed, frontend on http://localhost:5173,
-and `pip install playwright && playwright install chromium`.
-Set SMOKE_STAFF_PASSWORD and SMOKE_ADMIN_PASSWORD to the demo account passwords from your local seed
-(SMOKE_STAFF_EMAIL and SMOKE_ADMIN_EMAIL default to the demo addresses).
+Prerequisites: a local backend on a disposable database, a frontend using that backend, and
+`pip install playwright && playwright install chromium`. Use synthetic fixtures with at least 16 directory
+listings, including a bookable facility with slug `mwangaza` and name `Mwangaza Family Health Centre`,
+at least three open programmes, one staff account attached to `mwangaza`, and one administrator.
+Set SMOKE_STAFF_PASSWORD and SMOKE_ADMIN_PASSWORD to the fixture passwords. SMOKE_STAFF_EMAIL and
+SMOKE_ADMIN_EMAIL default to the demo addresses. Serve the frontend on http://localhost:5173.
 
     python tests/e2e_smoke.py [--chrome /path/to/chrome]
 """
@@ -76,7 +78,7 @@ async def main():
         await page.get_by_role("button", name="2", exact=True).click()
         await expect(page).to_have_url(f"{BASE}/find-care/facilities?page=2")
         await page.goto(f"{BASE}/find-care/facilities?q=zzzz")
-        await expect(page.get_by_text("No facilities match all of these filters")).to_be_visible()
+        await expect(page.get_by_role("heading", name="No facilities match these filters")).to_be_visible()
         print("ok  search, pagination and empty state")
 
         # 5. Register a patient, save a facility, request an appointment.
@@ -93,7 +95,7 @@ async def main():
         await page.goto(f"{BASE}/facilities/mwangaza")
         await page.get_by_role("button", name="Save", exact=True).click()
         await expect(page.get_by_text("saved to your list")).to_be_visible()
-        await page.get_by_role("button", name="Request appointment").click()
+        await page.get_by_role("button", name="Book appointment").click()
         await page.get_by_label("Preferred date").fill((date.today() + timedelta(days=20)).isoformat())
         await page.get_by_label("Phone number").fill("+254711222333")
         await page.get_by_role("button", name="Send request").click()
@@ -146,7 +148,9 @@ async def main():
 
         # 10. Contact form persists and an administrator sees it.
         await page.goto(f"{BASE}/contact")
-        await page.get_by_label("Message").fill("The opening hours for a clinic in Nakuru look out of date.")
+        await expect(page.get_by_label("Your name")).to_have_value("Esther Wanjiku")
+        await expect(page.get_by_label("Email address")).to_have_value(email)
+        await page.get_by_role("textbox", name="Message", exact=True).fill("The opening hours for a clinic in Nakuru look out of date.")
         await page.get_by_role("button", name="Send message").click()
         await expect(page.get_by_role("heading", name="Message received")).to_be_visible()
         msg_ref = await page.locator(".confirmation strong").first.inner_text()
