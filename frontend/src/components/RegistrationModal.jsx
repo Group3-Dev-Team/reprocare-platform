@@ -7,6 +7,7 @@ import { formatDate } from "../data/labels";
 import { Modal } from "./Modal";
 import { Checkbox, TextInput } from "./Forms";
 import { Alert } from "./Feedback";
+import { isKenyanPhone, PHONE_MESSAGE } from "../data/phone";
 
 // pop up for registering for a community programme, only asks for name and phone
 export function RegistrationModal({ program, onClose, onDone }) {
@@ -60,8 +61,8 @@ export function RegistrationModal({ program, onClose, onDone }) {
     const next = {};
     if (form.full_name.trim().length < 2)
       next.full_name = "Enter your name as it should appear on the list.";
-    if (!/^[+\d][\d\s-]{6,}$/.test(form.phone.trim()))
-      next.phone = "Enter a phone number, e.g. +254 712 345 678.";
+    if (!isKenyanPhone(form.phone))
+      next.phone = PHONE_MESSAGE;
     if (!form.consent)
       next.consent =
         "Please agree so the organiser can contact you about this programme.";

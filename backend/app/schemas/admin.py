@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.auth import _password_rules
+from app.services.phone import check_facility_numbers
 
 
 class StaffAccountCreate(BaseModel):
@@ -27,6 +28,8 @@ class FacilityProfileUpdate(BaseModel):
     description: str = Field(default="", max_length=2000)
     phone: str = Field(default="", max_length=40)
     email: str = Field(default="", max_length=255)
+
+    _check_phone = field_validator("phone")(check_facility_numbers)
     website: str = Field(default="", max_length=255)
     weekday_hours: str = Field(default="", max_length=60)
     saturday_hours: str = Field(default="", max_length=60)

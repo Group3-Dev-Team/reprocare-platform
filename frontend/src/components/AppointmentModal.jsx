@@ -8,6 +8,7 @@ import { facilityDisplayName } from '../data/facilityNames';
 import { Modal } from './Modal';
 import { Select, TextArea, TextInput } from './Forms';
 import { Alert } from './Feedback';
+import { isKenyanPhone, PHONE_MESSAGE } from '../data/phone';
 
 const dateInKenya = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Africa/Nairobi' });
 const todayIso = () => dateInKenya.format(new Date());
@@ -55,7 +56,7 @@ export function AppointmentModal({ facility, practitioner, onClose, preview = fa
     if (!form.preferred_date) next.preferred_date = 'Choose a preferred date.';
     else if (form.preferred_date < todayIso()) next.preferred_date = 'Choose today or a later date.';
     else if (form.preferred_date > maxIso()) next.preferred_date = 'Choose a date within the next 180 days.';
-    if (!/^[+\d][\d\s-]{6,}$/.test(form.contact_phone.trim())) next.contact_phone = 'Enter a phone number the facility can call, e.g. +254 712 345 678.';
+    if (!isKenyanPhone(form.contact_phone)) next.contact_phone = PHONE_MESSAGE;
     setErrors(next);
     return !Object.keys(next).length;
   };

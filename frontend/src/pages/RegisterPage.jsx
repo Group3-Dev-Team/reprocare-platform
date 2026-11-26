@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import { Alert } from '../components/Feedback';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { StaffAccessEnquiry } from '../components/StaffAccessEnquiry';
+import { isKenyanPhone, PHONE_MESSAGE } from '../data/phone';
 
 // only go back to pages inside the app after sign in ("/dashboard", not "//evil.example" or "https://...")
 export function safeNext(value) {
@@ -80,6 +81,7 @@ export default function RegisterPage() {
     if (form.password.length < 8 || !/\d/.test(form.password) || !/[a-z]/i.test(form.password)) next.password = 'Use at least 8 characters, including letters and a number.';
     else if (new TextEncoder().encode(form.password).length > 72) next.password = 'This password is too long. Shorten it, especially if it includes emoji or accented characters.';
     if (form.confirm !== form.password) next.confirm = 'The passwords do not match.';
+    if (form.phone.trim() && !isKenyanPhone(form.phone)) next.phone = PHONE_MESSAGE;
     if (!form.agree) next.agree = 'Please accept the terms and privacy notice.';
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -115,7 +117,7 @@ export default function RegisterPage() {
           {error && <Alert tone="danger">{error}</Alert>}
           <TextInput label="Full name" autoComplete="name" autoFocus maxLength={120} value={form.full_name} onChange={set('full_name')} error={errors.full_name} required />
           <TextInput label="Email address" type="email" inputMode="email" autoComplete="email" value={form.email} onChange={set('email')} error={errors.email} required />
-          <TextInput label="Phone number" type="tel" autoComplete="tel" value={form.phone} onChange={set('phone')} maxLength={40} hint="Optional. Pre-fills appointment and registration forms." />
+          <TextInput label="Phone number" type="tel" autoComplete="tel" value={form.phone} onChange={set('phone')} maxLength={40} error={errors.phone} hint="Optional. Pre-fills appointment and registration forms." />
           <div>
             <PasswordInput label="Password" autoComplete="new-password" value={form.password} onChange={set('password')} error={errors.password} hint="At least 8 characters, with letters and a number" required />
             <StrengthMeter value={form.password} />

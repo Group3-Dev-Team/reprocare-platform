@@ -1,5 +1,6 @@
 """Request bodies for registration, sign-in and profile changes."""
 
+from app.services.phone import optional_kenyan
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -21,6 +22,7 @@ class RegisterRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=40)
 
     _check_password = field_validator("password")(_password_rules)
+    _check_phone = field_validator("phone")(optional_kenyan)
 
 
 class LoginRequest(BaseModel):
@@ -31,6 +33,8 @@ class LoginRequest(BaseModel):
 class ProfileUpdate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     phone: str | None = Field(default=None, max_length=40)
+
+    _check_phone = field_validator("phone")(optional_kenyan)
 
 
 class AccountClosure(BaseModel):
