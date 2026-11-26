@@ -14,6 +14,7 @@ import './styles/experience.css';
 import './styles/brand.css';
 import './styles/theme.css';
 import './styles/refresh.css';
+import './styles/finish.css';
 import App from './App';
 import { isDemoMode } from './services/api';
 import { AuthProvider } from './hooks/useAuth';
