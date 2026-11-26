@@ -29,6 +29,9 @@ PAGE = "autoscreenfixturepage"
     ("Keeping the domain and SSL in one place helps small businesses", EXCLUDE, "advertising_or_off_topic_promotion"),
     ("I was pregnant and the doctor ignored me", REVIEW, "personal_health_detail"),
     ("My HIV test results were shared", REVIEW, "personal_health_detail"),
+    ("Say in good faith things are not working Iam a cancer victim", REVIEW, "personal_health_detail"),
+    ("My wife had a miscarriage after waiting all night", REVIEW, "personal_health_detail"),
+    ("Do you have a cancer screening package?", PUBLISH, "service_question"),
     ("My mother died because of negligence at the clinic", REVIEW, "serious_allegation"),
     ("Do you accept CIC insurance from National Police service", PUBLISH, "service_question"),
 ])

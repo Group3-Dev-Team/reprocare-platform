@@ -75,6 +75,14 @@ ABUSIVE = re.compile(r"\b(?:fuck\w*|bitch\w*|idiot\w*|stupid|mavi|malaya|kumbaff
 HASHTAG_OR_MENTION = re.compile(r"[#@][\w.]+")
 PHONE_ANY = re.compile(r"(?<!\d)(?<!\d[,.])(?:(?:\+?254|0)[ .-]*)?[17]\d{2}[ .-]*\d{3}[ .-]*\d{3}(?!\d|[,.]\d)")
 
+# First-person statements about the writer's (or their family's) own health condition: held for review, never published
+# automatically, even when the comment is otherwise about the facility ("I am a cancer victim", "my wife had a miscarriage").
+PERSONAL_CONDITION = re.compile(
+    r"\b(?:i\s*a?m|i'm|iam|im|i\s+(?:was|have|had|got|suffer\w*|lost)|my|me|mine|our)\b[^.?!]{0,40}?\b(?:cancer|hiv|aids|tb|"
+    r"tuberculosis|diabet\w*|infertil\w*|barren|miscarr\w*|abort\w*|pregnan\w*|stis?|stds?|fibroids?|cysts?|hepatitis|"
+    r"epilep\w*|depress\w*|tumou?rs?|victim|survivor|stillbirth|still born|stillborn|sickle cell|kidney failure|stroke|"
+    r"chemo\w*|dialysis|positive)\b", re.I)
+
 PUBLISH, REVIEW, EXCLUDE = "publish", "review", "exclude"
 
 
@@ -134,7 +142,7 @@ def classify(text: str, facility_name: str = "", post_text: str = "", by_facilit
         return Decision(EXCLUDE, "contact_details_only")
     if not WORD.findall(HASHTAG_OR_MENTION.sub(" ", clean)):
         return Decision(EXCLUDE, "hashtags_or_mentions_only")
-    if SENSITIVE.search(clean):
+    if SENSITIVE.search(clean) or PERSONAL_CONDITION.search(clean):
         return Decision(REVIEW, "personal_health_detail")
     if ABUSIVE.search(clean):
         return Decision(REVIEW, "abusive_language")
