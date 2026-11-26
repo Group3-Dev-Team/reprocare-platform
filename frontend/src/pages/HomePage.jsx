@@ -74,7 +74,6 @@ export default function HomePage() {
     "Find reproductive healthcare in Kenya. Search by service and county, compare facilities, and see where listing information comes from.",
   );
   const services = useFetch(() => api.services(), []);
-  const counties = useFetch(() => api.counties(), []);
   const insurers = useFetch(() => api.insurers(), []);
   const programs = useFetch(() => api.programs({ page_size: 3 }), []);
   const articles = useFetch(() => api.articles(), []);
@@ -85,6 +84,9 @@ export default function HomePage() {
   const [insurer, setInsurer] = useState("");
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  // With a service, type or insurer chosen, each county shows how many listed facilities match it.
+  const countContext = { service, facility_type: facilityType, insurer };
+  const counties = useFetch(() => api.counties(countContext), [service, facilityType, insurer]);
 
   const search = (event) => {
     event.preventDefault();
@@ -159,7 +161,9 @@ export default function HomePage() {
                   <option value="">Any county</option>
                   {(counties.data || []).map((item) => (
                     <option key={item.county} value={item.county}>
-                      {item.county}
+                      {item.contextual
+                        ? `${item.county} (${item.facility_count.toLocaleString()} matching)`
+                        : item.county}
                     </option>
                   ))}
                 </select>

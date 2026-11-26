@@ -10,6 +10,8 @@ from app.database.session import get_db
 from app.models import CommunityProgram, Facility, Insurer, Practitioner, Review, Service
 from app.services.county_service import KENYA_COUNTIES, county_filter_labels, county_key
 from app.services.common import split_list
+from app.services.facility_service import has_context, matching_ids
+from app.routes.facility_routes import facility_filters
 
 router = APIRouter(tags=["Reference data"])
 
@@ -34,22 +36,32 @@ def list_insurers(db: Session = Depends(get_db)):
 
 
 @router.get("/towns")
-def list_towns(county: str | None = Query(None, max_length=80), db: Session = Depends(get_db)):
+def list_towns(
+    county: str | None = Query(None, max_length=80),
+    filters: dict = Depends(facility_filters),
+    db: Session = Depends(get_db),
+):
     """Towns that have at least one facility, with a facility count and an approximate centre for the map.
     With a county: only that county's towns (any imported spelling of the county), with case and spacing
-    variants of one town folded together. A town of the same name in another county is not included."""
+    variants of one town folded together. A town of the same name in another county is not included.
+    Other active search filters (service, facility type, insurer...) make facility_count the number of facilities
+    matching them in that town (contextual: true); total_count is always every facility in the town."""
+    context = has_context(filters)
+    scope = Facility.id.in_(matching_ids(db, {**filters, "county": None, "town": None, "lat": None, "lng": None, "radius_km": None})) if context else None
     if county:
         label = next((c for c in KENYA_COUNTIES if c.lower() == county_key(county)), county.strip())
         key = func.lower(func.trim(Facility.town))
         rows = db.execute(
-            select(key, func.mode().within_group(Facility.town), func.count(Facility.id), func.avg(Facility.latitude), func.avg(Facility.longitude))
+            select(key, func.mode().within_group(Facility.town), func.count(Facility.id), func.avg(Facility.latitude), func.avg(Facility.longitude),
+                   func.count(Facility.id).filter(scope) if context else func.count(Facility.id))
             .where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(county)), key != "")
             .group_by(key)
             .order_by(func.count(Facility.id).desc(), key)
         ).all()
         return [
-            {"town": " ".join(t.split()), "county": label, "facility_count": n, "latitude": round(lat, 4) if lat else None, "longitude": round(lng, 4) if lng else None}
-            for _, t, n, lat, lng in rows
+            {"town": " ".join(t.split()), "county": label, "facility_count": matching, "total_count": n, "contextual": context,
+             "latitude": round(lat, 4) if lat else None, "longitude": round(lng, 4) if lng else None}
+            for _, t, n, lat, lng, matching in rows
         ]
     rows = db.execute(
         select(Facility.town, Facility.county, func.count(Facility.id), func.avg(Facility.latitude), func.avg(Facility.longitude))
@@ -82,18 +94,23 @@ def platform_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/counties")
-def list_counties(db: Session = Depends(get_db)):
-    """All Kenyan counties, with actual imported facility counts."""
+def list_counties(filters: dict = Depends(facility_filters), db: Session = Depends(get_db)):
+    """All Kenyan counties, with actual imported facility counts. With other search filters active (service, facility
+    type, insurer...), facility_count is the number of facilities in the county matching them (contextual: true);
+    total_count is always every facility in the county, so an overall total is never shown as a search count."""
+    context = has_context(filters)
+    scope = Facility.id.in_(matching_ids(db, {**filters, "county": None, "town": None, "lat": None, "lng": None, "radius_km": None})) if context else None
     rows = db.execute(
-        select(Facility.county, func.count(Facility.id))
+        select(Facility.county, func.count(Facility.id), func.count(Facility.id).filter(scope) if context else func.count(Facility.id))
         .group_by(Facility.county)
     ).all()
-    counts = {}
-    for name, count in rows:
+    totals, matching = {}, {}
+    for name, count, matched in rows:
         key = county_key(name)
-        counts[key] = counts.get(key, 0) + count
+        totals[key] = totals.get(key, 0) + count
+        matching[key] = matching.get(key, 0) + matched
 
     return [
-        {"county": county, "facility_count": counts.get(county.casefold(), 0)}
+        {"county": county, "facility_count": matching.get(county.casefold(), 0), "total_count": totals.get(county.casefold(), 0), "contextual": context}
         for county in KENYA_COUNTIES
     ]

@@ -122,6 +122,9 @@ export default function FindCarePage({ variant = 'facilities' }) {
   const filters = Object.fromEntries(params);
   delete filters.page;
   delete filters.view;
+  // Only a label for the "no services recorded" alternative: never sent as a search filter.
+  const askedService = params.get('asked_service') || '';
+  delete filters.asked_service;
   URL_LOCATION_KEYS.forEach((key) => delete filters[key]);
   if (point) {
     filters.lat = point.lat;
@@ -140,9 +143,14 @@ export default function FindCarePage({ variant = 'facilities' }) {
 
   const services = useFetch(() => api.services(), []);
   const insurers = useFetch(() => api.insurers(), []);
-  const counties = useFetch(() => api.counties(), []);
+  // Option counts follow the other active filters (not the place itself, the map point or the order).
+  const countContext = Object.fromEntries(Object.entries(filters).filter(([key]) => !['county', 'town', 'sort', 'lat', 'lng', 'radius_km'].includes(key)));
+  const countKey = JSON.stringify(countContext);
+  const counties = useFetch(() => api.counties(countContext), [countKey]);
   const selectedCounty = params.get('county') || '';
-  const towns = useFetch(() => (selectedCounty ? api.towns(selectedCounty) : Promise.resolve([])), [selectedCounty]);
+  const towns = useFetch(() => (selectedCounty ? api.towns(selectedCounty, countContext) : Promise.resolve([])), [selectedCounty, countKey]);
+  const contextualCounts = (counties.data || [])[0]?.contextual === true;
+  const optionCount = (item) => (item.contextual ? `${item.facility_count.toLocaleString()} matching` : item.facility_count.toLocaleString());
   const selectedTown = params.get('town') || '';
   const filterKey = JSON.stringify(filters);
   const resultKey = JSON.stringify([filterKey, page]);
@@ -304,7 +312,7 @@ export default function FindCarePage({ variant = 'facilities' }) {
       </form>
       <label className="field">
         <span className="field-label">Service</span>
-        <select className="select" aria-label="Service" value={params.get('service') || ''} onChange={(e) => update({ service: e.target.value })}>
+        <select className="select" aria-label="Service" value={params.get('service') || ''} onChange={(e) => update({ service: e.target.value, ...(e.target.value ? { no_recorded_services: '', asked_service: '' } : {}) })}>
           <option value="">Any service</option>
           {(services.data || []).map((s) => (
             <option key={s.slug} value={s.slug}>
@@ -325,10 +333,13 @@ export default function FindCarePage({ variant = 'facilities' }) {
           <option value="">All counties</option>
           {(counties.data || []).map((c) => (
             <option key={c.county} value={c.county}>
-              {c.county} ({c.facility_count})
+              {c.county} ({optionCount(c)})
             </option>
           ))}
         </select>
+        <span className="small muted">
+          {contextualCounts ? 'Counts show facilities matching your other filters.' : 'Counts show all listed facilities.'}
+        </span>
       </label>
       {selectedCounty && (
         <label className="field">
@@ -338,7 +349,7 @@ export default function FindCarePage({ variant = 'facilities' }) {
             {selectedTown && !(towns.data || []).some((t) => t.town.toLowerCase() === selectedTown.toLowerCase()) && <option value={selectedTown}>{selectedTown}</option>}
             {(towns.data || []).map((t) => (
               <option key={t.town} value={t.town}>
-                {t.town} ({t.facility_count})
+                {t.town} ({optionCount(t)})
               </option>
             ))}
           </select>
@@ -523,6 +534,16 @@ export default function FindCarePage({ variant = 'facilities' }) {
             </p>
           )}
 
+          {filters.no_recorded_services === 'true' && (
+            <Alert tone="info" title="Facilities with no services recorded yet">
+              <p>
+                These facilities are listed without any recorded services. They are not confirmed matches
+                {askedService ? ` for ${services.data?.find((item) => item.slug === askedService)?.name || askedService}` : ''}:
+                contact a facility to check what it offers before you visit.
+              </p>
+            </Alert>
+          )}
+
           {(variant === 'insurance' || selectedInsurer) && (
             <Alert tone="info" title={selectedInsurer ? selectedInsurer.name : 'Choose your insurer'}>
               <p>{selectedInsurer ? selectedInsurer.note : 'Pick an insurer in the filters to list facilities that report accepting it.'}</p>
@@ -552,6 +573,11 @@ export default function FindCarePage({ variant = 'facilities' }) {
               title={uncovered.length ? 'This information is not yet recorded in the directory' : 'No facilities match these filters'}
               action={
                 <div className="row" style={{ justifyContent: 'center' }}>
+                  {data.unrecorded_service_alternatives > 0 && (
+                    <button className="btn btn-secondary" onClick={() => update({ service: '', no_recorded_services: 'true', asked_service: filters.service })}>
+                      Browse {data.unrecorded_service_alternatives.toLocaleString()} {data.unrecorded_service_alternatives === 1 ? 'facility' : 'facilities'} with no services recorded yet
+                    </button>
+                  )}
                   {uncovered.length > 0 ? (
                     <button className="btn btn-primary" onClick={() => update(Object.fromEntries(uncovered.map((field) => [field, ''])))}>
                       Browse without {uncovered.length === 1 ? 'this filter' : 'these filters'}
@@ -568,6 +594,9 @@ export default function FindCarePage({ variant = 'facilities' }) {
                   ? services.data?.find((item) => item.slug === filters.service)?.name || filters.service
                   : field === 'insurer' ? selectedInsurer?.name || filters.insurer : COVERAGE_LABELS[field]).join(', ')}.
                   Browse the area and ask facilities directly about the care or cover you need.</>
+              ) : filters.service ? (
+                <>No facility here has {services.data?.find((item) => item.slug === filters.service)?.name || filters.service} recorded in the directory.
+                  {data.unrecorded_service_alternatives > 0 && ' Some facilities in this search have no services recorded yet: they may or may not offer it, so ask them directly.'}</>
               ) : filters.insurer
                 ? 'Try another area or browse without the insurer filter. A facility may accept cover that is not yet recorded in the directory.'
                 : 'Try removing a filter or choosing another area.'}

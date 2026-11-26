@@ -2,7 +2,6 @@ import { facilityDisplayName } from '../data/facilityNames';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { api } from '../services/api';
-import { townNames } from '../data/townNames';
 import { useFetch } from '../hooks/useFetch';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
@@ -16,19 +15,24 @@ export default function LaboratoriesPage() {
   useDocumentTitle('Laboratories & tests', 'Find diagnostic laboratories and reproductive health tests in Kenya, with turnaround times, prices and home collection.');
   const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
+  const county = params.get('county') || '';
   const town = params.get('town') || '';
   const home = params.get('home_collection') === 'true';
   const testPage = Number(params.get('tests_page') || 1);
   const labPage = Number(params.get('page') || 1);
-  const towns = useFetch(() => api.towns(), []);
-  const tests = useFetch((signal) => api.labTests({ q, town, home_collection: home, page: testPage, page_size: 15 }, { signal }), [q, town, home, testPage]);
-  const labs = useFetch((signal) => api.facilities({ facility_type: 'laboratory', town, page: labPage, page_size: 15 }, { signal }), [town, labPage]);
+  // County first, then that county's towns: the same county and town lists as Find Care, counted for laboratories.
+  const counties = useFetch(() => api.counties({ facility_type: 'laboratory' }), []);
+  const towns = useFetch(() => (county ? api.towns(county, { facility_type: 'laboratory' }) : Promise.resolve([])), [county]);
+  const tests = useFetch((signal) => api.labTests({ q, county, town, home_collection: home, page: testPage, page_size: 15 }, { signal }), [q, county, town, home, testPage]);
+  const labs = useFetch((signal) => api.facilities({ facility_type: 'laboratory', county, town, page: labPage, page_size: 15 }, { signal }), [county, town, labPage]);
+  const place = town || county;
 
   const update = (changes) => {
     const next = new URLSearchParams(params);
+    if ('county' in changes) changes = { ...changes, town: '' };
     Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, String(v)) : next.delete(k)));
-    if ('town' in changes) next.delete('page');
-    if ('town' in changes || 'q' in changes || 'home_collection' in changes) next.delete('tests_page');
+    if ('town' in changes || 'county' in changes) next.delete('page');
+    if ('town' in changes || 'county' in changes || 'q' in changes || 'home_collection' in changes) next.delete('tests_page');
     setParams(next);
   };
 
@@ -52,18 +56,27 @@ export default function LaboratoriesPage() {
 
       <div className="container section-sm directory-reference">
         <div className="filter-row directory-reference-filters">
-          <select className="select" aria-label="Town" value={town} onChange={(e) => update({ town: e.target.value })}>
-            <option value="">All towns</option>
-            {townNames(towns.data || []).map((name) => <option key={name}>{name}</option>)}
+          <select className="select" aria-label="County" value={county} onChange={(e) => update({ county: e.target.value })}>
+            <option value="">All counties</option>
+            {(counties.data || []).map((c) => (
+              <option key={c.county} value={c.county}>{c.county} ({c.facility_count.toLocaleString()} {c.facility_count === 1 ? 'laboratory' : 'laboratories'})</option>
+            ))}
+          </select>
+          <select className="select" aria-label="Town" value={town} disabled={!county && !town} onChange={(e) => update({ town: e.target.value })}>
+            <option value="">{county ? `All towns in ${county}` : 'Choose a county first'}</option>
+            {town && !(towns.data || []).some((t) => t.town.toLowerCase() === town.toLowerCase()) && <option value={town}>{town}</option>}
+            {(towns.data || []).map((t) => (
+              <option key={t.town} value={t.town}>{t.town} ({t.facility_count.toLocaleString()} {t.facility_count === 1 ? 'laboratory' : 'laboratories'})</option>
+            ))}
           </select>
         </div>
 
         <section aria-labelledby="labs-title" className="section-sm">
-          <h2 id="labs-title">Laboratories {town && `in ${town}`}</h2>
+          <h2 id="labs-title">Laboratories {place && `in ${place}`}</h2>
           {!labs.loading && labs.data?.total > 0 && <p className="small muted">{labs.data.total.toLocaleString()} {labs.data.total === 1 ? 'listing' : 'listings'}</p>}
           {labs.loading && <LoadingState rows={2} height={160} />}
           {labs.error && <ErrorState error={labs.error} onRetry={labs.reload} />}
-          {!labs.loading && labs.data?.total === 0 && <EmptyState title={town ? `No laboratories listed in ${town}` : 'No laboratories listed yet'} action={town ? <button className="btn btn-secondary" onClick={() => update({ town: '' })}>Show all towns</button> : undefined} />}
+          {!labs.loading && labs.data?.total === 0 && <EmptyState title={place ? `No laboratories listed in ${place}` : 'No laboratories listed yet'} action={town ? <button className="btn btn-secondary" onClick={() => update({ town: '' })}>{county ? `Show all towns in ${county}` : 'Show all towns'}</button> : county ? <button className="btn btn-secondary" onClick={() => update({ county: '' })}>Show all counties</button> : undefined} />}
           {!labs.loading && labs.data?.total > 0 && (
             <>
               <div className="result-list">
@@ -84,7 +97,7 @@ export default function LaboratoriesPage() {
           {tests.loading && <LoadingState rows={1} height={240} />}
           {tests.error && <ErrorState error={tests.error} onRetry={tests.reload} />}
           {!tests.loading && tests.data?.total === 0 && (
-            <EmptyState title={q || town || home ? 'No recorded test matches' : 'Test menus are not listed yet'}>
+            <EmptyState title={q || county || town || home ? 'No recorded test matches' : 'Test menus are not listed yet'}>
               Use the laboratory listings above to contact a provider about available tests and sample collection.
             </EmptyState>
           )}

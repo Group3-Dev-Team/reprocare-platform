@@ -138,7 +138,7 @@ it('offers the towns of the chosen county and filters by county and town togethe
   expect(screen.queryByLabelText('Town')).not.toBeInTheDocument();
   fireEvent.change(await screen.findByLabelText('County'), { target: { value: 'Kisumu' } });
   await screen.findByRole('option', { name: 'Maseno (4)' });
-  expect(towns).toHaveBeenLastCalledWith('Kisumu');
+  expect(towns).toHaveBeenLastCalledWith('Kisumu', {});
   fireEvent.change(screen.getByLabelText('Town'), { target: { value: 'Maseno' } });
   await waitFor(() => expect(listings).toHaveBeenLastCalledWith(
     expect.objectContaining({ county: 'Kisumu', town: 'Maseno' }), { signal: expect.any(AbortSignal) },
@@ -148,4 +148,31 @@ it('offers the towns of the chosen county and filters by county and town togethe
   fireEvent.change(screen.getByLabelText('County'), { target: { value: 'Nakuru' } });
   await screen.findByRole('option', { name: 'Naivasha (9)' });
   expect(screen.getByTestId('url')).not.toHaveTextContent('town=');
+});
+
+it('shows county counts for the active search and offers labelled facilities without recorded services', async () => {
+  const search = vi.spyOn(api, 'facilities').mockImplementation(async (params) => (params.no_recorded_services
+    ? { total: 1, items: [], page: 1, pages: 1, page_size: 15 }
+    : { total: 0, items: [], page: 1, pages: 0, page_size: 15, unrecorded_service_alternatives: 25 }));
+  vi.spyOn(api, 'services').mockResolvedValue([{ slug: 'hiv', name: 'HIV testing and PrEP' }]);
+  vi.spyOn(api, 'insurers').mockResolvedValue([]);
+  const counties = vi.spyOn(api, 'counties').mockResolvedValue([{ county: 'Machakos', facility_count: 1, total_count: 28, contextual: true }]);
+  vi.spyOn(api, 'towns').mockResolvedValue([]);
+  render(
+    <MemoryRouter initialEntries={['/find-care/facilities?service=hiv&county=Machakos']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <FindCarePage />
+      <CurrentUrl />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('option', { name: 'Machakos (1 matching)' })).toBeInTheDocument();
+  expect(counties).toHaveBeenLastCalledWith({ service: 'hiv' });
+  expect(screen.getByText(/matching your other filters/)).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: /Browse 25 facilities with no services recorded yet/ }));
+  await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent('county=Machakos&no_recorded_services=true&asked_service=hiv'));
+  expect(await screen.findByText(/not confirmed matches/)).toHaveTextContent('for HIV testing and PrEP');
+  // the label never reaches the API
+  await waitFor(() => expect(search).toHaveBeenLastCalledWith(
+    { county: 'Machakos', no_recorded_services: 'true', sort: 'relevance', page: 1, page_size: 15 },
+    { signal: expect.any(AbortSignal) },
+  ));
 });

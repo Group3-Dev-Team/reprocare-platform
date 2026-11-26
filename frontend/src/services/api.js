@@ -129,8 +129,9 @@ export const api = {
   stats: () => get('/stats'),
   services: () => reference('/services'),
   insurers: () => reference('/insurers'),
-  towns: (county) => reference(county ? `/towns?county=${encodeURIComponent(county)}` : '/towns'),
-  counties: () => reference('/counties'),
+  // `context`: the other active search filters, so each option's facility_count is a count for that search.
+  towns: (county, context) => reference(`/towns${toQuery({ ...context, county })}`),
+  counties: (context) => reference(`/counties${toQuery(context)}`),
 
   // Authentication
   authCapabilities: (options) => get('/auth/capabilities', undefined, { ...options, anonymous: true }),

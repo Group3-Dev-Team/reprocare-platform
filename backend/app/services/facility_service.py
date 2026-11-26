@@ -237,6 +237,9 @@ def build_facility_query(db: Session, filters: dict, load_relations: bool = True
             .where(Service.slug == filters["service"])
         )
         query = query.where(Facility.id.in_(offers))
+    if filters.get("no_recorded_services"):
+        # Facilities whose services have not been recorded yet: not evidence that they lack (or offer) any service.
+        query = query.where(Facility.id.not_in(select(facility_services.c.facility_id)))
     if filters.get("insurer"):
         accepts = (
             select(facility_insurers.c.facility_id)
@@ -428,3 +431,29 @@ def facility_detail(f: Facility, rating: tuple[float, int] | None) -> dict:
         }
     )
     return data
+
+
+# Filters that only locate (or order) results: they are not "context" for a county or town option count.
+_PLACE_KEYS = {"county", "town", "lat", "lng", "radius_km", "sort"}
+
+
+def has_context(filters: dict, ignore: set[str] = frozenset()) -> bool:
+    return any(value not in (None, False, "") for key, value in filters.items() if key not in _PLACE_KEYS | ignore)
+
+
+def matching_ids(db: Session, filters: dict):
+    """The ids of facilities matching the filters, as a subquery (no ordering, no relations)."""
+    query, _ = build_facility_query(db, {**filters, "sort": "name"}, load_relations=False)
+    return query.with_only_columns(Facility.id, maintain_column_froms=True).order_by(None)
+
+
+def count_matching(db: Session, filters: dict) -> int:
+    return db.scalar(select(func.count()).select_from(matching_ids(db, filters).subquery())) or 0
+
+
+def unrecorded_service_alternatives(db: Session, filters: dict) -> int:
+    """For a service search: how many facilities match every other filter but have no services recorded at all.
+    They are offered as labelled places to ask, never as matches for the service."""
+    if not filters.get("service"):
+        return 0
+    return count_matching(db, {**filters, "service": None, "no_recorded_services": True})
