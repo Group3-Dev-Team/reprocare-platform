@@ -8,6 +8,7 @@ import { Checkbox, TextArea, TextInput } from '../../components/Forms';
 import { Alert, ErrorState, LoadingState } from '../../components/Feedback';
 import { LocalImagePreview } from '../../components/LocalImagePreview';
 import { useToast } from '../../components/Toast';
+import { FACILITY_PHONE_MESSAGE, isFacilityPhone } from '../../data/phone';
 
 const FIELDS = ['description', 'phone', 'email', 'website', 'weekday_hours', 'saturday_hours', 'sunday_hours', 'accepts_appointment_requests', 'offers_telehealth'];
 
@@ -30,6 +31,7 @@ export default function FacilityProfile() {
   const save = async (e) => {
     e.preventDefault();
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) return setErrors({ email: 'Enter a valid email address or leave it empty.' });
+    if (!isFacilityPhone(form.phone)) return setErrors({ phone: FACILITY_PHONE_MESSAGE });
     setErrors({});
     setSaving(true);
     try {

@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.services.phone import normalise_kenyan
+
 # A programme date further ahead than this is almost certainly a typing mistake (for example 2062 for 2026).
 MAX_DAYS_AHEAD = 730
 # Accepts the administrator form's "9:00 am" / "1:00 pm" as well as 24-hour "09:00".
@@ -37,6 +39,8 @@ class RegistrationCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     phone: str = Field(min_length=7, max_length=40)
     consent: bool
+
+    _check_phone = field_validator("phone")(normalise_kenyan)
 
 
 class ProgramCreate(BaseModel):

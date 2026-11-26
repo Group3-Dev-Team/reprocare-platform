@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.services.phone import normalise_kenyan
+
 
 def _within_booking_window(value: date) -> date:
     if value < date.today():
@@ -22,6 +24,8 @@ class AppointmentCreate(BaseModel):
     preferred_time: Literal["morning", "afternoon", "evening"]
     contact_phone: str = Field(min_length=7, max_length=40)
     notes: str = Field(default="", max_length=1000)
+
+    _check_phone = field_validator("contact_phone")(normalise_kenyan)
 
     @field_validator("preferred_date")
     @classmethod
