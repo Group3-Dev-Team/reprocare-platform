@@ -113,7 +113,7 @@ export function StaffAccessEnquiry() {
       return;
     }
     // open the contact page with the message already filled in
-    navigate("/contact?topic=technical", {
+    navigate("/contact?topic=general", {
       state: {
         draft: `Staff access enquiry\nFacility: ${facilityLabel}\nRole: ${roleLabel}\n`,
       },
@@ -124,8 +124,10 @@ export function StaffAccessEnquiry() {
     <section className="auth-staff-help stack">
       <h2>Healthcare staff access</h2>
       <p className="muted">
-        Send a staff access enquiry. An administrator checks facility
-        affiliation before granting staff access.
+        Staff accounts are not self-registered. Choose your facility and role,
+        then add your contact details on the next page and send the enquiry.
+        An administrator checks your affiliation with the facility before
+        creating a staff account; until then you have no staff access.
       </p>
       <form className="stack" onSubmit={submit}>
         <div className="staff-facility-picker">
@@ -246,7 +248,7 @@ export function StaffAccessEnquiry() {
           />
         )}
         <button className="btn btn-primary" type="submit">
-          Continue to staff access enquiry
+          Continue: add your contact details
         </button>
       </form>
       <Link to="/sign-in">Sign in with an existing staff account</Link>
