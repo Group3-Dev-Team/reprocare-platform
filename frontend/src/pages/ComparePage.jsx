@@ -39,7 +39,10 @@ function CareServiceGuide({ goal, setGoal }) {
   const services = catalogue.data || [];
   const selected = services.find((service) => service.slug === goal);
   const purpose = CARE_GOALS.get(selected?.slug)?.purpose;
-  const search = selected && new URLSearchParams({ service: selected.slug });
+  // Optional area, carried into Find Care; the counts are facilities with the chosen service recorded.
+  const [county, setCounty] = useState('');
+  const counties = useFetch(() => (selected ? api.counties({ service: selected.slug }) : Promise.resolve([])), [selected?.slug]);
+  const search = selected && new URLSearchParams({ service: selected.slug, ...(county ? { county } : {}) });
 
   return (
     <section className="panel stack care-service-guide" aria-labelledby="care-service-heading">
@@ -60,6 +63,12 @@ function CareServiceGuide({ goal, setGoal }) {
             options={services.map((service) => ({ value: service.slug, label: CARE_GOALS.get(service.slug)?.label || service.name }))}
             onChange={(event) => setGoal(event.target.value)} />
         ) : <p>There are no service categories available to search yet.</p>
+      )}
+      {selected && (counties.data || []).length > 0 && (
+        <Select className="care-service-goal" label="County (optional)" value={county} placeholder="Any county"
+          hint="Counts show facilities with this service recorded in the directory. Others may still offer it."
+          options={counties.data.map((c) => ({ value: c.county, label: `${c.county} (${c.facility_count.toLocaleString()} recorded)` }))}
+          onChange={(event) => setCounty(event.target.value)} />
       )}
       <div aria-live="polite">
         {selected && (

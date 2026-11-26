@@ -31,6 +31,7 @@ export default function ContactPage() {
           : "",
     website: "",
   });
+  const staffEnquiry = typeof state?.draft === "string" && state.draft.startsWith("Staff access enquiry");
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
@@ -130,6 +131,15 @@ export default function ContactPage() {
           ) : (
             <form className="form-grid" onSubmit={submit} noValidate>
               <h2 className="span-2">Send a message</h2>
+              {staffEnquiry && (
+                <div className="span-2">
+                  <Alert tone="info" title="Staff access enquiry: last step">
+                    Your facility and role are filled in below. Add your name and a work email address you can be reached
+                    at, plus any detail that helps confirm your role, then send. An administrator verifies your affiliation
+                    with the facility before creating a staff account and contacts you by email.
+                  </Alert>
+                </div>
+              )}
               {error && (
                 <div className="span-2">
                   <Alert tone="danger">{error}</Alert>

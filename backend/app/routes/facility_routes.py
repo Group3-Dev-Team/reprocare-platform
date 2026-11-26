@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.database.session import get_db
 from app.models import Facility, FacilityExternalProfile, LabTest, Practitioner
 from app.services.common import MAX_PAGE_SIZE, paginate
-from app.services.facility_service import build_facility_query, facility_detail, facility_summary, google_ratings_for, ratings_for
+from app.services.county_service import county_filter_labels
+from app.services.facility_service import (
+    build_facility_query, facility_detail, facility_summary, google_ratings_for, ratings_for, unrecorded_service_alternatives,
+)
 
 router = APIRouter(tags=["Facilities"])
 
@@ -39,6 +42,7 @@ def facility_filters(
     exclude_laboratories: bool = False,
     has_patient_reviews: bool = False,
     has_public_feedback: bool = False,
+    no_recorded_services: bool = Query(False, description="Only facilities with no services recorded yet (to ask directly)"),
     has_public_reviews: bool = Query(False, description="Public reviews available: published facility-level Facebook/TikTok comments or a Google Maps rating"),
     has_google_rating: bool = False,
     min_google_rating: float | None = Query(None, ge=1, le=5),
@@ -71,6 +75,9 @@ def search_facilities(
          "google_rating": google.get(f.id), "has_google_place": f.id in linked}
         for f in result["items"]
     ]
+    if result["total"] == 0 and filters.get("service"):
+        # Zero confirmed matches: say how many facilities in the same search have no services recorded yet.
+        result["unrecorded_service_alternatives"] = unrecorded_service_alternatives(db, filters)
     return result
 
 
@@ -118,6 +125,7 @@ def get_facility(slug: str, db: Session = Depends(get_db)):
 def search_lab_tests(
     q: str | None = Query(None, max_length=100),
     town: str | None = None,
+    county: str | None = Query(None, max_length=80),
     home_collection: bool = False,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=MAX_PAGE_SIZE),
@@ -127,7 +135,9 @@ def search_lab_tests(
     if q:
         query = query.where(func.lower(LabTest.name).like(f"%{q.lower()}%"))
     if town:
-        query = query.where(func.lower(Facility.town) == town.lower())
+        query = query.where(func.lower(func.trim(Facility.town)) == " ".join(town.split()).lower())
+    if county:
+        query = query.where(func.lower(func.trim(Facility.county)).in_(county_filter_labels(county)))
     if home_collection:
         query = query.where(LabTest.home_collection.is_(True))
     query = query.options(selectinload(LabTest.facility)).order_by(LabTest.name, Facility.name)
