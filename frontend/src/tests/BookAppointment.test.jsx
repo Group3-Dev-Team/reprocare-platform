@@ -51,7 +51,10 @@ it('offers only the real contact routes when a facility does not take ReproCare 
   expect(screen.getByRole('link', { name: /call \+254 700 000 001/i })).toHaveAttribute('href', 'tel:+254700000001');
   expect(screen.getByRole('link', { name: /email/i })).toHaveAttribute('href', 'mailto:desk@example.com');
   expect(screen.getByRole('link', { name: /facility website/i })).toBeInTheDocument();
-  expect(screen.queryByLabelText(/preferred date/i)).not.toBeInTheDocument();
+  // the request form is shown for illustration only: clearly labelled, and it cannot be sent
+  expect(screen.getByText(/preview only: online booking is not available at this facility yet/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/preferred date/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /send request \(not available\)/i })).toBeDisabled();
   expect(screen.getByRole('link', { name: /find participating facilities/i })).toHaveAttribute('href', '/find-care/facilities?accepts_requests=true');
 });
 
@@ -92,4 +95,15 @@ it('says "No patient reviews yet" only where external public feedback exists', (
   wrap(<FacilityCard facility={facility({ rating: null })} hasPublicFeedback />);
   expect(screen.getByText('No patient reviews yet')).toBeInTheDocument();
   expect(screen.queryByText('No reviews yet')).not.toBeInTheDocument();
+});
+
+it('never sends a request from the preview form, even when it is submitted', () => {
+  const send = vi.spyOn(api, 'requestAppointment').mockResolvedValue({ reference: 'APT-NOPE01' });
+  wrap(<BookingContactModal facility={facility({ accepts_appointment_requests: false, services: [{ slug: 'antenatal', name: 'Antenatal care' }],
+    practitioners: [{ slug: 'dr-fixture', full_name: 'Fixture Doctor', title: 'Dr', specialty: 'Obstetrics' }] })} onClose={vi.fn()} />);
+  expect(screen.getByLabelText('Service')).toBeInTheDocument();
+  expect(screen.getByLabelText('Practitioner')).toBeInTheDocument();
+  fireEvent.submit(screen.getByRole('form', { name: /appointment request preview/i }));
+  expect(send).not.toHaveBeenCalled();
+  expect(screen.queryByText(/request sent/i)).not.toBeInTheDocument();
 });
