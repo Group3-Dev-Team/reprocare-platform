@@ -77,20 +77,26 @@ def list_towns(
 @router.get("/stats")
 def platform_stats(db: Session = Depends(get_db)):
     """Counts shown on the homepage. Demonstration records are counted separately so nothing is overstated."""
+    # One round trip instead of nine: the database is remote, so each separate query added network latency.
     def count(model, *where):
-        return db.scalar(select(func.count()).select_from(model).where(*where)) or 0
+        return select(func.count()).select_from(model).where(*where).scalar_subquery()
 
-    return {
-        "facilities": count(Facility),
-        "facilities_demo": count(Facility, Facility.is_demo.is_(True)),
-        "registry_matched": count(Facility, Facility.registration_status == "matched"),
-        "practitioners": count(Practitioner),
-        "laboratories": count(Facility, Facility.facility_type == "laboratory"),
-        "upcoming_programs": count(CommunityProgram, CommunityProgram.status == "published", CommunityProgram.start_date >= date.today()),
-        "published_reviews": count(Review, Review.status == "published"),
-        "towns": db.scalar(select(func.count(func.distinct(Facility.town)))) or 0,
-        "services": count(Service),
-    }
+    row = db.execute(
+        select(
+            func.count(Facility.id).label("facilities"),
+            func.count(Facility.id).filter(Facility.is_demo.is_(True)).label("facilities_demo"),
+            func.count(Facility.id).filter(Facility.registration_status == "matched").label("registry_matched"),
+            func.count(Facility.id).filter(Facility.facility_type == "laboratory").label("laboratories"),
+            func.count(func.distinct(Facility.town)).label("towns"),
+            count(Practitioner).label("practitioners"),
+            count(CommunityProgram, CommunityProgram.status == "published", CommunityProgram.start_date >= date.today()).label("upcoming_programs"),
+            count(Review, Review.status == "published").label("published_reviews"),
+            count(Service).label("services"),
+        ).select_from(Facility)
+    ).one()._mapping
+    keys = ("facilities", "facilities_demo", "registry_matched", "practitioners", "laboratories", "upcoming_programs",
+            "published_reviews", "towns", "services")
+    return {key: int(row[key] or 0) for key in keys}
 
 
 @router.get("/counties")
