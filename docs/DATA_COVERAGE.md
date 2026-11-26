@@ -13,14 +13,14 @@ installation contains, and how to add verified data.
 | Laboratory test menus | `lab_tests` rows per laboratory | Laboratory pages show the listing without a test menu. The service slug `lab` (Laboratory tests) and the facility type `laboratory` are separate fields. |
 | Specialists and practitioners | `practitioners` rows with registration evidence | The Specialists page shows "Practitioner profiles are not listed yet". |
 | Appointment requests | `facilities.accepts_appointment_requests` and active staff accounts linked to the facility | Listings show "Contact facility" (phone, email or website) instead of "Request appointment". No facility publishes bookable time slots, so the application never offers instant booking. |
-| Google ratings | `facility_external_profiles` snapshots from Google Places | No rating is shown. Ratings and written reviews are separate; a rating count is not a count of written reviews. |
-| Public reviews (Facebook, TikTok, Instagram) | `external_posts` and `external_comments` with an approved moderation decision and attribution scope | Each source tab shows an accurate empty state. Organization-wide posts are never counted as branch feedback. |
+| Google ratings | Stored snapshots in `facility_external_profiles` or live results for a linked Place ID | A listing may have no rating. Written reviews load separately on request. |
+| Public comments (Facebook and TikTok) | Published `external_posts` and visible `external_comments` | Source tabs show empty states. Organization-wide posts appear separately from branch feedback. Instagram capture is a local demonstration. |
 | Community programmes, costs and coverage | `community_programs` rows maintained by administrators | Programme pages show an empty state. Costs are only displayed where a programme lists them. |
 | Inpatient / outpatient setting | No field yet | Not offered as a filter until verified data and a schema change are approved. |
 
-The directory imported through the bot (Google Places) supplies names, types, locations, coordinates, contacts,
-opening hours and rating snapshots. It does not supply service, insurer, laboratory-menu or practitioner
-relationships. Those must come from facilities, regulators or other permitted authoritative sources.
+Directory records include historical Ministry of Health registry entries, OpenStreetMap entries and facility-page
+listings. A historical registry identity does not establish current operations or service availability. Confirm
+services, insurance, test menus and practitioner affiliations with facilities, regulators or other permitted sources.
 
 ## How to build a verified directory
 
@@ -53,8 +53,8 @@ List / Grid / Map parity checks with a small, reviewable set of facilities.
 * Use **facility** attribution only when the post or page evidence identifies that location.
 * Website-platform pages (for example a `/wix` link) and generic Facebook path categories (`people`, `brand`) are not
   facility pages. Withhold them and correct the stored profile link.
-* Public Facebook publication requires an administrator decision at `/dashboard/admin/facebook-feedback` with a note,
-  explicit comment selection and an attribution scope. On loopback in development, facility pages also show a separate,
+* Administrators review Facebook attribution and comment selection at `/dashboard/admin/facebook-feedback`. If enabled,
+  automatic screening can publish qualifying facility-linked comments. On loopback in development, facility pages show a separate,
   unreviewed collection from verified page links. This feed excludes withheld posts, hidden comments and replies whose
   eligible parent is missing. It screens for service and logistical relevance and holds poorly attributed or sensitive content.
 * Commenters are members of the public. ReproCare does not verify that they were patients, and public feedback is

@@ -10,7 +10,7 @@ Short rules so that six people can work in the same repository without stepping 
 | `backend/app/services/` | Logic reused by several routes, external API clients | Request/response parsing |
 | `backend/app/models/` | SQLAlchemy tables, grouped by area | Business rules |
 | `backend/app/schemas/` | Pydantic request bodies | Database access |
-| `backend/app/database/` | Engine/session, table creation, seed, schema export | Endpoint code |
+| `backend/app/database/` | Engine/session, migrations, reference catalogue | Endpoint code |
 | `frontend/src/pages/` | One component per route (`<Name>Page.jsx`; dashboard pages in `pages/dashboard/`) | Components reused by other pages |
 | `frontend/src/components/` | Reusable UI (`FacilityCard.jsx`, `Modal.jsx`) | Data fetching for a whole page |
 | `frontend/src/services/api.js` | Every HTTP call | Anything visual |
@@ -42,7 +42,7 @@ Short rules so that six people can work in the same repository without stepping 
 ## Git workflow
 
 1. Branch from `main`: `feature/<jira-key>-short-name` (e.g. `feature/RC-42-lab-filters`) or `fix/<jira-key>-…`.
-2. Keep changes inside your workstream's files (see `TEAM_TASKS.md`). If you must change a shared file (`App.jsx`, `api.js`, `main.py`, `tokens.css`), say so in the pull request.
+2. Use the [workstream guide](TEAM_TASKS.md) to identify related modules and reviewers. Call out shared entry-point changes in the pull request.
 3. Before opening a pull request: `pytest` (backend), `npm test && npm run build` (frontend).
 4. One reviewer from another workstream approves. Do not delete a failing test to make a build pass.
-5. If you change a model, run `python -m app.database.export_schema` and commit the updated `database/` files in the same pull request.
+5. Include any required migration with a model change. Rehearse it on a disposable database.

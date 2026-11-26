@@ -3,7 +3,7 @@
     python -m app.database.init_db           # create any missing tables
     python -m app.database.init_db --reset   # DROP everything and recreate (development only)
 
-The same table definitions are exported to database/schema.sql by `python -m app.database.export_schema`.
+The SQLAlchemy model definitions are the source of truth. The SQL under database/ is a reference snapshot.
 """
 
 import sys

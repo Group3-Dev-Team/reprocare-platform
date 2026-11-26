@@ -9,19 +9,17 @@
 | `facility_staff` | Administrator | For **their own facility only**: answer appointment requests, edit the public profile fields, reply to reviews; notifications, account settings |
 | `admin` | Administrator | Moderate reviews, manage community programmes and see registrations, handle contact messages, create staff accounts and (de)activate accounts, run and review data imports |
 
-Roles from v0.8.1 that existed only for the commercial model — *business partner (organization)* and *platform owner* — were removed. *Private practitioner* accounts were removed with the provider onboarding pages; practitioners remain as directory listings.
-
 ## Public pages
 
 | Path | Page |
 | --- | --- |
 | `/` | Home |
-| `/find-care/facilities` | Hospitals & clinics (search, filters, list/map, 40 per page) |
+| `/find-care/facilities` | Facility search and filters, with list, grid and map views |
 | `/find-care/specialists`, `/find-care/specialists/:slug` | Practitioner directory and profile |
 | `/find-care/laboratories` | Laboratory test search and laboratory list |
 | `/find-care/insurance` | Facility search starting from an insurer |
 | `/find-care/map` | Map-first facility search (click map to search nearby) |
-| `/find-care/google` | Live Google Places search (needs configuration) |
+| `/find-care/google`, `/find-care/google/place/:placeId` | Live Google Places search and listing |
 | `/facilities/:slug` | Facility detail |
 | `/compare` | Side-by-side comparison (up to three) |
 | `/health-community/free-care` | Free and subsidised programmes |
@@ -31,7 +29,7 @@ Roles from v0.8.1 that existed only for the commercial model — *business partn
 | `/patient-experiences` | Moderated reviews across facilities |
 | `/about`, `/how-it-works`, `/trust`, `/contact` | Informational pages |
 | `/privacy`, `/terms` | Legal drafts |
-| `/sign-in`, `/register` | Authentication |
+| `/sign-in`, `/register`, `/forgot-password`, `/reset-password`, `/auth/google/callback` | Authentication and recovery |
 
 ## Signed-in pages
 
@@ -39,7 +37,7 @@ Roles from v0.8.1 that existed only for the commercial model — *business partn
 | --- | --- |
 | `/dashboard`, `/dashboard/appointments`, `/dashboard/saved`, `/dashboard/registrations`, `/dashboard/reviews` | patient |
 | `/dashboard/facility`, `/dashboard/facility/appointments`, `/dashboard/facility/profile`, `/dashboard/facility/reviews` | facility_staff |
-| `/dashboard/admin`, `/dashboard/admin/reviews`, `/dashboard/admin/programmes`, `/dashboard/admin/messages`, `/dashboard/admin/users`, `/dashboard/admin/imports` | admin |
+| `/dashboard/admin`, `/dashboard/admin/reviews`, `/dashboard/admin/programmes`, `/dashboard/admin/articles`, `/dashboard/admin/facebook-feedback`, `/dashboard/admin/messages`, `/dashboard/admin/users`, `/dashboard/admin/imports` | admin |
 | `/dashboard/notifications`, `/dashboard/account` | any signed-in role |
 
 A signed-out visitor is sent to `/sign-in?next=…`; a signed-in user opening another role's area is sent to their own dashboard.
@@ -48,14 +46,14 @@ A signed-out visitor is sent to `/sign-in?next=…`; a signed-in user opening an
 
 | Method and path | Access | Purpose |
 | --- | --- | --- |
-| GET `/health`, `/stats`, `/services`, `/insurers`, `/towns` | public | Health check and reference lists |
+| GET `/health`, `/health/ready`, `/stats`, `/services`, `/insurers`, `/counties`, `/towns` | public | Health check and reference lists |
 | POST `/auth/register`, `/auth/login` | public | Create patient account / sign in (returns token) |
 | POST `/auth/logout`; GET, PATCH `/auth/me`; POST `/auth/change-password` | signed in | Session and own profile |
 | GET `/facilities`, `/facilities/markers`, `/facilities/{slug}`, `/facilities/{slug}/reviews` | public | Search (filters: q, town, county, facility_type, service, insurer, open_weekends, open_24_hours, telehealth, accepts_requests, verified_only, hide_demo, exclude_laboratories, lat, lng, radius_km, sort, page, page_size≤40) |
 | POST `/facilities/{slug}/reviews` | patient | Submit a review (pending moderation) |
 | GET `/reviews`, `/lab-tests`, `/practitioners`, `/practitioners/specialties`, `/practitioners/{slug}` | public | Directories |
 | GET `/programs`, `/programs/{slug}`; GET `/articles`, `/articles/{slug}`; POST `/contact` | public | Programmes, library, contact form |
-| POST `/appointments`; GET `/me/appointments`; POST `/me/appointments/{ref}/cancel` | patient | Appointment requests |
+| POST `/appointments`; GET `/me/appointments`; POST `/me/appointments/{ref}/cancel`, `/me/appointments/{ref}/reschedule` | patient | Appointment requests |
 | GET `/me/saved`; PUT, DELETE `/me/saved/{slug}` | patient | Saved facilities |
 | POST `/programs/{slug}/registrations`; GET `/me/registrations`; POST `/me/registrations/{ref}/cancel` | patient | Programme registrations |
 | GET `/me/reviews` | patient | Own reviews and moderation status |
@@ -68,14 +66,13 @@ A signed-out visitor is sent to `/sign-in?next=…`; a signed-in user opening an
 
 Interactive documentation with request/response examples: `http://localhost:8000/docs` (disabled in production).
 
-## Added in v2.1 — external public feedback
+## External public feedback
 
 | Method | Path | Who |
 | --- | --- | --- |
 | GET | `/api/facilities/{slug}/public-feedback` | Public |
 | GET | `/api/facilities/{slug}/public-feedback/posts` | Public (paginated, `page_size` ≤ 20) |
 | GET | `/api/external-posts/{id}/comments` | Public (paginated, `page_size` ≤ 40) |
-| GET | `/api/counties` | Public (47 counties with facility counts) |
 | POST | `/api/import/external-feedback` | Bot (`X-Import-Key`) or admin |
 
-No administration pages or endpoints were added for public feedback in this phase. The facility page gains a "Public feedback" section and a section navigation.
+The administrator dashboard includes Facebook feedback moderation. Facility pages distinguish published public comments, Google Maps information and patient reviews submitted through ReproCare.

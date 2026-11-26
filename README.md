@@ -20,8 +20,8 @@ genuine public feedback about each facility.
 - **Health information**: articles, programmes, community resources, care planning, visit preparation and health
   alerts, with clinical review notices.
 - **Public feedback pipeline**: a local bot collects public Facebook comments (Playwright, signed-in browser on the
-  operator's machine) and TikTok comments (Apify). Comments are screened for personal health details and reviewed by
-  an administrator; only approved comments are published. Instagram collection is disabled.
+  operator's machine) and TikTok comments (Apify). Screening holds sensitive material. Facebook comments wait for
+  moderation unless optional screening is enabled and approves them. Instagram is limited to offline captures.
 
 ## Architecture
 
@@ -36,15 +36,15 @@ Local bot (Playwright, Apify) → screening → admin review → approved feedba
 - `browser_bot/`: Facebook and TikTok collectors, screening and import staging.
 - `database/`: schema reference. `docs/`: architecture, database, routes and roles, data import, deployment.
 
-The hosted backend is the only component with database access. It connects to Supabase with a restricted application
-login. Team members and visitors use the website and need no database credentials or API keys.
+The hosted backend connects to Supabase with a restricted application login. The optional private bot can use the
+import API or a configured database login. Website users need no database credentials or API keys.
 
-Google content (ratings, reviews, photos) is fetched live for display with Google's attribution and is not stored,
-apart from Place IDs. Live requests have per-visitor and daily limits on the server.
+Live Google results show Google's attribution and have per-visitor and daily request limits. The directory can
+also show rating snapshots from earlier collection. Written Google reviews are fetched when requested.
 
 ## Local setup
 
-Requirements: Node.js 20+, Python 3.12, PostgreSQL 14+.
+Use Node.js 22 (22.22.2 or later) for the frontend build and tests. The backend uses Python 3.12 and PostgreSQL 14+.
 
 ```bash
 cd backend
@@ -69,13 +69,13 @@ Real values belong only in `backend/.env` and `frontend/.env.local`, which Git i
 
 ```bash
 cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_test .venv/bin/python -m pytest
-cd backend && TEST_DATABASE_URL=... .venv/bin/python -m pytest ../browser_bot/tests
+cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_bot_test .venv/bin/python -m pytest ../browser_bot/tests
 cd frontend && npx vitest run --maxWorkers=2
 ```
 
-The backend test fixture rebuilds every table in `TEST_DATABASE_URL`. A guard refuses any database whose name lacks
-`test` or `scratch`, or that matches `DATABASE_URL`. Tests use fixtures and mocked external services and make no
-network requests.
+Use dedicated local PostgreSQL databases for backend and bot tests. The backend fixture rebuilds every table in
+`TEST_DATABASE_URL`. The guard checks the database name and refuses a target that matches the database in
+`backend/.env`. Tests use fixtures and mocked external services.
 
 ## Deployment
 
@@ -84,11 +84,10 @@ PostgreSQL database. Steps and variables are in [docs/DEPLOYMENT.md](docs/DEPLOY
 
 ## Current limitations
 
-- The shared directory holds OpenStreetMap facilities. Facilities from earlier Google-based collection that have no
-  confirmed directory match are found through live Google search until independent directory records are added.
+- The directory includes historical Ministry of Health registry records, OpenStreetMap entries and facility-page
+  listings. Source labels indicate provenance. Confirm current operations and availability directly with the facility.
 - Public reviews lists facilities with approved Facebook or TikTok comments or a stored Google rating. Live Google
   ratings appear on live results and listings but are not used to filter the whole directory, because that would need
   one Google request per facility.
-- Facebook and TikTok feedback appears only after collection and administrator approval. TikTok collection has been
-  tested offline only.
+- Facebook and TikTok comments are presented as public feedback. TikTok collection has been tested offline only.
 - Google photos are off unless a daily photo limit is set. Facilities without a genuine photo keep their type icon.
