@@ -199,6 +199,12 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
             screening=screening_status,
             screening_reasons=reasons,
         )
+        if batch.platform == "tiktok" and not item.author_is_facility:
+            # TikTok has no moderation queue: the same rules decide; only relevant, non-sensitive comments are shown.
+            decision = classify(text, facility.name, batch.post.caption or "", is_reply=parent_id is not None)
+            if comment.status != "held":  # anything the existing screening holds stays held
+                comment.status = {PUBLISH: "visible", REVIEW: "held"}.get(decision.action, "hidden")
+            comment.screening_reasons = [*reasons, decision.reason]
         if page is not None:
             # Automatic screening, only for posts from the facility's own linked page that no administrator has decided on.
             by_facility = item.author_is_facility or is_facility_author(item.author_name, facility.name, page.external_id)

@@ -124,3 +124,16 @@ def test_public_reviews_ignores_a_linked_google_place_without_feedback_or_rating
                                        url="", display_name="", match_method="fixture", photos=[], details={}))
         db.commit()
     assert client.get("/api/facilities?has_public_reviews=true&q=Google Linked Fixture").json()["total"] == 0
+
+
+def test_tiktok_comments_are_screened(client, make_facility):
+    make_facility(slug="tiktok-screen-fixture", name="Tiktok Screen Fixture Hospital")
+    batch = {"platform": "tiktok", "facility_slug": "tiktok-screen-fixture", "post": {
+        "external_id": "7300000000000009901", "url": "https://www.tiktok.com/@fixture/video/7300000000000009901", "author_name": "@fixture",
+        "caption": "Tiktok Screen Fixture Hospital", "match_method": "caption_exact_name"}, "comments": [
+        {"external_id": "7300000000000009911", "author_name": "@a", "text": "The maternity nurses were very kind"},
+        {"external_id": "7300000000000009912", "author_name": "@b", "text": "huyo ps wenu anazunguka uko Western akijifanya ako wapi"},
+        {"external_id": "7300000000000009913", "author_name": "@c", "text": "I am a cancer victim and they sent me away"}]}
+    assert client.post("/api/import/external-feedback", headers=KEY, json={"batches": [batch]}).status_code == 200
+    _, comments = _statuses("7300000000000009901")
+    assert comments == {"7300000000000009911": "visible", "7300000000000009912": "held", "7300000000000009913": "held"}
