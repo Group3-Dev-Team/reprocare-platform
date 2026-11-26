@@ -516,13 +516,6 @@ export default function FindCarePage({ variant = 'facilities' }) {
             </div>
           )}
 
-          {publicReviews && (
-            <p className="small muted directory-filter-note">
-              Facilities with published Facebook or TikTok comments (organisation-wide ones are labelled). Google Maps ratings appear live on each card and page; Google does not allow storing them, so they do not select facilities here.
-              Written Google Maps reviews load on each facility page when you ask for them, so whether a facility has them is only known there.
-            </p>
-          )}
-
           {params.get('q') && data && (
             <p className="small muted directory-filter-note">
               These are ReproCare directory listings. Google Maps may list more places for “{params.get('q')}”: see{' '}
@@ -584,7 +577,7 @@ export default function FindCarePage({ variant = 'facilities' }) {
             <>
               <div className={view === "grid" ? "result-list directory-results-grid" : "result-list"}>
                 {data.items.map((f) => (
-                  <FacilityCard key={f.slug} facility={f} highlightService={params.get('service')} selected={selected === f.slug} onSelect={view === 'map' ? setSelected : undefined} onRequest={canBook ? setRequesting : undefined} />
+                  <FacilityCard key={f.slug} facility={f} hasPublicFeedback={publicReviews} highlightService={params.get('service')} selected={selected === f.slug} onSelect={view === 'map' ? setSelected : undefined} onRequest={canBook ? setRequesting : undefined} />
                 ))}
               </div>
               <Pagination showSummary={false}

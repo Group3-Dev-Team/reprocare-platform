@@ -84,3 +84,12 @@ it('opens the request form or the contact panel from a directory card, depending
   fireEvent.click(buttons[0]);
   expect(await screen.findByRole('heading', { name: /request an appointment/i })).toBeInTheDocument();
 });
+
+it('says "No patient reviews yet" only where external public feedback exists', () => {
+  const { unmount } = wrap(<FacilityCard facility={facility({ rating: null })} />);
+  expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+  unmount();
+  wrap(<FacilityCard facility={facility({ rating: null })} hasPublicFeedback />);
+  expect(screen.getByText('No patient reviews yet')).toBeInTheDocument();
+  expect(screen.queryByText('No reviews yet')).not.toBeInTheDocument();
+});

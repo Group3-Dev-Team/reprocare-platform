@@ -43,10 +43,12 @@ export function Stars({ value, size = 15 }) {
 
 // isDemo / demoSeed are accepted for backwards compatibility and ignored: ratings always come from real reviews.
 // eslint-disable-next-line no-unused-vars
-export function Rating({ rating, isDemo, demoSeed }) {
+// hasPublicFeedback: the facility has external public feedback (Facebook, TikTok, Google), so the empty label must
+// say that only ReproCare patient reviews are missing.
+export function Rating({ rating, isDemo, demoSeed, hasPublicFeedback = false }) {
   const average = Number(rating?.average);
   if (!rating?.count || !Number.isFinite(average)) {
-    return <span className="rating rating-unrated">No reviews yet</span>;
+    return <span className="rating rating-unrated">{hasPublicFeedback ? 'No patient reviews yet' : 'No reviews yet'}</span>;
   }
   return (
     <span className="rating">
