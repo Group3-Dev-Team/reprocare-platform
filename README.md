@@ -65,17 +65,20 @@ Optional settings stay off until configured: `GOOGLE_PLACES_API_KEY` (live Googl
 `GOOGLE_OAUTH_*` (Google sign-in) and `APIFY_API_TOKEN` (TikTok collection). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 Real values belong only in `backend/.env` and `frontend/.env.local`, which Git ignores. `VITE_` values are public.
 
+`npm run build:preview` produces a standalone HTML view of the interface. Features that require the API
+need the connected local setup above.
+
 ## Tests
 
 ```bash
-cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_test .venv/bin/python -m pytest
-cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_bot_test .venv/bin/python -m pytest ../browser_bot/tests
-cd frontend && npx vitest run --maxWorkers=2
+(cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_test .venv/bin/python -m pytest)
+(cd backend && TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/reprocare_bot_test .venv/bin/python -m pytest ../browser_bot/tests)
+(cd frontend && npm test -- --maxWorkers=2)
 ```
 
 Use dedicated local PostgreSQL databases for backend and bot tests. The backend fixture rebuilds every table in
 `TEST_DATABASE_URL`. The guard checks the database name and refuses a target that matches the database in
-`backend/.env`. Tests use fixtures and mocked external services.
+`backend/.env`. Unit and integration tests use fixtures and mocked external services. The [browser smoke test](tests/e2e_smoke.py) also describes the fixtures for testing a connected local stack.
 
 ## Deployment
 

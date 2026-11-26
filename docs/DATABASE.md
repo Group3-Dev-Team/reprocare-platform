@@ -41,7 +41,7 @@ ReproCare uses PostgreSQL and SQLAlchemy 2. The models in `backend/app/models/` 
 
 ## Demonstration data
 
-The frontend preview has an in-browser demo dataset. Backend tests create fixture rows in a disposable PostgreSQL database. The facility directory labels stored rows with `is_demo = true`. See the [import contract](DATA_IMPORT_CONTRACT.md) for fixture behaviour.
+Backend tests create fixture rows in a disposable PostgreSQL database. The offline interface preview does not connect to a database. The facility directory labels stored rows with `is_demo = true`. See the [import contract](DATA_IMPORT_CONTRACT.md) for fixture behaviour.
 
 ## External public feedback
 

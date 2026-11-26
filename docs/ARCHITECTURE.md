@@ -20,7 +20,7 @@ ReproCare has a React single-page app, a FastAPI JSON API and a PostgreSQL datab
 * **App-wide state** — contexts handle authentication, saved facilities, comparisons and notifications shown in the UI. Shareable filters live in the URL query string.
 * **Styling** — plain CSS. `styles/tokens.css` defines colours, type scale, spacing, radii and shadows; all other files use the variables. `components.css` holds shared components, `layout.css` the site chrome, `pages.css` page-specific styles, `dashboard.css` the signed-in workspace.
 * **Maps** — `components/MapView.jsx` wraps Leaflet with OpenStreetMap tiles for ReproCare's own records (stored coordinates only). Google Places results use `components/GooglePlacesMap.jsx` because Google's terms require Google data on a Google map.
-* **Preview build** — `npm run build:preview` swaps the network for `services/demoServer.js`, an in-browser imitation of the API with its own demo data, and inlines everything into one HTML file. Normal builds exclude it.
+* **Preview build** — `npm run build:preview` bundles the interface into a single HTML file. The in-browser API stub answers health checks only. Use the connected build for directory results, accounts, appointments and other API-backed features.
 
 ## Backend
 
