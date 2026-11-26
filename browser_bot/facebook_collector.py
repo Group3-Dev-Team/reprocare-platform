@@ -33,17 +33,26 @@ MORE_COMMENTS = re.compile(
 )
 
 
+REPLY_TARGET = re.compile(r"\s+to\s+.+?'s\s+(?:comment|reply)$", re.IGNORECASE)
+
+
+def _author(name: str) -> str:
+    """'Jane Doe to Ann Kim's comment' -> 'Jane Doe' (the reply's own author, not the person it answers)."""
+    return REPLY_TARGET.sub("", (name or "").strip()).strip()
+
+
 def parse_aria_label(label: str, now: datetime | None = None) -> dict:
     """'Comment by Jane Doe 3 weeks ago' -> {'author': 'Jane Doe', 'is_reply': False, 'published_at': <approx>}."""
     match = AGE.match((label or "").strip())
     if not match:
         by = re.match(r"^(Comment|Reply) by (.+)$", (label or "").strip(), re.IGNORECASE)
-        return {"author": by.group(2).strip() if by else "", "is_reply": bool(by and by.group(1).lower() == "reply"), "published_at": None}
+        return {"author": _author(by.group(2)) if by else "",
+                "is_reply": bool(by and (by.group(1).lower() == "reply" or REPLY_TARGET.search(by.group(2)))), "published_at": None}
     n = 1 if match["n"].lower() in {"a", "an"} else int(match["n"])
     now = now or datetime.now(timezone.utc)
     return {
-        "author": match["name"].strip(),
-        "is_reply": match["kind"].lower() == "reply",
+        "author": _author(match["name"]),
+        "is_reply": match["kind"].lower() == "reply" or bool(REPLY_TARGET.search(match["name"])),
         "published_at": (now - timedelta(seconds=n * UNIT_SECONDS[match["unit"].lower()])).isoformat(),
     }
 

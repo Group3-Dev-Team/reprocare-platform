@@ -32,6 +32,9 @@ class Settings:
     google_places_live_daily_limit: int = int(os.getenv("GOOGLE_PLACES_LIVE_DAILY_LIMIT", "200"))
     # Card and listing photos (Place Photos is billed per image). 0 keeps photos off.
     google_places_photo_daily_limit: int = int(os.getenv("GOOGLE_PLACES_PHOTO_DAILY_LIMIT", "0"))
+    # Imported Facebook comments are screened automatically (feedback_auto_screen): relevant ones are published,
+    # sensitive or uncertain ones held for an administrator, the rest hidden. Off: every Facebook comment waits.
+    facebook_auto_screening: bool = _bool("FACEBOOK_AUTO_SCREENING")
 
     google_oauth_enabled: bool = _bool("GOOGLE_OAUTH_ENABLED")
     google_oauth_client_id: str = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()

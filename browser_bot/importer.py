@@ -62,11 +62,35 @@ def import_direct(raw: list[dict], label: str = "import") -> dict:
     return result
 
 
+def _portable(raw: list[dict]) -> list[dict]:
+    """Facility slugs differ between this machine's database and the hosted one; the Google Place ID is shared.
+
+    Each batch whose facility has a linked Google place is sent with that Place ID instead of the local slug, so the
+    hosted API attributes it to the same facility. Batches without one keep their slug.
+    """
+    slugs = {b.get("facility_slug") for b in raw if b.get("facility_slug") and not b.get("google_place_id")}
+    if not slugs:
+        return raw
+    from sqlalchemy import select
+
+    from app.models import Facility, FacilityExternalProfile
+
+    with SessionLocal() as db:
+        place = dict(db.execute(
+            select(Facility.slug, FacilityExternalProfile.external_id)
+            .join(FacilityExternalProfile, FacilityExternalProfile.facility_id == Facility.id)
+            .where(Facility.slug.in_(slugs), FacilityExternalProfile.platform == "google")
+        ).all())
+    return [{**{k: v for k, v in b.items() if k != "facility_slug"}, "google_place_id": place[b["facility_slug"]]}
+            if b.get("facility_slug") in place else b for b in raw]
+
+
 def import_http(raw: list[dict], api: str) -> dict:
     """For a bot running on another machine. Facility names must already be resolved to slugs."""
     key = bot_config.import_key()
     if not key:
         raise SystemExit("IMPORT_API_KEY is not set; it is required for --api imports")
+    raw = _portable(raw)
     unresolved = [b for b in raw if not b.get("facility_slug") and not b.get("google_place_id")]
     raw = [b for b in raw if b not in unresolved]
     totals = {"received": 0, "imported": 0, "comments_created": 0, "comments_skipped": 0, "comments_unlinked": 0, "errors": [], "unresolved": [f"{len(unresolved)} legacy batches need a direct import"] if unresolved else []}

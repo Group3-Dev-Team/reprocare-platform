@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session, aliased
 
 from app.models import ExternalCollectionRun, ExternalComment, ExternalPost, Facility, FacilityExternalProfile
 from app.schemas.external import ExternalBatchIn
+from app.config import settings
+from app.services.feedback_auto_screen import PHONE_ANY, PUBLISH, REVIEW, classify, is_facility_author
 from app.services.feedback_screening import EMAIL, PHONE, needs_holding, screen_feedback
 
 PLATFORM_HOSTS = {
@@ -147,6 +149,9 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
     }
     created = skipped = empty = unlinked = 0
     by_external_id: dict[str, ExternalComment] = {}
+    auto = batch.platform == "facebook" and settings.facebook_auto_screening and post.facebook_reviewed_at is None
+    page = _facebook_page_profile(db, facility, batch.post.url) if auto else None
+    published_any = False
     # Top-level comments first so replies can point at their parent.
     ordered = sorted(batch.comments, key=lambda c: c.parent_external_id is not None)
     for item in ordered:
@@ -194,11 +199,31 @@ def import_batch(db: Session, batch: ExternalBatchIn) -> dict:
             screening=screening_status,
             screening_reasons=reasons,
         )
+        if page is not None:
+            # Automatic screening, only for posts from the facility's own linked page that no administrator has decided on.
+            by_facility = item.author_is_facility or is_facility_author(item.author_name, facility.name, page.external_id)
+            decision = classify(text, facility.name, batch.post.caption or "", by_facility=by_facility, is_reply=parent_id is not None)
+            parent_visible = parent_id is None or db.scalar(select(ExternalComment.status).where(ExternalComment.id == parent_id)) == "visible"
+            if decision.action == PUBLISH and parent_visible:
+                comment.status, comment.screening = "visible", "candidate"
+                published_any = True
+            elif decision.action == REVIEW or (decision.action == PUBLISH and not parent_visible):
+                comment.status, comment.screening = "held", "needs_review"
+            else:
+                comment.status, comment.screening = "hidden", "irrelevant"
+            comment.author_is_facility = by_facility
+            comment.screening_reasons = [decision.reason]
         db.add(comment)
         db.flush()
         by_external_id[item.external_id] = comment
         created += 1
 
+    if page is not None and published_any and post.facebook_scope is None:
+        organisation = page.match_method == "organization_page" or (db.scalar(
+            select(func.count(func.distinct(FacilityExternalProfile.facility_id))).where(
+                FacilityExternalProfile.platform == "facebook", FacilityExternalProfile.external_id == page.external_id)) or 0) > 1
+        post.is_visible, post.facebook_scope = True, "organization" if organisation else "facility"
+        post.facebook_reviewed_at, post.facebook_review_note = _now(), "Automatic screening"
     return {
         "facility": facility.slug,
         "post_id": post.id,
@@ -246,9 +271,19 @@ def display_author(name: str, is_facility: bool) -> str:
     return f"{parts[0][:30]} {parts[-1][0].upper()}."
 
 
+def _facebook_page_profile(db: Session, facility: Facility, url: str) -> FacilityExternalProfile | None:
+    """The facility's linked Facebook profile whose page published this post, or None (then nothing is automatic)."""
+    path = [part for part in (urlparse(url).path or "").split("/") if part]
+    if not path or path[0].lower() in {"permalink.php", "story.php", "photo.php", "watch", "groups"}:
+        return None
+    return db.scalar(select(FacilityExternalProfile).where(
+        FacilityExternalProfile.facility_id == facility.id, FacilityExternalProfile.platform == "facebook",
+        func.lower(FacilityExternalProfile.external_id) == path[0].lower()))
+
+
 def mask_contact_details(text: str) -> str:
     """Data minimisation on display: hide phone numbers and email addresses that people posted publicly."""
-    text = PHONE.sub("[phone number hidden]", text)
+    text = PHONE_ANY.sub("[phone number hidden]", PHONE.sub("[phone number hidden]", text))
     return EMAIL.sub("[email hidden]", text)
 
 
