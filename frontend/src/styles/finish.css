@@ -1,0 +1,69 @@
+/* Final visual refinement: tokens and surface treatment only. No layout, spacing or behaviour changes.
+   Light theme only; the dark theme keeps its own values. Remove this file and its import to revert. */
+:root:not([data-theme="dark"]) {
+  /* Five coordinated families: brand blue, teal, care green, cool neutrals, warm accent */
+  --teal-50: #ecf8f7; --teal-100: #cdeeea; --teal-500: #1f9a8f; --teal-600: #157a72;
+  --green-50: #eef8f1; --green-100: #d3eedb;
+  --sand-50: #fbf7f1; --sand-100: #f3e8d8; --amber-500: #c9852b;
+  --border: #d6dfec; --border-soft: #e4eaf3; --border-strong: #b7c4d9;
+  --text-muted: #44566f;
+  --radius-md: 10px; --radius-lg: 14px;
+  --shadow-card: 0 1px 2px rgba(19, 33, 58, .05), 0 6px 18px -10px rgba(34, 58, 101, .22);
+  --shadow-card-hover: 0 2px 4px rgba(19, 33, 58, .06), 0 14px 30px -14px rgba(34, 58, 101, .32);
+  --focus-ring: 0 0 0 3px rgba(31, 154, 143, .32);
+}
+
+/* Surfaces: crisp hairline border, soft layered shadow, gentle hover lift without movement */
+:root:not([data-theme="dark"]) .panel,
+:root:not([data-theme="dark"]) .facility-card {
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .18s ease, border-color .18s ease;
+}
+:root:not([data-theme="dark"]) .facility-card:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-card-hover);
+}
+/* Section headings in panels get a thin teal rule for hierarchy */
+:root:not([data-theme="dark"]) .panel > h2:first-child,
+:root:not([data-theme="dark"]) .panel-title h2 {
+  text-decoration: underline 2px var(--teal-100);
+  text-underline-offset: 7px;
+}
+
+/* Buttons: same shapes and colours, refined depth and focus */
+:root:not([data-theme="dark"]) .btn-primary {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 6px 14px -8px rgba(34, 58, 101, .55);
+}
+:root:not([data-theme="dark"]) .btn-secondary:hover { border-color: var(--teal-500); }
+:root:not([data-theme="dark"]) .btn:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+
+/* Form fields and filters: calmer border, teal focus */
+:root:not([data-theme="dark"]) .input,
+:root:not([data-theme="dark"]) .select,
+:root:not([data-theme="dark"]) textarea { border-color: var(--border); }
+:root:not([data-theme="dark"]) .input:hover,
+:root:not([data-theme="dark"]) .select:hover { border-color: var(--border-strong); }
+:root:not([data-theme="dark"]) .input:focus,
+:root:not([data-theme="dark"]) .select:focus,
+:root:not([data-theme="dark"]) textarea:focus { border-color: var(--teal-500); box-shadow: var(--focus-ring); }
+
+/* Hero: same image, text and positions; a softer coordinated backdrop and a framed image */
+:root:not([data-theme="dark"]) .home-hero {
+  background-image: radial-gradient(60% 80% at 100% 0%, rgba(31, 154, 143, .10), transparent 70%),
+                    radial-gradient(50% 70% at 0% 100%, rgba(201, 133, 43, .06), transparent 70%);
+  border-bottom: 1px solid var(--border-soft);
+}
+:root:not([data-theme="dark"]) .home-hero-art img {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 40px -22px rgba(34, 58, 101, .45);
+  outline: 1px solid rgba(255, 255, 255, .6);
+  outline-offset: -1px;
+}
+
+/* Badges and callouts: coordinated tints */
+:root:not([data-theme="dark"]) .badge-success { background: var(--green-50); border-color: var(--green-100); }
+:root:not([data-theme="dark"]) .callout-neutral { background: linear-gradient(180deg, #f6f9fd, var(--surface)); border-color: var(--border-soft); }
+
+/* Guard against stray horizontal overflow from long words in cards */
+.facility-card, .panel { overflow-wrap: anywhere; }
