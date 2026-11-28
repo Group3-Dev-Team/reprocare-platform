@@ -37,7 +37,6 @@ export default function AccountSettings() {
   const [busy, setBusy] = useState(null); // 'profile' | 'password' | 'everywhere'
   const doSignOut = useSignOut();
   const navigate = useNavigate();
-  // save button only works when something changed
   const dirty =
     profile.full_name !== user.full_name ||
     profile.phone !== (user.phone || "");

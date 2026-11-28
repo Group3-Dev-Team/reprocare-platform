@@ -72,8 +72,6 @@ def read_batches() -> list[tuple[Path, dict]]:
     return [(path, batch) for path in sorted(BATCHES.glob("*/*.json")) for batch in read_batch(path)]
 
 
-# --------------------------------------------------------------------------- legacy staging formats
-
 def legacy_facebook() -> list[dict]:
     """The legacy scripts: list of {facility, platform, text, source_url, collected_at} per file. Validated as in feedback_pipeline.py."""
     if not LEGACY_FACEBOOK_DIR.is_dir():

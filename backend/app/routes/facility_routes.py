@@ -81,7 +81,7 @@ def search_facilities(
     return result
 
 
-# The map groups nearby pins, so it can show the whole directory (2,286 facilities in the combined dataset).
+# The frontend clusters nearby markers for display.
 MAX_MAP_MARKERS = 3000
 
 

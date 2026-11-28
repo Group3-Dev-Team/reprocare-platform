@@ -56,7 +56,7 @@ def get_article(slug: str, db: Session = Depends(get_db)):
     return article_to_dict(article, full=True)
 
 
-# --- Administrators: write health library articles ------------------------------------------------
+# Article administration
 
 
 def _related_services(db: Session, slugs: list[str]) -> str:
@@ -116,7 +116,6 @@ def create_article(body: ArticleCreate, user: User = Depends(admin_only), db: Se
     slug, n = base, 2
     while db.scalar(select(Article.id).where(Article.slug == slug)):
         slug, n = f"{base}-{n}", n + 1
-    # New articles start as drafts; an administrator publishes them when they are ready.
     article = Article(slug=slug, related_services=related, updated_on=date.today(), is_published=False, **body.stored_fields())
     db.add(article)
     try:
@@ -143,7 +142,7 @@ def update_article(slug: str, body: ArticleUpdate, user: User = Depends(admin_on
     return admin_article_to_dict(article, full=True)
 
 
-# --- Contact Us -------------------------------------------------------------------------------------
+# Contact messages
 
 
 def _limit_contact(request: Request, email: str) -> None:

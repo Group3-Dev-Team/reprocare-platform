@@ -103,7 +103,6 @@ const toForm = (a) => ({
 
 const shownFields = ["title", "category", "summary", "read_minutes", "review_status"];
 
-// admin page to write health library articles and choose which ones the public can read
 export default function AdminArticles() {
   useDocumentTitle("Health library articles");
   const toast = useToast();
