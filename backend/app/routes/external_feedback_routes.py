@@ -45,8 +45,6 @@ def _visible_comment():
     return (ExternalComment.post_id == ExternalPost.id) & viewable_comment()
 
 
-# --------------------------------------------------------------------------- public
-
 @router.get("/facilities/{slug}/public-feedback")
 def public_feedback_summary(slug: str, db: Session = Depends(get_db)):
     facility = _facility(db, slug)
@@ -182,8 +180,6 @@ def comment_page(db, post, page, page_size, statuses=("visible",)):
     result["post"] = post_to_dict(post, visible_comment_counts(db, [post.id], statuses).get(post.id, 0))
     return result
 
-
-# --------------------------------------------------------------------------- bot import
 
 @router.post("/import/external-feedback")
 def import_external_feedback(

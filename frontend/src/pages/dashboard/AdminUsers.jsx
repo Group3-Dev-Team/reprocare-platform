@@ -13,7 +13,6 @@ import { Alert, ErrorState, LoadingState } from "../../components/Feedback";
 import { Pagination } from "../../components/Pagination";
 import { useToast } from "../../components/Toast";
 
-// admin page to see all accounts, create staff accounts and turn accounts on or off
 export default function AdminUsers() {
   useDocumentTitle("Accounts");
   const { user: me } = useAuth();
@@ -25,8 +24,7 @@ export default function AdminUsers() {
     () => api.adminUsers({ role, q, page }),
     [role, q, page],
   );
-  // facilities for the dropdown when creating a staff account; the search reaches every
-  // facility, not only the first 40 by name
+  // Search the full directory before applying the 40-result limit.
   const [facilityQuery, setFacilityQuery] = useState("");
   const facilities = useFetch(
     () =>
@@ -241,7 +239,6 @@ export default function AdminUsers() {
                   label="Find facility"
                   value={facilityQuery}
                   onChange={(e) => {
-                    // a new search starts a new choice
                     setFacilityQuery(e.target.value);
                     setForm({ ...form, facility_slug: "" });
                   }}

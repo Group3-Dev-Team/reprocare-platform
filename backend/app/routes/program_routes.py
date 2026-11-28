@@ -175,9 +175,6 @@ def cancel_registration(reference: str, user: User = Depends(require_role("patie
     return registration_to_dict(registration)
 
 
-# --- Administrators -------------------------------------------------------------------------------
-
-
 @router.get("/admin/programs")
 def admin_programs(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     rows = db.scalars(select(CommunityProgram).options(*LOAD).order_by(CommunityProgram.start_date.desc())).all()

@@ -92,8 +92,6 @@ def place_details(place_id: str, refresh: bool = False) -> dict | None:
     return cached_request("details:" + place_id, lambda: _get(DETAILS_URL.format(place_id=place_id), DETAIL_FIELDS), refresh=refresh)
 
 
-# --------------------------------------------------------------------------- shaping
-
 FACILITY_KEYWORDS = (
     ("maternity_home", ("maternity", "nursing home")),
     ("laboratory", ("laborator", "diagnostic", "pathology", "lab ")),

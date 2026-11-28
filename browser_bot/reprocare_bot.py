@@ -40,8 +40,6 @@ def log(*parts):
     print(*parts, flush=True)
 
 
-# --------------------------------------------------------------------------- facility selection
-
 def _with_profile(platform: str):
     return Facility.id.in_(select(FacilityExternalProfile.facility_id).where(FacilityExternalProfile.platform == platform))
 
@@ -100,8 +98,6 @@ def offer_login(url: str) -> bool:
     login_session(url)
     return True
 
-
-# --------------------------------------------------------------------------- commands
 
 def cmd_status(args):
     from places_cache import DAILY_LIMIT, requests_today

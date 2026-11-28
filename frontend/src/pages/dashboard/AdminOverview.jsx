@@ -14,7 +14,6 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { DashboardHeader, StatCard } from "../../components/DashboardParts";
 import { ErrorState, LoadingState } from "../../components/Feedback";
 
-// admin home page: numbers from /api/admin/overview and quick links
 export default function AdminOverview() {
   useDocumentTitle("Platform operations");
   const o = useFetch(() => api.adminOverview(), []);
