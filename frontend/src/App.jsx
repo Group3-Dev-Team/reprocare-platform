@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -8,6 +8,12 @@ import NotFoundPage from "./pages/NotFoundPage";
 import { PrivacyPage, TermsPage } from "./pages/LegalPages";
 import { LoadingState } from "./components/Feedback";
 import { RouteMetadata } from "./hooks/useDocumentTitle";
+
+// Keeps the query string and hash, so links such as /find-care?has_public_reviews=true keep their filters.
+function FindCareRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: "/find-care/facilities", search, hash }} replace />;
+}
 
 // Facility discovery, maps and specialists (SCRUM-14)
 const FindCarePage = lazy(() => import("./pages/FindCarePage"));
@@ -76,7 +82,7 @@ export default function App() {
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="find-care" element={<Navigate to="/find-care/facilities" replace />} />
+          <Route path="find-care" element={<FindCareRedirect />} />
           <Route path="find-care/facilities" element={<FindCarePage variant="facilities" />} />
           <Route path="find-care/insurance" element={<FindCarePage variant="insurance" />} />
           <Route path="find-care/map" element={<FindCarePage variant="map" />} />
